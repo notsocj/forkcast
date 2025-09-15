@@ -7,6 +7,36 @@ It provides **personalized meal planning**, **localized Filipino recipes**, **ma
 The app leverages **FNRI/PDRI nutrition rules** and integrates real-time market price data to deliver **budget-aware, health-conscious meal planning**.
 
 ---
+## Themes
+
+## Color Palette
+-- Define app colors in lib/core/theme/app_colors.dart:
+class AppColors {
+  static const Color primaryBackground = Color(0xFFF5F5EE);
+  static const Color primaryAccent = Color(0xFFFF9386);
+  static const Color white = Color(0xFFFFFFFF);
+  static const Color grayText = Color(0xFF676767);
+  static const Color successGreen = Color(0xFF91C789);
+}
+
+## Fonts
+-- Define in pubspec.yaml and use in TextStyle:
+flutter:
+  fonts:
+    - family: Lato
+      fonts:
+        - asset: assets/fonts/Lato-Regular.ttf
+        - asset: assets/fonts/Lato-Bold.ttf
+    - family: OpenSans
+      fonts:
+        - asset: assets/fonts/OpenSans-Regular.ttf
+        - asset: assets/fonts/OpenSans-Bold.ttf
+    - family: Montserrat
+      fonts:
+        - asset: assets/fonts/Montserrat-Regular.ttf
+        - asset: assets/fonts/Montserrat-Bold.ttf
+
+---
 
 ## Folder Structure (Android App - Flutter)
 Follow this structure to ensure modular, maintainable code:

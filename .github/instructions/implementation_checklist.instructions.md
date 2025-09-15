@@ -70,6 +70,7 @@ applyTo: '**'
 ## Copilot Implementation Checklist
 
 - [ ] **Auth Features**
+  - [ ] `splash_screen.dart` make a simple splash screen
   - [ ] `login_page.dart` implemented & integrated with Firebase Auth
   - [ ] `sign_up_page.dart` implemented & validated
   - [ ] `forgot_password_flow` implemented (OTP → Reset → Confirmation)
