@@ -188,6 +188,12 @@ flutter doctor             # Check Flutter/Android SDK setup
 -- Use flutter logs for device logs.
 -- Use Flutter DevTools for widget tree, performance, and network inspection.
 
+# Important Notes
+- Always update the implementation_checklist.instruction.md file every time you made a change or already integrated an implementation.
+- Use consistent naming: `snake_case` for files, `PascalCase` for classes, `camelCase` for variables.
+- Validate Firebase fields against the defined schema when creating/updating documents.
+
+
 ---
 
 # Pages & Folder Structure (Flutter)

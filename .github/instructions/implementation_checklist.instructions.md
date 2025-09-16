@@ -117,7 +117,7 @@ applyTo: '**'
 ---
 
 ### Notes for Copilot
-- Update `implementation_checklist.instructions.md` automatically on adding a new feature or page.
+- Update `implementation_checklist.instructions.md` automatically after adding a new feature or page.
 - Each new page or service added should include checklist items under the relevant section.
 - Use consistent naming: `snake_case` for files, `PascalCase` for classes, `camelCase` for variables.
 - Validate Firebase fields against the defined schema when creating/updating documents.
