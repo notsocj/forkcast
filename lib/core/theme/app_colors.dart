@@ -7,6 +7,7 @@ class AppColors {
   static const Color white = Color(0xFFFFFFFF);
   static const Color grayText = Color(0xFF676767);
   static const Color successGreen = Color(0xFF91C789);
+  static const Color purpleAccent = Color(0xFF8B5CF6);
   
   // Additional colors for better app theming
   static const Color blackText = Color(0xFF000000);

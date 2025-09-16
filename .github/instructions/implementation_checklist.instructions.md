@@ -69,14 +69,20 @@ applyTo: '**'
 
 ## Copilot Implementation Checklist
 
-- [ ] **Auth Features**
-  - [ ] `splash_screen.dart` make a simple splash screen
-  - [ ] `login_page.dart` implemented & integrated with Firebase Auth
-  - [ ] `sign_up_page.dart` implemented & validated
-  - [ ] `forgot_password_flow` implemented (OTP → Reset → Confirmation)
-- [ ] **Profile Features**
-  - [ ] Profile setup pages implemented (`name`, `gender`, `bday`, `height`, `weight`, `budget`, `household`, `health conditions`)
-  - [ ] Profile connected to Firestore `users` collection
+ - [x] **Auth Features**
+   - [x] `splash_screen.dart` (simple splash screen)
+   - [x] `get_started_page.dart` (social login options)
+   - [x] `sign_in_page.dart` (Firebase Auth, navigation to profile setup)
+   - [x] `sign_up_page.dart` (validated)
+   - [x] `forgot_password_flow` (OTP → Reset → Confirmation)
+     - [x] `forgot_password_page.dart`
+     - [x] `otp_code_page.dart`
+     - [x] `create_new_password_page.dart`
+     - [x] `all_set_page.dart`
+ - [x] **Profile Features**
+   - [x] Profile setup pages started
+     - [x] `name_entry_page.dart` (progress bar, purple input border, navigation from sign in)
+   - [ ] Profile connected to Firestore `users` collection
 - [ ] **Meal Planner Features**
   - [ ] Meal Plan Page (`meal_plan_page.dart`) implemented
   - [ ] Meal Page logging & nutrition facts implemented (`meal_page.dart`)
