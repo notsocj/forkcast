@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "316463308931",
+    "project_id": "forkcast-89100",
+    "storage_bucket": "forkcast-89100.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:316463308931:android:ba16c26ecbdd28391e7bb6",
+        "android_client_info": {
+          "package_name": "com.forkcast.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAeQ1eEFC903pD10IWZRrQLZ8Jn6xyLiOo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

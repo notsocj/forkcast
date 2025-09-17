@@ -3,6 +3,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
 import 'forgot_password/forgot_password_page.dart';
 import '../profile_setup/name_entry_page.dart';
+import '../../services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -391,14 +393,56 @@ class _SignInPageState extends State<SignInPage> {
     );
   }
 
-  void _handleSignIn() {
+  void _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement sign in logic with Firebase Auth
-      // For now, navigate to profile setup
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const NameEntryPage()),
-      );
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+
+      try {
+        // Sign in with Firebase Auth
+        final authService = AuthService();
+        final userCredential = await authService.signIn(email, password);
+        
+        if (userCredential.user != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Sign in successful!'),
+              backgroundColor: AppColors.successGreen,
+            ),
+          );
+
+          // Navigate to profile setup or home based on user profile completion
+          // For now, navigate to name entry page
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const NameEntryPage()),
+          );
+        }
+      } on FirebaseAuthException catch (e) {
+        String message = 'Sign in failed';
+        if (e.code == 'user-not-found') {
+          message = 'No user found for that email';
+        } else if (e.code == 'wrong-password') {
+          message = 'Wrong password provided';
+        } else if (e.code == 'invalid-email') {
+          message = 'Invalid email format';
+        } else if (e.code == 'user-disabled') {
+          message = 'This user account has been disabled';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }

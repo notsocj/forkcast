@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
 import 'sign_in_page.dart';
+import '../../services/auth_service.dart';
+import '../../services/user_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../profile_setup/name_entry_page.dart'; 
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -393,16 +397,72 @@ class _SignUpPageState extends State<SignUpPage> {
     );
   }
 
-  void _handleSignUp() {
+  void _handleSignUp() async {
     if (_formKey.currentState!.validate()) {
-      // TODO: Implement sign up logic with Firebase Auth
-      // For now, just show a success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Sign up functionality will be implemented'),
-          backgroundColor: AppColors.successGreen,
-        ),
-      );
+      final email = _emailController.text.trim();
+      final password = _passwordController.text.trim();
+
+      try {
+        // Create user in Firebase Auth
+        final authService = AuthService();
+        final userCredential = await authService.signUp(email, password);
+        final userId = userCredential.user?.uid;
+
+        if (userId != null) {
+          // Create user document in Firestore (minimal fields for now)
+          final userService = UserService();
+          await userService.createUser(
+            userId: userId,
+            fullName: '', // Will be filled in profile setup
+            email: email,
+            passwordHash: '', // Do not store plain password, can use hash if needed
+            gender: '',
+            birthdate: DateTime.now(),
+            heightCm: 0,
+            weightKg: 0,
+            householdSize: 1,
+            weeklyBudgetMin: 0,
+            weeklyBudgetMax: 0,
+            role: 'user',
+            specialization: null,
+            createdAt: DateTime.now(),
+            phoneNumber: null,
+          );
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Account created!'),
+              backgroundColor: AppColors.successGreen,
+            ),
+          );
+
+          // Navigate to profile setup (e.g., NameEntryPage)
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const NameEntryPage()),
+          );
+        }
+      } on FirebaseAuthException catch (e) {
+        String message = 'Sign up failed';
+        if (e.code == 'email-already-in-use') {
+          message = 'Email already in use';
+        } else if (e.code == 'weak-password') {
+          message = 'Password is too weak';
+        }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 }
