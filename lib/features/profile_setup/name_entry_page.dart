@@ -36,7 +36,7 @@ class _NameEntryPageState extends State<NameEntryPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primaryBackground,
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       appBar: AppBar(
         backgroundColor: AppColors.primaryBackground,
         elevation: 0,
