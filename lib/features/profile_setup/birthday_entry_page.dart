@@ -297,15 +297,8 @@ class _BirthdayEntryPageState extends State<BirthdayEntryPage> {
   }
 
   void _handleContinue() {
-    DateTime selectedDate = DateTime(_selectedYear, _selectedMonth, _selectedDay);
-    
     // TODO: Save birthday to user profile and navigate to next setup page
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Birthday saved: ${selectedDate.toLocal().toString().split(' ')[0]}'),
-        backgroundColor: AppColors.successGreen,
-      ),
-    );
+    // Toast removed: previously showed a SnackBar after saving birthday
     // Navigate to height input page
     Navigator.push(
       context,

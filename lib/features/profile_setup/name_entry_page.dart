@@ -215,12 +215,7 @@ class _NameEntryPageState extends State<NameEntryPage> {
   void _handleContinue() {
     if (_formKey.currentState!.validate()) {
       // Save name to user profile and navigate to gender selection page
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Name saved: ${_nameController.text.trim()}'),
-          backgroundColor: AppColors.successGreen,
-        ),
-      );
+        // Toast removed: previously showed a SnackBar prompting for full name
       // Navigate to gender selection page
       Navigator.push(
         context,

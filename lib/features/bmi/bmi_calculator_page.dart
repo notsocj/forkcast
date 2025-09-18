@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
+import '../core_features/main_navigation_wrapper.dart';
 
 class BMICalculatorPage extends StatefulWidget {
   const BMICalculatorPage({super.key});
@@ -573,6 +574,11 @@ class _BMICalculatorPageState extends State<BMICalculatorPage> {
           
           // BMI Scale Reference
           _buildBMIScale(),
+          
+          const SizedBox(height: 24),
+          
+          // Continue Button
+          _buildContinueButton(),
         ],
       ),
     );
@@ -633,6 +639,54 @@ class _BMICalculatorPageState extends State<BMICalculatorPage> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildContinueButton() {
+    return Container(
+      width: double.infinity,
+      height: 56,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.primaryAccent, AppColors.primaryAccent.withOpacity(0.8)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primaryAccent.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ElevatedButton(
+        onPressed: () {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const MainNavigationWrapper(),
+            ),
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(28),
+          ),
+        ),
+        child: Text(
+          'Continue to Dashboard',
+          style: TextStyle(
+            fontFamily: AppConstants.primaryFont,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.white,
+          ),
+        ),
       ),
     );
   }

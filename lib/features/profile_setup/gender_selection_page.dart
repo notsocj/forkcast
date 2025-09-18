@@ -224,12 +224,6 @@ class _GenderSelectionPageState extends State<GenderSelectionPage> {
   void _handleContinue() {
     if (_selectedGender != null) {
       // TODO: Save gender to user profile and navigate to next setup page
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Gender saved: $_selectedGender'),
-          backgroundColor: AppColors.successGreen,
-        ),
-      );
       // Navigate to birthday entry page
       Navigator.push(
         context,
@@ -237,4 +231,5 @@ class _GenderSelectionPageState extends State<GenderSelectionPage> {
       );
     }
   }
+        // Toast removed: previously showed a SnackBar after selecting gender
 }

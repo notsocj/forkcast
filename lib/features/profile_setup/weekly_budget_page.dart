@@ -303,12 +303,7 @@ class _WeeklyBudgetPageState extends State<WeeklyBudgetPage> {
     
     if (budgetValue.isNotEmpty) {
       // TODO: Save weekly budget to user profile and navigate to next setup page
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Weekly budget saved: $budgetValue'),
-          backgroundColor: AppColors.successGreen,
-        ),
-      );
+      // Toast removed: previously showed a SnackBar after saving weekly budget
       // Navigate to household size page
       Navigator.push(
         context, 

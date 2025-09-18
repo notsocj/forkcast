@@ -335,12 +335,6 @@ class _WeightInputPageState extends State<WeightInputPage> {
 
   void _handleContinue() {
     // TODO: Save weight to user profile and navigate to next setup page
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Weight saved: ${_weightKg.toStringAsFixed(1)} kg'),
-        backgroundColor: AppColors.successGreen,
-      ),
-    );
     // Navigate to weekly budget page
     Navigator.push(
       context,

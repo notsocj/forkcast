@@ -36,6 +36,7 @@ applyTo: '**'
 
 ### Phase 4: Core Features Implementation
 - [x] BMI Calculator
+- [x] User Dashboard (home page with calorie overview, nutrient breakdown, daily meal plan, weekly progress)
 - Meal Planner & Daily Meal Plan Generator
   - Meal plan CRUD
   - Recipe subcollections
@@ -88,7 +89,17 @@ applyTo: '**'
      - [x] `weight_input_page.dart` (progress 5/8, scrollable ruler with kg/lb toggle and connected input field)
   - [x] `weekly_budget_page.dart` (progress 6/8, modern numeric input, +/- controls, custom dialog)
     - [x] Navigate medical conditions → BMI (profile flow navigation wired)
-   - [ ] Profile connected to Firestore `users` collection
+   - [x] `edit_profile_page.dart` (comprehensive profile editing with all Firebase schema fields, modern UI design)
+  - [x] Profile connected to Firestore `users` collection
+ - [x] **User Dashboard**
+   - [x] `user_dashboard_page.dart` (modern calorie overview, nutrient breakdown, daily meal plan, weekly progress)
+   - [x] Navigation from BMI Calculator to Dashboard implemented
+ - [x] **Profile Features**
+   - [x] `user_profile_page.dart` (modern profile UI with CustomScrollView, SliverAppBar, gradient headers, interactive sections)
+   - [x] Bottom Navigation Bar (6 tabs: Home, Profile, Price Monitoring, Meal Plan, Q&A Forum, Teleconsultation)
+   - [x] Main Navigation Wrapper (combines all features with bottom navigation)
+   - [x] Navigation overflow fixed (Expanded widgets, responsive text, shortened labels)
+   - [x] Modern profile design implemented (gradient headers, elevated elements, smooth scrolling)
 - [ ] **Meal Planner Features**
   - [ ] Meal Plan Page (`meal_plan_page.dart`) implemented
   - [ ] Meal Page logging & nutrition facts implemented (`meal_page.dart`)

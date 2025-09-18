@@ -260,12 +260,7 @@ class _HouseholdSizePageState extends State<HouseholdSizePage> {
   void _handleContinue() {
     if (_householdSize > 0) {
       // TODO: Save household size to user profile and navigate to next setup page
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Household size saved: $_householdSize'),
-          backgroundColor: AppColors.successGreen,
-        ),
-      );
+      // Toast removed: previously showed a SnackBar after saving household size
       // Navigate to medical conditions page
       Navigator.push(
         context, 

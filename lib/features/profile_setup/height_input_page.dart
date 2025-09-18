@@ -337,12 +337,6 @@ class _HeightInputPageState extends State<HeightInputPage> {
 
   void _handleContinue() {
     // TODO: Save height to user profile and navigate to next setup page
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Height saved: ${_heightCm.toStringAsFixed(1)} cm'),
-        backgroundColor: AppColors.successGreen,
-      ),
-    );
     // Navigate to weight input page
     Navigator.push(
       context,
