@@ -35,7 +35,7 @@ applyTo: '**'
 - Handle roles: `user`, `admin`, `professional`
 
 ### Phase 4: Core Features Implementation
-- BMI Calculator
+- [x] BMI Calculator
 - Meal Planner & Daily Meal Plan Generator
   - Meal plan CRUD
   - Recipe subcollections
@@ -81,7 +81,13 @@ applyTo: '**'
      - [x] `all_set_page.dart`
  - [x] **Profile Features**
    - [x] Profile setup pages started
-     - [x] `name_entry_page.dart` (progress bar, purple input border, navigation from sign in)
+     - [x] `name_entry_page.dart` (progress bar, centered input with shadow, navigation from sign in)
+     - [x] `gender_selection_page.dart` (progress 2/8, Male/Female/Prefer not to say options with green selection)
+     - [x] `birthday_entry_page.dart` (progress 3/8, scrollable date pickers for Month/Day/Year)
+     - [x] `height_input_page.dart` (progress 4/8, scrollable ruler with cm/ft toggle and connected input field)
+     - [x] `weight_input_page.dart` (progress 5/8, scrollable ruler with kg/lb toggle and connected input field)
+  - [x] `weekly_budget_page.dart` (progress 6/8, modern numeric input, +/- controls, custom dialog)
+    - [x] Navigate medical conditions → BMI (profile flow navigation wired)
    - [ ] Profile connected to Firestore `users` collection
 - [ ] **Meal Planner Features**
   - [ ] Meal Plan Page (`meal_plan_page.dart`) implemented

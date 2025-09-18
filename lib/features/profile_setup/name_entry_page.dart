@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
+import '../../core/widgets/progress_pill.dart';
+import 'gender_selection_page.dart';
 
 class NameEntryPage extends StatefulWidget {
   const NameEntryPage({super.key});
@@ -47,21 +49,21 @@ class _NameEntryPageState extends State<NameEntryPage> {
           ),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.darkGray,
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: const Text(
-            "1/8",
-            style: TextStyle(
-              fontFamily: AppConstants.primaryFont,
-              fontSize: 14,
-              color: AppColors.white,
-              fontWeight: FontWeight.w600,
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const ProgressPill(current: 1, total: 8, width: 200),
+            const SizedBox(width: 12),
+            const Text(
+              '1/8',
+              style: TextStyle(
+                fontFamily: AppConstants.primaryFont,
+                fontSize: 14,
+                color: AppColors.blackText,
+                fontWeight: FontWeight.w600,
+              ),
             ),
-          ),
+          ],
         ),
         centerTitle: true,
       ),
@@ -70,101 +72,138 @@ class _NameEntryPageState extends State<NameEntryPage> {
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Form(
             key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                const SizedBox(height: 40),
-                // Title
-                Text(
-                  "What's your name?",
-                  style: const TextStyle(
-                    fontFamily: AppConstants.headingFont,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 28,
-                    color: AppColors.blackText,
-                  ),
-                ),
-                const SizedBox(height: 80),
-                // Name Input Field with Purple Border
-                Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: AppColors.purpleAccent,
-                      width: 3,
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 40),
+                    // Title (centered)
+                    Center(
+                      child: Text(
+                        "What's your name?",
+                        style: const TextStyle(
+                          fontFamily: AppConstants.headingFont,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 28,
+                          color: AppColors.blackText,
+                        ),
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                    const SizedBox(height: 60),
+                    const Spacer(),
+                    // Continue Button
+                    SafeArea(
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton(
+                          onPressed: _canContinue ? _handleContinue : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _canContinue
+                                ? AppColors.successGreen
+                                : AppColors.grayText.withOpacity(0.3),
+                            foregroundColor: AppColors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            "Continue",
+                            style: TextStyle(
+                              fontFamily: AppConstants.primaryFont,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+                // Centered modern name input card
+                Center(
                   child: Container(
-                    margin: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: AppColors.grayText.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: TextFormField(
-                      controller: _nameController,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        fontFamily: AppConstants.primaryFont,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.blackText,
-                      ),
-                      decoration: InputDecoration(
-                        hintText: "Enter your full name",
-                        hintStyle: TextStyle(
-                          fontFamily: AppConstants.primaryFont,
-                          fontSize: 18,
-                          color: AppColors.grayText.withOpacity(0.7),
-                          fontWeight: FontWeight.w500,
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 20,
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Please enter your name';
-                        }
-                        if (value.trim().length < 2) {
-                          return 'Name must be at least 2 characters long';
-                        }
-                        return null;
-                      },
-                    ),
-                  ),
-                ),
-                const Spacer(),
-                // Continue Button
-                SafeArea(
-                  child: SizedBox(
                     width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _canContinue ? _handleContinue : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _canContinue 
-                            ? AppColors.successGreen 
-                            : AppColors.grayText.withOpacity(0.3),
-                        foregroundColor: AppColors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
+                    constraints: const BoxConstraints(maxWidth: 520),
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.successGreen.withOpacity(0.18), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.successGreen.withOpacity(0.08),
+                          blurRadius: 18,
+                          offset: const Offset(0, 8),
                         ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        "Continue",
-                        style: TextStyle(
-                          fontFamily: AppConstants.primaryFont,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: AppColors.successGreen.withOpacity(0.12),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: AppColors.successGreen.withOpacity(0.22)),
+                          ),
+                          child: const Center(
+                            child: Icon(
+                              Icons.person,
+                              color: AppColors.successGreen,
+                              size: 28,
+                            ),
+                          ),
                         ),
-                      ),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: TextFormField(
+                            controller: _nameController,
+                            textAlign: TextAlign.start,
+                            style: const TextStyle(
+                              fontFamily: AppConstants.primaryFont,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                              color: AppColors.blackText,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Enter your full name',
+                              hintStyle: TextStyle(
+                                color: AppColors.grayText,
+                                fontFamily: AppConstants.primaryFont,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                              suffixIcon: _nameController.text.isNotEmpty
+                                  ? IconButton(
+                                      icon: Icon(Icons.clear, color: AppColors.grayText),
+                                      onPressed: () {
+                                        _nameController.clear();
+                                      },
+                                    )
+                                  : null,
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Please enter your name';
+                              }
+                              if (value.trim().length < 2) {
+                                return 'Name must be at least 2 characters long';
+                              }
+                              return null;
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
               ],
             ),
           ),
@@ -175,15 +214,18 @@ class _NameEntryPageState extends State<NameEntryPage> {
 
   void _handleContinue() {
     if (_formKey.currentState!.validate()) {
-      // TODO: Save name to user profile and navigate to next setup page
+      // Save name to user profile and navigate to gender selection page
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Name saved: ${_nameController.text.trim()}'),
           backgroundColor: AppColors.successGreen,
         ),
       );
-      // TODO: Navigate to gender selection page
-      // Navigator.push(context, MaterialPageRoute(builder: (context) => GenderSelectionPage()));
+      // Navigate to gender selection page
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const GenderSelectionPage()),
+      );
     }
   }
 }
