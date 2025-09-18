@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
 import '../../core/widgets/progress_pill.dart';
+import '../../providers/profile_setup_provider.dart';
 import 'weekly_budget_page.dart';
 
 class WeightInputPage extends StatefulWidget {
@@ -334,7 +336,10 @@ class _WeightInputPageState extends State<WeightInputPage> {
   }
 
   void _handleContinue() {
-    // TODO: Save weight to user profile and navigate to next setup page
+    // Save weight to profile setup provider
+    final profileProvider = Provider.of<ProfileSetupProvider>(context, listen: false);
+    profileProvider.setWeight(_weightKg);
+
     // Navigate to weekly budget page
     Navigator.push(
       context,

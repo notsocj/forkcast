@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
 import '../../core/widgets/progress_pill.dart';
+import '../../providers/profile_setup_provider.dart';
 import 'medical_conditions_page.dart';
 
 class HouseholdSizePage extends StatefulWidget {
@@ -259,8 +261,10 @@ class _HouseholdSizePageState extends State<HouseholdSizePage> {
 
   void _handleContinue() {
     if (_householdSize > 0) {
-      // TODO: Save household size to user profile and navigate to next setup page
-      // Toast removed: previously showed a SnackBar after saving household size
+      // Save household size to profile setup provider
+      final profileProvider = Provider.of<ProfileSetupProvider>(context, listen: false);
+      profileProvider.setHouseholdSize(_householdSize);
+
       // Navigate to medical conditions page
       Navigator.push(
         context, 

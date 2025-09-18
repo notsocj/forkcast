@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
 import '../../core/widgets/progress_pill.dart';
+import '../../providers/profile_setup_provider.dart';
 import 'gender_selection_page.dart';
 
 class NameEntryPage extends StatefulWidget {
@@ -214,8 +216,10 @@ class _NameEntryPageState extends State<NameEntryPage> {
 
   void _handleContinue() {
     if (_formKey.currentState!.validate()) {
-      // Save name to user profile and navigate to gender selection page
-        // Toast removed: previously showed a SnackBar prompting for full name
+      // Save name to profile setup provider
+      final profileProvider = Provider.of<ProfileSetupProvider>(context, listen: false);
+      profileProvider.setFullName(_nameController.text.trim());
+
       // Navigate to gender selection page
       Navigator.push(
         context,

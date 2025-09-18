@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
 import '../../core/widgets/progress_pill.dart';
+import '../../providers/profile_setup_provider.dart';
 import 'height_input_page.dart';
 
 class BirthdayEntryPage extends StatefulWidget {
@@ -297,8 +299,11 @@ class _BirthdayEntryPageState extends State<BirthdayEntryPage> {
   }
 
   void _handleContinue() {
-    // TODO: Save birthday to user profile and navigate to next setup page
-    // Toast removed: previously showed a SnackBar after saving birthday
+    // Save birthday to profile setup provider
+    final profileProvider = Provider.of<ProfileSetupProvider>(context, listen: false);
+    final selectedDate = DateTime(_selectedYear, _selectedMonth, _selectedDay);
+    profileProvider.setBirthdate(selectedDate);
+
     // Navigate to height input page
     Navigator.push(
       context,

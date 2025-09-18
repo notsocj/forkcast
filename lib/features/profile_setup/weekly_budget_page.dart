@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
 import '../../core/widgets/progress_pill.dart';
+import '../../providers/profile_setup_provider.dart';
 import 'household_size_page.dart';
 
 class WeeklyBudgetPage extends StatefulWidget {
@@ -302,8 +304,13 @@ class _WeeklyBudgetPageState extends State<WeeklyBudgetPage> {
     String budgetValue = _budgetController.text.trim();
     
     if (budgetValue.isNotEmpty) {
-      // TODO: Save weekly budget to user profile and navigate to next setup page
-      // Toast removed: previously showed a SnackBar after saving weekly budget
+      // Save weekly budget to profile setup provider
+      final profileProvider = Provider.of<ProfileSetupProvider>(context, listen: false);
+      final budget = int.tryParse(budgetValue) ?? 0;
+      // For now, using the same value for min and max, but this could be enhanced
+      // to allow separate min/max inputs in the future
+      profileProvider.setWeeklyBudget(budget, budget);
+
       // Navigate to household size page
       Navigator.push(
         context, 

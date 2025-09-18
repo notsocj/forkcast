@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
 import '../../core/widgets/progress_pill.dart';
+import '../../providers/profile_setup_provider.dart';
 import 'weight_input_page.dart';
 
 class HeightInputPage extends StatefulWidget {
@@ -336,7 +338,10 @@ class _HeightInputPageState extends State<HeightInputPage> {
   }
 
   void _handleContinue() {
-    // TODO: Save height to user profile and navigate to next setup page
+    // Save height to profile setup provider
+    final profileProvider = Provider.of<ProfileSetupProvider>(context, listen: false);
+    profileProvider.setHeight(_heightCm);
+
     // Navigate to weight input page
     Navigator.push(
       context,

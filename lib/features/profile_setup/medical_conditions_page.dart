@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
 import '../../core/widgets/progress_pill.dart';
+import '../../providers/profile_setup_provider.dart';
 import '../bmi/bmi_calculator_page.dart';
 
 class MedicalConditionsPage extends StatefulWidget {
@@ -598,17 +600,66 @@ class _MedicalConditionsPageState extends State<MedicalConditionsPage> {
     );
   }
 
-  void _handleContinue() {
+  void _handleContinue() async {
     if (!_canContinue) return;
 
-    // TODO: Save medical condition to user profile and complete profile setup
-    // Toast removed: previously showed a SnackBar after saving medical conditions
-    // Navigate to BMI Calculator as the next step in profile flow
-    Future.delayed(const Duration(milliseconds: 350), () {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const BMICalculatorPage()),
-      );
-    });
+    // Get the profile setup provider
+    final profileProvider = Provider.of<ProfileSetupProvider>(context, listen: false);
+
+    // Build health conditions list
+    List<String> healthConditions = [];
+    if (_selectedCategory != null && _selectedCategory != 'None') {
+      if (_selectedSpecificCondition != null) {
+        if (_selectedSpecificCondition == 'Other') {
+          // For 'Other', we could add the category name or handle custom input
+          healthConditions.add('$_selectedCategory - Other');
+        } else {
+          healthConditions.add(_selectedSpecificCondition!);
+        }
+      } else {
+        // If only category selected, add the category
+        healthConditions.add(_selectedCategory!);
+      }
+    }
+
+    // Save health conditions to profile
+    profileProvider.setHealthConditions(healthConditions);
+
+    // Save the complete profile to Firebase
+    try {
+      final success = await profileProvider.saveProfile();
+      
+      if (success) {
+        // Navigate to BMI Calculator as the next step in profile flow
+        Future.delayed(const Duration(milliseconds: 350), () {
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const BMICalculatorPage()),
+            );
+          }
+        });
+      } else {
+        // Show error message if save failed
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(profileProvider.error ?? 'Failed to save profile'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Show error message for any exceptions
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving profile: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

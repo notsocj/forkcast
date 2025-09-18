@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
 import '../../core/widgets/progress_pill.dart';
+import '../../providers/profile_setup_provider.dart';
 import 'birthday_entry_page.dart';
 
 class GenderSelectionPage extends StatefulWidget {
@@ -223,7 +225,10 @@ class _GenderSelectionPageState extends State<GenderSelectionPage> {
 
   void _handleContinue() {
     if (_selectedGender != null) {
-      // TODO: Save gender to user profile and navigate to next setup page
+      // Save gender to profile setup provider
+      final profileProvider = Provider.of<ProfileSetupProvider>(context, listen: false);
+      profileProvider.setGender(_selectedGender!);
+
       // Navigate to birthday entry page
       Navigator.push(
         context,

@@ -91,6 +91,14 @@ applyTo: '**'
     - [x] Navigate medical conditions → BMI (profile flow navigation wired)
    - [x] `edit_profile_page.dart` (comprehensive profile editing with all Firebase schema fields, modern UI design)
   - [x] Profile connected to Firestore `users` collection
+  - [x] **Profile Setup Backend Integration**
+    - [x] `User` model class created (`lib/models/user.dart`) with Firebase serialization
+    - [x] `ProfileSetupProvider` created (`lib/providers/profile_setup_provider.dart`) for state management
+    - [x] `UserService` enhanced with profile updates and health conditions management
+    - [x] All profile setup pages connected to save data to ProfileSetupProvider
+    - [x] Final profile save to Firebase implemented in `medical_conditions_page.dart`
+    - [x] Provider integration added to main.dart with MultiProvider
+    - [x] Complete profile setup flow: Name → Gender → Birthday → Height → Weight → Budget → Household Size → Medical Conditions → Firebase Save → BMI Calculator
  - [x] **User Dashboard**
    - [x] `user_dashboard_page.dart` (modern calorie overview, nutrient breakdown, daily meal plan, weekly progress)
    - [x] Navigation from BMI Calculator to Dashboard implemented
