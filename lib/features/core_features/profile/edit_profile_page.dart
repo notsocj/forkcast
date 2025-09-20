@@ -216,14 +216,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.successGreen,
-            AppColors.primaryAccent,
-          ],
-        ),
+        color: AppColors.successGreen,
         borderRadius: const BorderRadius.only(
           bottomLeft: Radius.circular(18),
           bottomRight: Radius.circular(18),

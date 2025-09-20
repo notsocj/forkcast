@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../services/auth_service.dart';
+import '../../auth/sign_in_page.dart';
 import 'account_settings_page.dart';
 import 'edit_profile_page.dart';
 
@@ -14,28 +16,19 @@ class _UserProfilePageState extends State<UserProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.successGreen,
       body: CustomScrollView(
         slivers: [
           // Modern App Bar with Gradient
           SliverAppBar(
             expandedHeight: 240,
             floating: false,
-            pinned: true,
+            pinned: false,
             backgroundColor: AppColors.successGreen,
             automaticallyImplyLeading: false,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.successGreen,
-                      AppColors.successGreen.withOpacity(0.8),
-                      AppColors.primaryAccent.withOpacity(0.6),
-                    ],
-                  ),
-                ),
+                color: AppColors.successGreen,
                 child: SafeArea(
                   bottom: false,
                   child: Padding(
@@ -712,9 +705,19 @@ class _UserProfilePageState extends State<UserProfilePage> {
               ),
             ),
             ElevatedButton(
-              onPressed: () {
-                // TODO: Implement logout logic
-                Navigator.pop(context);
+              onPressed: () async {
+                // close the dialog first
+                Navigator.of(context).pop();
+                try {
+                  await AuthService().signOut();
+                } catch (e) {
+                  // ignore sign out errors for now
+                }
+                // Navigate to Sign In and clear history
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const SignInPage()),
+                  (route) => false,
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primaryAccent,

@@ -108,13 +108,47 @@ applyTo: '**'
    - [x] Main Navigation Wrapper (combines all features with bottom navigation)
    - [x] Navigation overflow fixed (Expanded widgets, responsive text, shortened labels)
    - [x] Modern profile design implemented (gradient headers, elevated elements, smooth scrolling)
-- [ ] **Meal Planner Features**
-  - [ ] Meal Plan Page (`meal_plan_page.dart`) implemented
-  - [ ] Meal Page logging & nutrition facts implemented (`meal_page.dart`)
+- [x] **Meal Planner Features**
+  - [x] Meal Plan Page (`meal_plan_page.dart`) implemented
+    - [x] Search functionality with text input
+    - [x] Recent searches section with chip display
+    - [x] "Did you know?" tip section with nutrition facts
+    - [x] Today's meals section with BREAKFAST, LUNCH, DINNER, SNACK cards
+    - [x] Meal cards with calorie info, refresh/add buttons
+    - [x] Green header with search bar and menu button
+    - [x] Integrated into navigation wrapper at index 3 (Meals tab)
+  - [x] Meal Search Results Page (`meal_search_results_page.dart`) implemented
+    - [x] Search results display for food queries (e.g., "chicken" shows chicken dishes)
+    - [x] Recipe cards with images, descriptions, calories, prep time, difficulty
+    - [x] Meta information chips (calories, time, difficulty) with color coding
+    - [x] Recipe tags for categorization (Filipino, Main dish, etc.)
+    - [x] Navigation from meal plan page search and recent search chips
+    - [x] Back navigation and search refinement functionality
+    - [x] No results view with helpful messaging
+  - [x] Recipe Detail Page (`recipe_detail_page.dart`) implemented
+    - [x] Detailed recipe view with ingredients list
+    - [x] Step-by-step cooking instructions
+    - [x] Recipe metadata (calories, prep time, difficulty, tags)
+    - [x] "Log It!" button functionality with amount/measurement dialog
+    - [x] Navigation from search results page
+    - [x] Complete recipe information display
+  - [x] Nutrition Facts Page (`nutrition_facts_page.dart`) implemented
+    - [x] Calculated nutrition facts based on amount and measurement
+    - [x] Interactive numeric keypad for amount adjustment
+    - [x] Comprehensive nutrition breakdown (calories, macros, micronutrients)
+    - [x] Save functionality for meal logging
+    - [x] Navigation from recipe detail "Log It!" dialog
+    - [x] Green-themed design matching app's style
+  - [x] Complete navigation flow implemented (Meal Plan → Search Results → Recipe Detail → Nutrition Facts)
   - [ ] Filtering by health, budget, ingredients functional
-- [ ] **Market Prices**
-  - [ ] Dashboard implemented (`market_price_dashboard.dart`)
-  - [ ] Price alerts & trends functional
+- [x] **Market Prices**
+  - [x] Dashboard implemented (`market_price_dashboard.dart`)
+    - [x] Green header with title and user avatar
+    - [x] Recent prices section with price items showing PHP prefix
+    - [x] Price alerts section with trending/stable indicators
+    - [x] Price trends section with custom chart painter
+    - [x] Integrated into navigation wrapper at index 2 (Price Monitoring tab)
+  - [x] Price alerts & trends functional (sample data implementation)
 - [ ] **Q&A Forum**
   - [ ] Forum page implemented (`qna_forum_page.dart`)
   - [ ] Posting, commenting, saving posts functional

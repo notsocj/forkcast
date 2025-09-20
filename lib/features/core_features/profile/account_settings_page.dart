@@ -19,16 +19,9 @@ class AccountSettingsPage extends StatelessWidget {
               ),
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      AppColors.successGreen,
-                      AppColors.primaryAccent,
-                    ],
-                  ),
+                  color: AppColors.successGreen,
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -52,35 +45,18 @@ class AccountSettingsPage extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 16),
-                    // Use Expanded so text cannot push outside the header
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Account Settings',
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                            style: TextStyle(
-                              fontFamily: 'Lato',
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Manage your account, privacy, and preferences',
-                            overflow: TextOverflow.ellipsis,
-                            maxLines: 1,
-                            style: TextStyle(
-                              fontFamily: 'OpenSans',
-                              fontSize: 13,
-                              color: Colors.white.withOpacity(0.85),
-                            ),
-                          ),
-                        ],
+                    // Use Expanded so title cannot push outside the header
+                    const Expanded(
+                      child: Text(
+                        'Account Settings',
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1,
+                        style: TextStyle(
+                          fontFamily: 'Lato',
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ],

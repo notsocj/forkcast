@@ -12,59 +12,83 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primaryBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryBackground,
-        elevation: 0,
-        automaticallyImplyLeading: false,
-        title: Text(
-          'Today',
-          style: TextStyle(
-            fontFamily: 'Lato',
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AppColors.blackText,
-          ),
-        ),
-        actions: [
+      backgroundColor: AppColors.successGreen,
+      body: Column(
+        children: [
           Container(
-            margin: const EdgeInsets.only(right: 16),
-            decoration: BoxDecoration(
-              color: AppColors.primaryAccent,
-              shape: BoxShape.circle,
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            color: AppColors.successGreen,
+            child: SafeArea(
+              bottom: false,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Today',
+                    style: TextStyle(
+                      fontFamily: 'Lato',
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.white,
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryAccent,
+                      shape: BoxShape.circle,
+                    ),
+                    child: IconButton(
+                      onPressed: () {},
+                      icon: const Icon(
+                        Icons.person,
+                        color: AppColors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: IconButton(
-              onPressed: () {},
-              icon: const Icon(
-                Icons.person,
-                color: AppColors.white,
+          ),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(30),
+                topRight: Radius.circular(30),
+              ),
+              clipBehavior: Clip.hardEdge,
+              child: Container(
+                width: double.infinity,
+                color: AppColors.primaryBackground,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 8),
+                      // Calorie Overview Card
+                      _buildCalorieOverviewCard(),
+                      const SizedBox(height: 20),
+                      
+                      // Nutrient Breakdown Card
+                      _buildNutrientBreakdownCard(),
+                      const SizedBox(height: 20),
+                      
+                      // Daily Meal Plan Section
+                      _buildDailyMealPlanSection(),
+                      const SizedBox(height: 20),
+                      
+                      // Weekly Progress Card
+                      _buildWeeklyProgressCard(),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Calorie Overview Card
-            _buildCalorieOverviewCard(),
-            const SizedBox(height: 20),
-            
-            // Nutrient Breakdown Card
-            _buildNutrientBreakdownCard(),
-            const SizedBox(height: 20),
-            
-            // Daily Meal Plan Section
-            _buildDailyMealPlanSection(),
-            const SizedBox(height: 20),
-            
-            // Weekly Progress Card
-            _buildWeeklyProgressCard(),
-          ],
-        ),
-      ),
+      
     );
   }
 
