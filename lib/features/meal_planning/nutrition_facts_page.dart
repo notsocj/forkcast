@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../data/predefined_meals.dart';
+import '../../services/meal_logging_service.dart';
 
 class NutritionFactsPage extends StatefulWidget {
-  final Map<String, dynamic> recipe;
+  final PredefinedMeal meal;
   final double amount;
   final String measurement;
 
   const NutritionFactsPage({
     super.key,
-    required this.recipe,
+    required this.meal,
     required this.amount,
     required this.measurement,
   });
@@ -19,22 +21,7 @@ class NutritionFactsPage extends StatefulWidget {
 
 class _NutritionFactsPageState extends State<NutritionFactsPage> {
   late double _currentAmount;
-
-  // Base nutrition values per serving (these would normally come from a database)
-  final Map<String, double> _baseNutrition = {
-    'calories': 160.0,
-    'fat': 6.0,
-    'carbohydrates': 8.0,
-    'protein': 20.0,
-    'sodium': 890.0,
-    'vitamin_a': 2.0,
-    'vitamin_c': 15.0,
-    'calcium': 4.0,
-    'iron': 8.0,
-    'riboflavin': 15.0,
-    'niacin': 35.0,
-    'thiamin': 5.0,
-  };
+  final MealLoggingService _mealLoggingService = MealLoggingService();
 
   @override
   void initState() {
@@ -42,10 +29,29 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
     _currentAmount = widget.amount;
   }
 
-  // Calculate nutrition values based on current amount
+  // Calculate nutrition values based on current amount and meal data
   Map<String, double> get _calculatedNutrition {
-    final multiplier = _currentAmount; // Assuming base values are per 1 unit
-    return _baseNutrition.map((key, value) => MapEntry(key, value * multiplier));
+    final meal = widget.meal;
+    final multiplier = _currentAmount / meal.servings; // Adjust for current amount vs servings
+    
+    // Since PredefinedMeal only has kcal, we'll estimate other nutrients
+    // In a real app, these would come from a nutrition database
+    final baseCalories = meal.kcal.toDouble();
+    
+    return {
+      'calories': baseCalories * multiplier,
+      'fat': (baseCalories * 0.25 / 9) * multiplier, // ~25% of calories from fat (9 cal/g)
+      'carbohydrates': (baseCalories * 0.50 / 4) * multiplier, // ~50% from carbs (4 cal/g)
+      'protein': (baseCalories * 0.25 / 4) * multiplier, // ~25% from protein (4 cal/g)
+      'sodium': (baseCalories * 5) * multiplier, // Rough estimate: 5mg sodium per calorie
+      'vitamin_a': 2.0 * multiplier, // Default values for vitamins (would come from meal data)
+      'vitamin_c': 15.0 * multiplier,
+      'calcium': 4.0 * multiplier,
+      'iron': 8.0 * multiplier,
+      'riboflavin': 15.0 * multiplier,
+      'niacin': 35.0 * multiplier,
+      'thiamin': 5.0 * multiplier,
+    };
   }
 
   @override
@@ -92,7 +98,7 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              widget.recipe['name'] ?? 'Recipe',
+              widget.meal.recipeName,
               style: TextStyle(
                 fontFamily: 'Lato',
                 fontSize: 20,
@@ -431,27 +437,185 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
   }
 
   void _saveMealLog() {
-    // Here you would save the meal log with nutrition data
-    // For now, just show a success message and navigate back
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Meal logged successfully!',
-          style: TextStyle(
-            fontFamily: 'OpenSans',
+    // Show meal type selection dialog
+    _showMealTypeSelectionDialog();
+  }
+
+  void _showMealTypeSelectionDialog() {
+    final mealTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+    
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: const BoxDecoration(
             color: AppColors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 20),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.grayText.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              
+              // Title
+              Text(
+                'Log meal for:',
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.blackText,
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Meal type options
+              ...mealTypes.map((mealType) => _buildMealTypeOption(mealType)),
+              
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMealTypeOption(String mealType) {
+    IconData icon;
+    Color color;
+    
+    switch (mealType) {
+      case 'Breakfast':
+        icon = Icons.free_breakfast;
+        color = Colors.orange;
+        break;
+      case 'Lunch':
+        icon = Icons.lunch_dining;
+        color = Colors.red;
+        break;
+      case 'Dinner':
+        icon = Icons.dinner_dining;
+        color = Colors.green;
+        break;
+      case 'Snack':
+        icon = Icons.cake;
+        color = Colors.purple;
+        break;
+      default:
+        icon = Icons.restaurant;
+        color = AppColors.grayText;
+    }
+    
+    return GestureDetector(
+      onTap: () {
+        Navigator.pop(context); // Close dialog
+        _logMealToFirebase(mealType);
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.primaryBackground,
+          borderRadius: BorderRadius.circular(12),
         ),
-        backgroundColor: AppColors.successGreen,
-        duration: const Duration(seconds: 2),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                mealType,
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.blackText,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: AppColors.grayText,
+              size: 16,
+            ),
+          ],
         ),
-        behavior: SnackBarBehavior.floating,
       ),
     );
-    
-    // Navigate back to the main dashboard or meal plan page
-    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  Future<void> _logMealToFirebase(String mealType) async {
+    try {
+      await _mealLoggingService.logMeal(
+        meal: widget.meal,
+        mealType: mealType,
+        amount: _currentAmount,
+        measurement: widget.measurement,
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '${widget.meal.recipeName} logged for $mealType!',
+              style: TextStyle(
+                fontFamily: 'OpenSans',
+                color: AppColors.white,
+              ),
+            ),
+            backgroundColor: AppColors.successGreen,
+            duration: const Duration(seconds: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+        
+        // Navigate back to the main dashboard or meal plan page
+        Navigator.of(context).popUntil((route) => route.isFirst);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to log meal: $e',
+              style: TextStyle(
+                fontFamily: 'OpenSans',
+                color: AppColors.white,
+              ),
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
   }
 }

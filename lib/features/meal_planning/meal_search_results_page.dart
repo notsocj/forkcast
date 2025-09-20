@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../data/predefined_meals.dart';
 import 'recipe_detail_page.dart';
 
 class MealSearchResultsPage extends StatefulWidget {
@@ -16,97 +17,27 @@ class MealSearchResultsPage extends StatefulWidget {
 
 class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
   late TextEditingController _searchController;
-  
-  // Sample data for search results - in a real app, this would come from a database
-  final Map<String, List<Map<String, dynamic>>> _searchResults = {
-    'chicken': [
-      {
-        'name': 'Chicken Adobo',
-        'description': 'Classic Filipino dish with chicken, soy sauce, and vinegar',
-        'image': 'assets/images/chicken_adobo.jpg',
-        'calories': '140-160 kcal',
-        'prepTime': '30 min',
-        'difficulty': 'Easy',
-        'ingredients': ['Chicken', 'Soy sauce', 'Vinegar', 'Garlic', 'Bay leaves'],
-        'tags': ['Filipino', 'Main dish', 'Low sodium'],
-        'instructions': [
-          'Clean and cut the chicken into serving pieces.',
-          'In a pot, combine chicken, soy sauce, vinegar, garlic, and bay leaves.',
-          'Marinate for at least 30 minutes.',
-          'Bring to a boil without stirring, then simmer for 20-30 minutes.',
-          'Season with salt and pepper to taste.',
-          'Serve hot with steamed rice.'
-        ],
-      },
-      {
-        'name': 'Chicken Afritada',
-        'description': 'Filipino-style stew with tender chicken, potatoes, carrots, and bell peppers simmered in rich tomato sauce',
-        'image': 'assets/images/chicken_afritada.jpg',
-        'calories': '220-280 kcal',
-        'prepTime': '45 min',
-        'difficulty': 'Medium',
-        'ingredients': ['Chicken', 'Tomato sauce', 'Potatoes', 'Carrots', 'Bell peppers'],
-        'tags': ['Filipino', 'Stew', 'Comfort food'],
-        'instructions': [
-          'Cut chicken into serving pieces and season with salt and pepper.',
-          'Heat oil in a large pot and brown the chicken pieces.',
-          'Add onions and garlic, sauté until fragrant.',
-          'Pour in tomato sauce and water, bring to a boil.',
-          'Add potatoes and carrots, simmer for 15 minutes.',
-          'Add bell peppers and cook for another 5 minutes.',
-          'Season with salt and pepper, serve hot.'
-        ],
-      },
-    ],
-    'adobo': [
-      {
-        'name': 'Chicken Adobo',
-        'description': 'Classic Filipino dish with chicken, soy sauce, and vinegar',
-        'image': 'assets/images/chicken_adobo.jpg',
-        'calories': '140-160 kcal',
-        'prepTime': '30 min',
-        'difficulty': 'Easy',
-        'ingredients': ['Chicken', 'Soy sauce', 'Vinegar', 'Garlic', 'Bay leaves'],
-        'tags': ['Filipino', 'Main dish', 'Low sodium'],
-        'instructions': [
-          'Clean and cut the chicken into serving pieces.',
-          'In a pot, combine chicken, soy sauce, vinegar, garlic, and bay leaves.',
-          'Marinate for at least 30 minutes.',
-          'Bring to a boil without stirring, then simmer for 20-30 minutes.',
-          'Season with salt and pepper to taste.',
-          'Serve hot with steamed rice.'
-        ],
-      },
-      {
-        'name': 'Pork Adobo',
-        'description': 'Traditional pork adobo with soy sauce and vinegar',
-        'image': 'assets/images/pork_adobo.jpg',
-        'calories': '280-320 kcal',
-        'prepTime': '35 min',
-        'difficulty': 'Easy',
-        'ingredients': ['Pork', 'Soy sauce', 'Vinegar', 'Garlic', 'Bay leaves'],
-        'tags': ['Filipino', 'Main dish', 'Traditional'],
-        'instructions': [
-          'Cut pork into cubes and season with salt and pepper.',
-          'In a pot, combine pork, soy sauce, vinegar, garlic, and bay leaves.',
-          'Marinate for at least 30 minutes.',
-          'Bring to a boil without stirring, then simmer for 30-40 minutes.',
-          'Cook until pork is tender and sauce is reduced.',
-          'Serve hot with steamed rice.'
-        ],
-      },
-    ],
-  };
-
-  List<Map<String, dynamic>> get _currentResults {
-    final query = widget.searchQuery.toLowerCase();
-    return _searchResults[query] ?? [];
-  }
+  List<PredefinedMeal> _searchResults = [];
+  List<PredefinedMeal> _currentResults = [];
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController(text: widget.searchQuery);
+    _performSearch(widget.searchQuery);
+  }
+
+  void _performSearch(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        // Show all meals if query is empty
+        _searchResults = PredefinedMealsData.meals;
+      } else {
+        // Search for meals matching the query
+        _searchResults = PredefinedMealsData.searchMeals(query);
+      }
+      _currentResults = _searchResults;
+    });
   }
 
   @override
@@ -289,13 +220,13 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
     );
   }
 
-  Widget _buildRecipeCard(Map<String, dynamic> recipe) {
+  Widget _buildRecipeCard(PredefinedMeal meal) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => RecipeDetailPage(recipe: recipe),
+            builder: (context) => RecipeDetailPage(meal: meal),
           ),
         );
       },
@@ -340,7 +271,7 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          recipe['name'],
+                          meal.recipeName,
                           style: TextStyle(
                             fontFamily: 'OpenSans',
                             fontSize: 12,
@@ -385,7 +316,7 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
                 children: [
                   // Recipe name
                   Text(
-                    recipe['name'],
+                    meal.recipeName,
                     style: TextStyle(
                       fontFamily: 'Lato',
                       fontSize: 18,
@@ -396,7 +327,7 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
                   const SizedBox(height: 8),
                   // Description
                   Text(
-                    recipe['description'],
+                    meal.description,
                     style: TextStyle(
                       fontFamily: 'OpenSans',
                       fontSize: 14,
@@ -408,11 +339,11 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
                   // Recipe meta info
                   Row(
                     children: [
-                      _buildMetaChip(Icons.local_fire_department, recipe['calories'], AppColors.primaryAccent),
+                      _buildMetaChip(Icons.local_fire_department, '${meal.kcal} kcal', AppColors.primaryAccent),
                       const SizedBox(width: 12),
-                      _buildMetaChip(Icons.access_time, recipe['prepTime'], AppColors.successGreen),
+                      _buildMetaChip(Icons.access_time, '${meal.prepTimeMinutes}min', AppColors.successGreen),
                       const SizedBox(width: 12),
-                      _buildMetaChip(Icons.star_outline, recipe['difficulty'], AppColors.purpleAccent),
+                      _buildMetaChip(Icons.star_outline, meal.difficulty, AppColors.purpleAccent),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -420,7 +351,7 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: (recipe['tags'] as List<String>)
+                    children: meal.tags
                         .map((tag) => _buildTag(tag))
                         .toList(),
                   ),

@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../data/predefined_meals.dart';
 import 'nutrition_facts_page.dart';
 
 class RecipeDetailPage extends StatefulWidget {
-  final Map<String, dynamic> recipe;
+  final PredefinedMeal meal;
 
   const RecipeDetailPage({
     super.key,
-    required this.recipe,
+    required this.meal,
   });
 
   @override
@@ -135,7 +136,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  widget.recipe['name'] ?? 'Recipe Image',
+                  widget.meal.recipeName,
                   style: TextStyle(
                     fontFamily: 'OpenSans',
                     fontSize: 12,
@@ -170,7 +171,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    widget.recipe['name'] ?? 'Recipe Name',
+                    widget.meal.recipeName,
                     style: TextStyle(
                       fontFamily: 'Lato',
                       fontSize: 22,
@@ -180,7 +181,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    widget.recipe['description'] ?? 'Traditional Filipino dish of chicken braised in vinegar, soy sauce, and spices.',
+                    widget.meal.description,
                     style: TextStyle(
                       fontFamily: 'OpenSans',
                       fontSize: 12,
@@ -215,7 +216,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.recipe['name'] ?? 'Chicken Adobo',
+            widget.meal.recipeName,
             style: TextStyle(
               fontFamily: 'Lato',
               fontSize: 24,
@@ -225,7 +226,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            widget.recipe['description'] ?? 'Traditional Filipino dish of chicken braised in vinegar, soy sauce, and spices.',
+            widget.meal.description,
             style: TextStyle(
               fontFamily: 'OpenSans',
               fontSize: 14,
@@ -332,13 +333,9 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
   }
 
   Widget _buildIngredients() {
-    final List<String> ingredients = widget.recipe['ingredients']?.cast<String>() ?? [
-      '0.6 kg chicken thighs',
-      '50 ml soy sauce',
-      '90 ml vinegar',
-      '4 cloves garlic (minced)',
-      '1 bay leaf',
-    ];
+    final List<String> ingredients = widget.meal.ingredients
+        .map((ingredient) => '${ingredient.quantity} ${ingredient.unit} ${ingredient.ingredientName}')
+        .toList();
 
     return Container(
       margin: const EdgeInsets.fromLTRB(24, 24, 24, 0),
@@ -719,7 +716,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => NutritionFactsPage(
-                          recipe: widget.recipe,
+                          meal: widget.meal,
                           amount: double.tryParse(selectedAmount) ?? 1.0,
                           measurement: selectedMeasurement,
                         ),

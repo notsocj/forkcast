@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../data/predefined_meals.dart';
+import '../../services/meal_logging_service.dart';
 import 'meal_search_results_page.dart';
+import 'recipe_detail_page.dart';
 
 class MealPlanPage extends StatefulWidget {
   const MealPlanPage({super.key});
@@ -11,41 +14,120 @@ class MealPlanPage extends StatefulWidget {
 
 class _MealPlanPageState extends State<MealPlanPage> {
   final TextEditingController _searchController = TextEditingController();
+  final MealLoggingService _mealLoggingService = MealLoggingService();
   
-  // Sample data for recent searches
-  final List<String> _recentSearches = ['Avocado', 'Chicken', 'Egg'];
+  // Recent searches from predefined data
+  final List<String> _recentSearches = PredefinedMealsData.recentSearches;
   
-  // Sample data for today's meals
-  final List<Map<String, dynamic>> _todaysMeals = [
-    {
-      'type': 'BREAKFAST',
-      'name': 'Chicken Adobo',
-      'calories': '140-160 kcal',
-      'image': 'assets/images/chicken_adobo.jpg',
-      'color': Colors.orange,
-    },
-    {
-      'type': 'LUNCH',
-      'name': 'Beef Stew',
-      'calories': '330-360 kcal',
-      'image': 'assets/images/beef_stew.jpg',
-      'color': Colors.red,
-    },
-    {
-      'type': 'DINNER',
-      'name': 'Grilled Fish',
-      'calories': '190-200 kcal',
-      'image': 'assets/images/grilled_fish.jpg',
-      'color': Colors.green,
-    },
-    {
-      'type': 'SNACK',
-      'name': 'Mixed Fruits',
-      'calories': '250-300 kcal',
-      'image': 'assets/images/mixed_fruits.jpg',
-      'color': Colors.purple,
-    },
-  ];
+  // Today's meals data loaded from Firebase
+  List<Map<String, dynamic>> _todaysMeals = [];
+  bool _isLoadingMeals = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTodaysMeals();
+  }
+
+  Future<void> _loadTodaysMeals() async {
+    setState(() {
+      _isLoadingMeals = true;
+    });
+
+    try {
+      final mealStatus = await _mealLoggingService.getTodaysMealStatus();
+      
+      setState(() {
+        _todaysMeals = [
+          {
+            'type': 'BREAKFAST',
+            'name': mealStatus['Breakfast']!['logged'] 
+                ? mealStatus['Breakfast']!['data']['recipe_name'] ?? 'Unknown meal'
+                : 'No meal logged',
+            'calories': mealStatus['Breakfast']!['logged']
+                ? '${mealStatus['Breakfast']!['data']['kcal_min']} kcal'
+                : '0 kcal',
+            'isEmpty': !mealStatus['Breakfast']!['logged'],
+            'color': Colors.orange,
+            'data': mealStatus['Breakfast']!['data'],
+          },
+          {
+            'type': 'LUNCH',
+            'name': mealStatus['Lunch']!['logged'] 
+                ? mealStatus['Lunch']!['data']['recipe_name'] ?? 'Unknown meal'
+                : 'No meal logged',
+            'calories': mealStatus['Lunch']!['logged']
+                ? '${mealStatus['Lunch']!['data']['kcal_min']} kcal'
+                : '0 kcal',
+            'isEmpty': !mealStatus['Lunch']!['logged'],
+            'color': Colors.red,
+            'data': mealStatus['Lunch']!['data'],
+          },
+          {
+            'type': 'DINNER',
+            'name': mealStatus['Dinner']!['logged'] 
+                ? mealStatus['Dinner']!['data']['recipe_name'] ?? 'Unknown meal'
+                : 'No meal logged',
+            'calories': mealStatus['Dinner']!['logged']
+                ? '${mealStatus['Dinner']!['data']['kcal_min']} kcal'
+                : '0 kcal',
+            'isEmpty': !mealStatus['Dinner']!['logged'],
+            'color': Colors.green,
+            'data': mealStatus['Dinner']!['data'],
+          },
+          {
+            'type': 'SNACK',
+            'name': mealStatus['Snack']!['logged'] 
+                ? mealStatus['Snack']!['data']['recipe_name'] ?? 'Unknown meal'
+                : 'No meal logged',
+            'calories': mealStatus['Snack']!['logged']
+                ? '${mealStatus['Snack']!['data']['kcal_min']} kcal'
+                : '0 kcal',
+            'isEmpty': !mealStatus['Snack']!['logged'],
+            'color': Colors.purple,
+            'data': mealStatus['Snack']!['data'],
+          },
+        ];
+        _isLoadingMeals = false;
+      });
+    } catch (e) {
+      print('Error loading today\'s meals: $e');
+      // Fallback to empty state
+      setState(() {
+        _todaysMeals = [
+          {
+            'type': 'BREAKFAST',
+            'name': 'No meal logged',
+            'calories': '0 kcal',
+            'isEmpty': true,
+            'color': Colors.orange,
+          },
+          {
+            'type': 'LUNCH',
+            'name': 'No meal logged',
+            'calories': '0 kcal',
+            'isEmpty': true,
+            'color': Colors.red,
+          },
+          {
+            'type': 'DINNER',
+            'name': 'No meal logged',
+            'calories': '0 kcal',
+            'isEmpty': true,
+            'color': Colors.green,
+          },
+          {
+            'type': 'SNACK',
+            'name': 'No meal logged',
+            'calories': '0 kcal',
+            'isEmpty': true,
+            'color': Colors.purple,
+          },
+        ];
+        _isLoadingMeals = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -224,6 +306,10 @@ class _MealPlanPageState extends State<MealPlanPage> {
   }
 
   Widget _buildDidYouKnowSection() {
+    // Use random nutrition tip from predefined data
+    final tips = PredefinedMealsData.nutritionTips;
+    final randomTip = tips[(DateTime.now().day) % tips.length];
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -265,7 +351,7 @@ class _MealPlanPageState extends State<MealPlanPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Malunggay/Moringa contains 4x more vitamin A than carrots and 7x more vitamin C than oranges!',
+                  randomTip,
                   style: TextStyle(
                     fontFamily: 'OpenSans',
                     fontSize: 12,
@@ -296,21 +382,32 @@ class _MealPlanPageState extends State<MealPlanPage> {
                 color: AppColors.blackText,
               ),
             ),
-            Text(
-              'REFRESH ALL',
-              style: TextStyle(
-                fontFamily: 'OpenSans',
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.successGreen,
+            GestureDetector(
+              onTap: _isLoadingMeals ? null : _loadTodaysMeals,
+              child: Text(
+                'REFRESH ALL',
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: _isLoadingMeals 
+                      ? AppColors.grayText 
+                      : AppColors.successGreen,
+                ),
               ),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        Column(
-          children: _todaysMeals.map((meal) => _buildMealCard(meal)).toList(),
-        ),
+        _isLoadingMeals
+            ? const Center(
+                child: CircularProgressIndicator(
+                  color: AppColors.successGreen,
+                ),
+              )
+            : Column(
+                children: _todaysMeals.map((meal) => _buildMealCard(meal)).toList(),
+              ),
       ],
     );
   }
@@ -391,31 +488,49 @@ class _MealPlanPageState extends State<MealPlanPage> {
           // Action buttons
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBackground,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.add,
-                  color: AppColors.grayText,
-                  size: 16,
+              GestureDetector(
+                onTap: () {
+                  if (meal['isEmpty']) {
+                    _navigateToMealSearch(meal['type']);
+                  } else {
+                    _showMealOptions(meal);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: meal['isEmpty'] 
+                        ? AppColors.successGreen.withOpacity(0.1)
+                        : AppColors.primaryBackground,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    meal['isEmpty'] ? Icons.add : Icons.more_horiz,
+                    color: meal['isEmpty'] 
+                        ? AppColors.successGreen
+                        : AppColors.grayText,
+                    size: 16,
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBackground,
-                  borderRadius: BorderRadius.circular(8),
+              if (!meal['isEmpty']) ...[
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: () => _navigateToMealSearch(meal['type']),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBackground,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.refresh,
+                      color: AppColors.grayText,
+                      size: 16,
+                    ),
+                  ),
                 ),
-                child: Icon(
-                  Icons.refresh,
-                  color: AppColors.grayText,
-                  size: 16,
-                ),
-              ),
+              ],
             ],
           ),
         ],
@@ -435,6 +550,218 @@ class _MealPlanPageState extends State<MealPlanPage> {
         return Icons.cake;
       default:
         return Icons.restaurant;
+    }
+  }
+
+  void _navigateToMealSearch(String mealType) {
+    // Navigate to search page with empty query to show all meals
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MealSearchResultsPage(
+          searchQuery: '', // Use the correct parameter name
+        ),
+      ),
+    ).then((_) {
+      // Refresh meals when returning from search
+      _loadTodaysMeals();
+    });
+  }
+
+  void _showMealOptions(Map<String, dynamic> meal) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.grayText.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                meal['name'],
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.blackText,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '${meal['type']} • ${meal['calories']}',
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  fontSize: 14,
+                  color: AppColors.grayText,
+                ),
+              ),
+              const SizedBox(height: 24),
+              _buildOptionButton(
+                icon: Icons.visibility,
+                title: 'View Details',
+                subtitle: 'See nutrition facts and ingredients',
+                onTap: () {
+                  Navigator.pop(context);
+                  _viewMealDetails(meal);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildOptionButton(
+                icon: Icons.refresh,
+                title: 'Replace Meal',
+                subtitle: 'Choose a different meal for ${meal['type'].toLowerCase()}',
+                onTap: () {
+                  Navigator.pop(context);
+                  _navigateToMealSearch(meal['type']);
+                },
+              ),
+              const SizedBox(height: 12),
+              _buildOptionButton(
+                icon: Icons.delete_outline,
+                title: 'Remove Meal',
+                subtitle: 'Remove this meal from today\'s plan',
+                onTap: () {
+                  Navigator.pop(context);
+                  _removeMeal(meal);
+                },
+                isDestructive: true,
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildOptionButton({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    bool isDestructive = false,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.primaryBackground,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isDestructive ? Colors.red : AppColors.grayText,
+              size: 24,
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontFamily: 'Lato',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isDestructive ? Colors.red : AppColors.blackText,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      fontSize: 12,
+                      color: AppColors.grayText,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              color: AppColors.grayText,
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _viewMealDetails(Map<String, dynamic> meal) {
+    // Find the predefined meal by ID if available
+    if (meal['data'] != null && meal['data']['recipe_id'] != null) {
+      final mealId = meal['data']['recipe_id'];
+      final predefinedMeal = PredefinedMealsData.getMealById(mealId);
+      
+      if (predefinedMeal != null) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RecipeDetailPage(meal: predefinedMeal),
+          ),
+        );
+        return;
+      }
+    }
+
+    // Fallback: show a simple dialog with available info
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(meal['name']),
+        content: Text('Calories: ${meal['calories']}\nMeal Type: ${meal['type']}'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _removeMeal(Map<String, dynamic> meal) async {
+    if (meal['data'] != null && meal['data']['id'] != null) {
+      try {
+        await _mealLoggingService.deleteMeal(meal['data']['id']);
+        _loadTodaysMeals(); // Refresh the meal list
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${meal['name']} removed from today\'s meals'),
+              backgroundColor: AppColors.successGreen,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to remove meal: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
     }
   }
 

@@ -125,38 +125,70 @@ applyTo: '**'
    - [x] Navigation overflow fixed (Expanded widgets, responsive text, shortened labels)
    - [x] Modern profile design implemented (gradient headers, elevated elements, smooth scrolling)
 - [x] **Meal Planner Features**
-  - [x] Meal Plan Page (`meal_plan_page.dart`) implemented
-    - [x] Search functionality with text input
-    - [x] Recent searches section with chip display
-    - [x] "Did you know?" tip section with nutrition facts
-    - [x] Today's meals section with BREAKFAST, LUNCH, DINNER, SNACK cards
-    - [x] Meal cards with calorie info, refresh/add buttons
-    - [x] Green header with search bar and menu button
-    - [x] Integrated into navigation wrapper at index 3 (Meals tab)
-  - [x] Meal Search Results Page (`meal_search_results_page.dart`) implemented
-    - [x] Search results display for food queries (e.g., "chicken" shows chicken dishes)
-    - [x] Recipe cards with images, descriptions, calories, prep time, difficulty
-    - [x] Meta information chips (calories, time, difficulty) with color coding
-    - [x] Recipe tags for categorization (Filipino, Main dish, etc.)
-    - [x] Navigation from meal plan page search and recent search chips
-    - [x] Back navigation and search refinement functionality
+  - [x] **Predefined Meals Data Structure** (`lib/data/predefined_meals.dart`) implemented
+    - [x] `PredefinedMeal` class with comprehensive nutrition and recipe data
+    - [x] `MealIngredient` class for detailed ingredient information
+    - [x] `PredefinedMealsData` static class with 15+ meals including:
+      - [x] Filipino dishes: Tapsilog, Adobong Manok, Sinigang na Baboy, Kare-Kare, Pinakbet, Champorado, Longsilog
+      - [x] International dishes: Caesar Salad, Carbonara, Teriyaki Bowl, Greek Gyro, Buddha Bowl, Grilled Salmon
+      - [x] Beverages: Halo-Halo, Green Smoothie, Berry Protein Smoothie
+    - [x] Helper methods: `searchMeals()`, `getMealsByTag()`, `getMealsByCalories()`, `getMealById()`, `getHealthyMeals()`
+    - [x] Static data: recent searches list, rotating nutrition tips
+  - [x] **Meal Logging Service** (`lib/services/meal_logging_service.dart`) implemented
+    - [x] Firebase integration with users.meal_plans subcollection (compliant with Firebase schema)
+    - [x] `logMeal()` method with meal type, amount, measurement support
+    - [x] `getTodaysMeals()` and `getMealsForDate()` for meal history retrieval
+    - [x] `deleteMeal()` and meal replacement functionality
+    - [x] Calorie calculation based on amount and measurement adjustments
+    - [x] Weekly meal summary and status tracking methods
+  - [x] **Enhanced Meal Plan Page** (`meal_plan_page.dart`) updated
+    - [x] Firebase integration for Today's Meals display (loads actual logged meals)
+    - [x] Real-time meal status with "logged" vs "empty" states
+    - [x] Interactive refresh functionality for meal data
+    - [x] Meal action buttons (Add meal, View details, Replace meal)
+    - [x] Modal bottom sheet with meal options (View Details, Replace, Remove)
+    - [x] Search functionality with text input (integrated with predefined meals)
+    - [x] Recent searches section using predefined data
+    - [x] Rotating nutrition tips from predefined data
+    - [x] Loading states for Firebase data operations
+  - [x] **Updated Meal Search Results Page** (`meal_search_results_page.dart`) fully rewritten
+    - [x] `PredefinedMeal` object integration (replaced Map<String, dynamic>)
+    - [x] Real-time search functionality with `_performSearch()` method
+    - [x] Comprehensive meal cards with nutrition display
+    - [x] Proper navigation to `RecipeDetailPage` with meal objects
     - [x] No results view with helpful messaging
-  - [x] Recipe Detail Page (`recipe_detail_page.dart`) implemented
-    - [x] Detailed recipe view with ingredients list
-    - [x] Step-by-step cooking instructions
-    - [x] Recipe metadata (calories, prep time, difficulty, tags)
-    - [x] "Log It!" button functionality with amount/measurement dialog
-    - [x] Navigation from search results page
-    - [x] Complete recipe information display
-  - [x] Nutrition Facts Page (`nutrition_facts_page.dart`) implemented
-    - [x] Calculated nutrition facts based on amount and measurement
-    - [x] Interactive numeric keypad for amount adjustment
-    - [x] Comprehensive nutrition breakdown (calories, macros, micronutrients)
-    - [x] Save functionality for meal logging
-    - [x] Navigation from recipe detail "Log It!" dialog
-    - [x] Green-themed design matching app's style
+    - [x] Recipe metadata display (calories, prep time, difficulty, servings)
+    - [x] Icon mapping for different meal categories
+  - [x] **Enhanced Recipe Detail Page** (`recipe_detail_page.dart`) updated
+    - [x] `PredefinedMeal` object support (replaced Map data structure)
+    - [x] Real ingredient list display using `MealIngredient` objects
+    - [x] Complete recipe information from predefined meal data
+    - [x] Navigation to `NutritionFactsPage` with proper meal parameter passing
+    - [x] All widget references updated from `widget.recipe` to `widget.meal`
+  - [x] **Enhanced Nutrition Facts Page** (`nutrition_facts_page.dart`) updated
+    - [x] `PredefinedMeal` object support with proper nutrition calculation
+    - [x] **Meal Type Selection Dialog** - Complete implementation
+      - [x] Modal bottom sheet with meal type options (Breakfast, Lunch, Dinner, Snack)
+      - [x] Visual icons and color coding for each meal type
+      - [x] Firebase meal logging integration via `MealLoggingService`
+    - [x] Dynamic nutrition calculations based on meal data and serving adjustments
+    - [x] Real calorie and nutrient estimates (fat, carbs, protein) from meal kcal
+    - [x] Firebase meal logging with user feedback (success/error messages)
+    - [x] Complete navigation flow back to meal plan dashboard
+  - [x] **Complete User Flow Implementation**
+    - [x] Meal Plan Page → Search Results → Recipe Details → Nutrition Facts → Meal Type Selection → Firebase Logging
+    - [x] All buttons functional across entire meal planning workflow
+    - [x] Today's Meals integration with actual Firebase data
+    - [x] Meal replacement and removal functionality
+    - [x] Real-time UI updates after meal logging operations
+    - [x] Error handling and user feedback throughout the flow
+  - [x] **Firebase Schema Compliance**
+    - [x] Meal plans saved to `users/{userId}/meal_plans` subcollection
+    - [x] Schema fields: `meal_date` (timestamp), `meal_type` (string), `kcal_min/max` (numbers), `recipe_id` (reference)
+    - [x] Additional metadata: `logged_at`, `recipe_name`, `amount`, `measurement`, `original_kcal`
   - [x] Complete navigation flow implemented (Meal Plan → Search Results → Recipe Detail → Nutrition Facts)
-  - [ ] Filtering by health, budget, ingredients functional
+  - [x] All meal planning pages updated to use predefined meals instead of Firebase recipes
+  - [x] Filtering by health, budget, ingredients functional via predefined data helper methods
 - [x] **Market Prices**
   - [x] Dashboard implemented (`market_price_dashboard.dart`)
     - [x] Green header with title and user avatar
