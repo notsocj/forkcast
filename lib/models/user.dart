@@ -10,6 +10,7 @@ class User {
   final DateTime birthdate;
   final double heightCm;
   final double weightKg;
+  final double? bmi;
   final int householdSize;
   final int weeklyBudgetMin;
   final int weeklyBudgetMax;
@@ -28,6 +29,7 @@ class User {
     required this.birthdate,
     required this.heightCm,
     required this.weightKg,
+    this.bmi,
     required this.householdSize,
     required this.weeklyBudgetMin,
     required this.weeklyBudgetMax,
@@ -50,6 +52,7 @@ class User {
       birthdate: (data['birthdate'] as Timestamp).toDate(),
       heightCm: (data['height_cm'] ?? 0.0).toDouble(),
       weightKg: (data['weight_kg'] ?? 0.0).toDouble(),
+      bmi: data['bmi']?.toDouble(),
       householdSize: data['household_size'] ?? 1,
       weeklyBudgetMin: data['weekly_budget_min'] ?? 0,
       weeklyBudgetMax: data['weekly_budget_max'] ?? 0,
@@ -75,6 +78,7 @@ class User {
       'birthdate': Timestamp.fromDate(birthdate),
       'height_cm': heightCm,
       'weight_kg': weightKg,
+      if (bmi != null) 'bmi': bmi,
       'household_size': householdSize,
       'weekly_budget_min': weeklyBudgetMin,
       'weekly_budget_max': weeklyBudgetMax,
@@ -98,6 +102,7 @@ class User {
     DateTime? birthdate,
     double? heightCm,
     double? weightKg,
+    double? bmi,
     int? householdSize,
     int? weeklyBudgetMin,
     int? weeklyBudgetMax,
@@ -116,6 +121,7 @@ class User {
       birthdate: birthdate ?? this.birthdate,
       heightCm: heightCm ?? this.heightCm,
       weightKg: weightKg ?? this.weightKg,
+      bmi: bmi ?? this.bmi,
       householdSize: householdSize ?? this.householdSize,
       weeklyBudgetMin: weeklyBudgetMin ?? this.weeklyBudgetMin,
       weeklyBudgetMax: weeklyBudgetMax ?? this.weeklyBudgetMax,
@@ -127,7 +133,7 @@ class User {
   }
 
   // Calculate BMI
-  double get bmi => weightKg / ((heightCm / 100) * (heightCm / 100));
+  double get calculatedBmi => weightKg / ((heightCm / 100) * (heightCm / 100));
 
   // Calculate age
   int get age {

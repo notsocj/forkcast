@@ -159,32 +159,38 @@ class GetStartedPage extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TextButton(
-                      onPressed: () {
-                        // TODO: Navigate to privacy policy
-                      },
-                      child: const Text(
-                        "Privacy Policy",
-                        style: TextStyle(
-                          fontFamily: AppConstants.primaryFont,
-                          fontSize: 14,
-                          color: AppColors.grayText,
-                          decoration: TextDecoration.underline,
+                    Flexible(
+                      child: TextButton(
+                        onPressed: () {
+                          // TODO: Navigate to privacy policy
+                        },
+                        child: const Text(
+                          "Privacy Policy",
+                          style: TextStyle(
+                            fontFamily: AppConstants.primaryFont,
+                            fontSize: 14,
+                            color: AppColors.grayText,
+                            decoration: TextDecoration.underline,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),
                     const SizedBox(width: 32),
-                    TextButton(
-                      onPressed: () {
-                        // TODO: Navigate to terms of service
-                      },
-                      child: const Text(
-                        "Terms of Service",
-                        style: TextStyle(
-                          fontFamily: AppConstants.primaryFont,
-                          fontSize: 14,
-                          color: AppColors.grayText,
-                          decoration: TextDecoration.underline,
+                    Flexible(
+                      child: TextButton(
+                        onPressed: () {
+                          // TODO: Navigate to terms of service
+                        },
+                        child: const Text(
+                          "Terms of Service",
+                          style: TextStyle(
+                            fontFamily: AppConstants.primaryFont,
+                            fontSize: 14,
+                            color: AppColors.grayText,
+                            decoration: TextDecoration.underline,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),
@@ -219,6 +225,7 @@ class GetStartedPage extends StatelessWidget {
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               icon,
@@ -226,13 +233,17 @@ class GetStartedPage extends StatelessWidget {
               size: 20,
             ),
             const SizedBox(width: 12),
-            Text(
-              text,
-              style: const TextStyle(
-                fontFamily: AppConstants.primaryFont,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: AppColors.blackText,
+            Flexible(
+              child: Text(
+                text,
+                style: const TextStyle(
+                  fontFamily: AppConstants.primaryFont,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.blackText,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
           ],

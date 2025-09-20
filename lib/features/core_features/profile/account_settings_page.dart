@@ -86,7 +86,7 @@ class AccountSettingsPage extends StatelessWidget {
                         icon: Icons.lock_outline,
                         title: 'Change Password',
                         onTap: () {
-                          // TODO: Navigate to change password page
+                          _showChangePasswordDialog(context);
                         },
                       ),
                       _buildModernDivider(),
@@ -94,7 +94,7 @@ class AccountSettingsPage extends StatelessWidget {
                         icon: Icons.notifications_outlined,
                         title: 'Notification Settings',
                         onTap: () {
-                          // TODO: Navigate to notification settings page
+                          _showNotificationSettingsDialog(context);
                         },
                       ),
                       _buildModernDivider(),
@@ -102,7 +102,7 @@ class AccountSettingsPage extends StatelessWidget {
                         icon: Icons.tune,
                         title: 'Application Preferences',
                         onTap: () {
-                          // TODO: Navigate to app preferences page
+                          _showApplicationPreferencesDialog(context);
                         },
                       ),
                       _buildModernDivider(),
@@ -255,6 +255,105 @@ class AccountSettingsPage extends StatelessWidget {
             child: Text(
               'Delete',
               style: TextStyle(color: AppColors.primaryAccent),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showChangePasswordDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: AppColors.white,
+        title: const Text(
+          'Change Password',
+          style: TextStyle(
+            fontFamily: 'Lato',
+            fontWeight: FontWeight.bold,
+            color: AppColors.blackText,
+          ),
+        ),
+        content: const Text(
+          'Password change functionality will be implemented soon. This feature will allow you to securely update your account password.',
+          style: TextStyle(
+            fontFamily: 'Lato',
+            color: AppColors.grayText,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              'OK',
+              style: TextStyle(color: AppColors.successGreen),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showNotificationSettingsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: AppColors.white,
+        title: const Text(
+          'Notification Settings',
+          style: TextStyle(
+            fontFamily: 'Lato',
+            fontWeight: FontWeight.bold,
+            color: AppColors.blackText,
+          ),
+        ),
+        content: const Text(
+          'Notification settings will be available soon. You\'ll be able to customize meal reminders, price alerts, and health tips.',
+          style: TextStyle(
+            fontFamily: 'Lato',
+            color: AppColors.grayText,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              'OK',
+              style: TextStyle(color: AppColors.successGreen),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showApplicationPreferencesDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        backgroundColor: AppColors.white,
+        title: const Text(
+          'Application Preferences',
+          style: TextStyle(
+            fontFamily: 'Lato',
+            fontWeight: FontWeight.bold,
+            color: AppColors.blackText,
+          ),
+        ),
+        content: const Text(
+          'App preferences will be available soon. You\'ll be able to customize themes, units of measurement, and language settings.',
+          style: TextStyle(
+            fontFamily: 'Lato',
+            color: AppColors.grayText,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text(
+              'OK',
+              style: TextStyle(color: AppColors.successGreen),
             ),
           ),
         ],

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/auth_service.dart';
+import '../../../services/user_service.dart';
+import '../../../models/user.dart';
 import '../../auth/sign_in_page.dart';
 import 'account_settings_page.dart';
 import 'edit_profile_page.dart';
@@ -13,8 +15,64 @@ class UserProfilePage extends StatefulWidget {
 }
 
 class _UserProfilePageState extends State<UserProfilePage> {
+  final AuthService _authService = AuthService();
+  final UserService _userService = UserService();
+  
+  User? _currentUser;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final currentUser = _authService.currentUser;
+      if (currentUser != null) {
+        final userData = await _userService.getUser(currentUser.uid);
+        setState(() {
+          _currentUser = userData;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = 'No authenticated user';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load user data: $e';
+        _isLoading = false;
+      });
+    }
+  }
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.successGreen,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.white),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: AppColors.successGreen,
+        body: Center(
+          child: Text(
+            _error!,
+            style: const TextStyle(color: AppColors.white),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.successGreen,
       body: CustomScrollView(
@@ -69,7 +127,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         
                         // User Name with Glow Effect
                         Text(
-                          'Juan Dela Cruz',
+                          _currentUser?.fullName ?? 'Unknown User',
                           textAlign: TextAlign.center,
                           overflow: TextOverflow.ellipsis,
                           maxLines: 1,
@@ -338,7 +396,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     child: _buildStatItem(
                       icon: Icons.cake,
                       label: 'Age',
-                      value: '30',
+                      value: _currentUser?.age.toString() ?? '0',
                       unit: 'years',
                       color: AppColors.primaryAccent,
                     ),
@@ -352,7 +410,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     child: _buildStatItem(
                       icon: Icons.monitor_weight,
                       label: 'Weight',
-                      value: '65',
+                      value: _currentUser?.weightKg.toStringAsFixed(1) ?? '0.0',
                       unit: 'kg',
                       color: AppColors.successGreen,
                     ),
@@ -371,7 +429,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     child: _buildStatItem(
                       icon: Icons.height,
                       label: 'Height',
-                      value: '168',
+                      value: _currentUser?.heightCm.toStringAsFixed(0) ?? '0',
                       unit: 'cm',
                       color: AppColors.purpleAccent,
                     ),
@@ -385,7 +443,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     child: _buildStatItem(
                       icon: Icons.people,
                       label: 'Household',
-                      value: '5',
+                      value: _currentUser?.householdSize.toString() ?? '1',
                       unit: 'people',
                       color: AppColors.primaryAccent,
                     ),
@@ -421,7 +479,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                             ),
                           ),
                           Text(
-                            '₱1,000 - ₱2,000',
+                            '₱${_currentUser?.weeklyBudgetMin ?? 0} - ₱${_currentUser?.weeklyBudgetMax ?? 0}',
                             style: TextStyle(
                               fontFamily: 'Lato',
                               fontSize: 16,
@@ -573,15 +631,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 ],
               ),
               const SizedBox(height: 20),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _buildHealthConditionChip('Hypertension', Icons.monitor_heart),
-                  _buildHealthConditionChip('Peanut Allergy', Icons.warning_amber),
-                  _buildHealthConditionChip('No other conditions', Icons.check_circle, isPositive: true),
-                ],
-              ),
+              // Display user health conditions from Firebase
+              _currentUser?.healthConditions != null && _currentUser!.healthConditions!.isNotEmpty
+                  ? Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _currentUser!.healthConditions!
+                          .map((condition) => _buildHealthConditionChip(condition, Icons.health_and_safety))
+                          .toList(),
+                    )
+                  : _buildHealthConditionChip('No health conditions', Icons.check_circle, isPositive: true),
             ],
           ),
         ),

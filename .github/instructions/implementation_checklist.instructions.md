@@ -36,7 +36,12 @@ applyTo: '**'
 
 ### Phase 4: Core Features Implementation
 - [x] BMI Calculator
+  - [x] Firebase integration implemented (saves calculated BMI to users.bmi field)
+  - [x] User model updated with bmi: number field
 - [x] User Dashboard (home page with calorie overview, nutrient breakdown, daily meal plan, weekly progress)
+  - [x] Firebase integration implemented (loads real user data)
+  - [x] Displays real BMI, user name, and profile data
+  - [x] TODO notes added for meal tracking and nutrient calculation features
 - Meal Planner & Daily Meal Plan Generator
   - Meal plan CRUD
   - Recipe subcollections
@@ -93,6 +98,9 @@ applyTo: '**'
   - [x] Profile connected to Firestore `users` collection
   - [x] **Profile Setup Backend Integration**
     - [x] `User` model class created (`lib/models/user.dart`) with Firebase serialization
+    - [x] User model updated with bmi: number field for BMI storage
+    - [x] Firebase schema updated to include bmi field in users collection
+    - [x] UserService enhanced with profile updates and health conditions management
     - [x] `ProfileSetupProvider` created (`lib/providers/profile_setup_provider.dart`) for state management
     - [x] `UserService` enhanced with profile updates and health conditions management
     - [x] All profile setup pages connected to save data to ProfileSetupProvider
@@ -104,6 +112,14 @@ applyTo: '**'
    - [x] Navigation from BMI Calculator to Dashboard implemented
  - [x] **Profile Features**
    - [x] `user_profile_page.dart` (modern profile UI with CustomScrollView, SliverAppBar, gradient headers, interactive sections)
+   - [x] Firebase integration implemented (loads and displays real user data)
+   - [x] Real user stats: age, weight, height, household size, weekly budget
+   - [x] Real health conditions display from Firebase
+   - [x] `edit_profile_page.dart` Firebase integration implemented
+   - [x] Email field made non-editable with visual indicator
+   - [x] Save functionality connects to Firebase
+   - [x] Loading states implemented for form loading and saving
+   - [x] Form validation and error handling implemented
    - [x] Bottom Navigation Bar (6 tabs: Home, Profile, Price Monitoring, Meal Plan, Q&A Forum, Teleconsultation)
    - [x] Main Navigation Wrapper (combines all features with bottom navigation)
    - [x] Navigation overflow fixed (Expanded widgets, responsive text, shortened labels)

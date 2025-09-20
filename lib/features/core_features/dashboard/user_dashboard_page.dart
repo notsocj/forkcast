@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/user_service.dart';
+import '../../../models/user.dart';
 
 class UserDashboardPage extends StatefulWidget {
   const UserDashboardPage({super.key});
@@ -9,8 +12,64 @@ class UserDashboardPage extends StatefulWidget {
 }
 
 class _UserDashboardPageState extends State<UserDashboardPage> {
+  final AuthService _authService = AuthService();
+  final UserService _userService = UserService();
+  
+  User? _currentUser;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      final currentUser = _authService.currentUser;
+      if (currentUser != null) {
+        final userData = await _userService.getUser(currentUser.uid);
+        setState(() {
+          _currentUser = userData;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _error = 'No authenticated user';
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _error = 'Failed to load user data: $e';
+        _isLoading = false;
+      });
+    }
+  }
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.successGreen,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.white),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: AppColors.successGreen,
+        body: Center(
+          child: Text(
+            _error!,
+            style: const TextStyle(color: AppColors.white),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.successGreen,
       body: Column(
@@ -25,8 +84,8 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Today',
-                    style: TextStyle(
+                    'Welcome, ${_currentUser?.fullName.split(' ').first ?? 'User'}!',
+                    style: const TextStyle(
                       fontFamily: 'Lato',
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -39,7 +98,9 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                       shape: BoxShape.circle,
                     ),
                     child: IconButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        // TODO: Navigate to user profile page
+                      },
                       icon: const Icon(
                         Icons.person,
                         color: AppColors.white,
@@ -110,7 +171,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Calorie Overview',
+            'Health Overview',
             style: TextStyle(
               fontFamily: 'Lato',
               fontSize: 18,
@@ -125,19 +186,19 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
               _buildCalorieItem(
                 icon: Icons.restaurant_outlined,
                 title: 'Consumed',
-                value: '714',
+                value: 'TODO', // TODO: Implement meal tracking
                 color: AppColors.primaryAccent,
               ),
               _buildCalorieItem(
                 icon: Icons.local_fire_department_outlined,
                 title: 'Calories Limit',
-                value: '1,286',
+                value: 'TODO', // TODO: Calculate based on user profile
                 color: AppColors.successGreen,
               ),
               _buildCalorieItem(
                 icon: Icons.fitness_center_outlined,
                 title: 'BMI',
-                value: '20.1',
+                value: _currentUser?.bmi?.toStringAsFixed(1) ?? _currentUser?.calculatedBmi.toStringAsFixed(1) ?? '0.0',
                 color: AppColors.purpleAccent,
               ),
             ],
@@ -216,11 +277,12 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildNutrientProgressBar('Protein', 0.6, AppColors.primaryAccent),
+          // TODO: Connect to meal tracking to show real nutrient data
+          _buildNutrientProgressBar('Protein', 0.0, AppColors.primaryAccent), // TODO: Calculate from meals
           const SizedBox(height: 12),
-          _buildNutrientProgressBar('Carbs', 0.8, AppColors.successGreen),
+          _buildNutrientProgressBar('Carbs', 0.0, AppColors.successGreen), // TODO: Calculate from meals
           const SizedBox(height: 12),
-          _buildNutrientProgressBar('Fat', 0.4, AppColors.purpleAccent),
+          _buildNutrientProgressBar('Fat', 0.0, AppColors.purpleAccent), // TODO: Calculate from meals
         ],
       ),
     );
@@ -302,30 +364,31 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
           ],
         ),
         const SizedBox(height: 12),
+        // TODO: Connect to meal plan service to show personalized meal plans
         _buildMealCard(
           mealType: 'BREAKFAST',
-          calories: '140-160 kcals',
+          calories: 'TODO', // TODO: Calculate based on user profile and health conditions
           icon: '🥐',
           color: AppColors.primaryAccent,
         ),
         const SizedBox(height: 12),
         _buildMealCard(
           mealType: 'LUNCH',
-          calories: '450-550 kcals',
+          calories: 'TODO', // TODO: Calculate based on user profile and health conditions
           icon: '🍽️',
           color: AppColors.successGreen,
         ),
         const SizedBox(height: 12),
         _buildMealCard(
           mealType: 'DINNER',
-          calories: '300-400 kcals',
+          calories: 'TODO', // TODO: Calculate based on user profile and health conditions
           icon: '🥗',
           color: AppColors.purpleAccent,
         ),
         const SizedBox(height: 12),
         _buildMealCard(
           mealType: 'SNACK',
-          calories: '250-300 kcals',
+          calories: 'TODO', // TODO: Calculate based on user profile and health conditions
           icon: '🍎',
           color: AppColors.primaryAccent,
         ),

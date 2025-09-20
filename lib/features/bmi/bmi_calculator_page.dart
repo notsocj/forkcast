@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
+import '../../services/auth_service.dart';
+import '../../services/user_service.dart';
 import '../core_features/main_navigation_wrapper.dart';
 
 class BMICalculatorPage extends StatefulWidget {
@@ -30,16 +32,34 @@ class _BMICalculatorPageState extends State<BMICalculatorPage> {
     super.dispose();
   }
 
-  void _calculateBMI() {
+  void _calculateBMI() async {
     if (_formKey.currentState!.validate() && _selectedGender.isNotEmpty) {
       final double weight = double.parse(_weightController.text);
       final double heightCm = double.parse(_heightController.text);
       final double heightM = heightCm / 100; // Convert cm to meters
       
+      final double calculatedBMI = weight / (heightM * heightM);
+      
       setState(() {
-        _calculatedBMI = weight / (heightM * heightM);
+        _calculatedBMI = calculatedBMI;
         _setBMICategory();
       });
+      
+      // Save BMI to Firebase
+      try {
+        final authService = AuthService();
+        final userService = UserService();
+        final currentUser = authService.currentUser;
+        
+        if (currentUser != null) {
+          await userService.updateUser(currentUser.uid, {
+            'bmi': calculatedBMI,
+          });
+        }
+      } catch (e) {
+        // Handle error silently or show a snackbar
+        print('Failed to save BMI: $e');
+      }
       
       // Show success feedback
       HapticFeedback.lightImpact();

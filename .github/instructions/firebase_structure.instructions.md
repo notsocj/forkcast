@@ -19,6 +19,7 @@ collections:
       birthdate: timestamp
       height_cm: number (double)
       weight_kg: number (double)
+      bmi: number (double)
       household_size: number (int)
       weekly_budget_min: number (int)
       weekly_budget_max: number (int)

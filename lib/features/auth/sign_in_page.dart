@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
 import 'forgot_password/forgot_password_page.dart';
-import '../profile_setup/name_entry_page.dart';
 import '../../services/auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../core_features/main_navigation_wrapper.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -411,11 +411,10 @@ class _SignInPageState extends State<SignInPage> {
             ),
           );
 
-          // Navigate to profile setup or home based on user profile completion
-          // For now, navigate to name entry page
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const NameEntryPage()),
+          // Navigate to main app wrapper (clear previous routes so bottom nav shows)
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const MainNavigationWrapper()),
+            (route) => false,
           );
         }
       } on FirebaseAuthException catch (e) {
