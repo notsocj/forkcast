@@ -93,17 +93,21 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                     ),
                   ),
                   Container(
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: AppColors.primaryAccent,
                       shape: BoxShape.circle,
                     ),
-                    child: IconButton(
-                      onPressed: () {
-                        // TODO: Navigate to user profile page
-                      },
-                      icon: const Icon(
-                        Icons.person,
-                        color: AppColors.white,
+                    child: Center(
+                      child: Text(
+                        _getUserInitials(_currentUser?.fullName ?? 'User'),
+                        style: const TextStyle(
+                          fontFamily: 'Lato',
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.white,
+                        ),
                       ),
                     ),
                   ),
@@ -121,8 +125,11 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
               child: Container(
                 width: double.infinity,
                 color: AppColors.primaryBackground,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
+                child: RefreshIndicator(
+                  onRefresh: _loadUserData,
+                  color: AppColors.successGreen,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -144,6 +151,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                     ],
                   ),
                 ),
+              ),
               ),
             ),
           ),
@@ -564,5 +572,16 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
         ],
       ),
     );
+  }
+
+  String _getUserInitials(String fullName) {
+    if (fullName.isEmpty) return 'U';
+    
+    final nameParts = fullName.trim().split(' ');
+    if (nameParts.length == 1) {
+      return nameParts[0][0].toUpperCase();
+    } else {
+      return '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase();
+    }
   }
 }

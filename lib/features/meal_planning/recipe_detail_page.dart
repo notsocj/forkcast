@@ -35,8 +35,14 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                     topRight: Radius.circular(25),
                   ),
                 ),
-                child: SingleChildScrollView(
-                  child: Column(
+                child: RefreshIndicator(
+                  onRefresh: () async {
+                    // Simple refresh - could reload recipe data in the future
+                    await Future.delayed(const Duration(milliseconds: 500));
+                  },
+                  color: AppColors.successGreen,
+                  child: SingleChildScrollView(
+                    child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildRecipeImage(),
@@ -50,6 +56,7 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                     ],
                   ),
                 ),
+              ),
               ),
             ),
           ],

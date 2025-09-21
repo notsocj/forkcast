@@ -148,8 +148,11 @@ class _MealPlanPageState extends State<MealPlanPage> {
                     topRight: Radius.circular(25),
                   ),
                 ),
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
+                child: RefreshIndicator(
+                  onRefresh: _loadTodaysMeals,
+                  color: AppColors.successGreen,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -161,6 +164,7 @@ class _MealPlanPageState extends State<MealPlanPage> {
                     ],
                   ),
                 ),
+              ),
               ),
             ),
           ],

@@ -24,11 +24,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _weightController = TextEditingController();
   final _heightController = TextEditingController();
   final _householdSizeController = TextEditingController();
+  final _weeklyBudgetController = TextEditingController();
   final _healthConditionsController = TextEditingController();
   final _foodAllergiesController = TextEditingController();
   
   String _selectedGender = 'Male';
-  String _selectedBudget = '₱1000-2000';
   User? _currentUser;
   bool _isLoading = true;
   bool _isSaving = false;
@@ -71,26 +71,13 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _weightController.text = '${user.weightKg.toStringAsFixed(1)} kg';
     _heightController.text = '${user.heightCm.toStringAsFixed(0)} cm';
     _householdSizeController.text = '${user.householdSize} people';
+    _weeklyBudgetController.text = user.weeklyBudgetMin == user.weeklyBudgetMax 
+        ? '₱${user.weeklyBudgetMin}' 
+        : '₱${user.weeklyBudgetMin}-${user.weeklyBudgetMax}';
     _selectedGender = user.gender;
     
-    // Map user's budget to predefined dropdown values
-    _selectedBudget = _mapBudgetToDropdownValue(user.weeklyBudgetMin, user.weeklyBudgetMax);
-    
     _healthConditionsController.text = user.healthConditions?.join(', ') ?? '';
-    _foodAllergiesController.text = ''; // TODO: Add food allergies field to User model
-  }
-  
-  String _mapBudgetToDropdownValue(int minBudget, int maxBudget) {
-    // Map the user's actual budget to the closest predefined range
-    if (maxBudget <= 1000) {
-      return '₱500-1000';
-    } else if (maxBudget <= 2000) {
-      return '₱1000-2000';
-    } else if (maxBudget <= 3000) {
-      return '₱2000-3000';
-    } else {
-      return '₱3000+';
-    }
+    _foodAllergiesController.text = user.foodAllergies?.join(', ') ?? '';
   }
   
   @override
@@ -102,6 +89,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     _weightController.dispose();
     _heightController.dispose();
     _householdSizeController.dispose();
+    _weeklyBudgetController.dispose();
     _healthConditionsController.dispose();
     _foodAllergiesController.dispose();
     super.dispose();
@@ -127,8 +115,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
             _buildHeader(),
             // Form Content
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: RefreshIndicator(
+                onRefresh: _loadUserData,
+                color: AppColors.successGreen,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 child: Form(
                   key: _formKey,
                   child: Column(
@@ -213,15 +204,16 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                       const SizedBox(height: 16),
                       
-                      // Weekly Budget Dropdown
-                      _buildDropdownField(
+                      // Weekly Budget Text Input
+                      _buildTextField(
+                        controller: _weeklyBudgetController,
                         label: 'Weekly Budget',
-                        value: _selectedBudget,
-                        items: ['₱500-1000', '₱1000-2000', '₱2000-3000', '₱3000+'],
-                        onChanged: (value) {
-                          setState(() {
-                            _selectedBudget = value!;
-                          });
+                        keyboardType: TextInputType.text,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Please enter your weekly budget';
+                          }
+                          return null;
                         },
                       ),
                       const SizedBox(height: 16),
@@ -262,6 +254,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ),
                 ),
               ),
+            ),
             ),
           ],
         ),
@@ -335,10 +328,18 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   ),
                 ],
               ),
-              child: const Icon(
-                Icons.person,
-                size: 50,
-                color: Colors.white,
+              child: Center(
+                child: Text(
+                  _currentUser?.fullName.isNotEmpty == true 
+                      ? _currentUser!.fullName[0].toUpperCase()
+                      : 'U',
+                  style: TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 36,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.white,
+                  ),
+                ),
               ),
             ),
             Positioned(
@@ -489,16 +490,33 @@ class _EditProfilePageState extends State<EditProfilePage> {
           controller: _birthdateController,
           readOnly: true,
           onTap: () async {
+            // Parse current date from controller to set as initial date
+            DateTime initialDate = DateTime(2001, 11, 26); // Default fallback
+            try {
+              final currentText = _birthdateController.text.trim();
+              if (currentText.isNotEmpty) {
+                final parts = currentText.split('-');
+                if (parts.length == 3) {
+                  final day = int.parse(parts[0]);
+                  final month = int.parse(parts[1]);
+                  final year = int.parse(parts[2]);
+                  initialDate = DateTime(year, month, day);
+                }
+              }
+            } catch (e) {
+              // Use default if parsing fails
+            }
+
             final DateTime? picked = await showDatePicker(
               context: context,
-              initialDate: DateTime(2001, 11, 26),
+              initialDate: initialDate,
               firstDate: DateTime(1900),
               lastDate: DateTime.now(),
             );
             if (picked != null) {
               setState(() {
                 _birthdateController.text = 
-                    '${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}-${picked.year}';
+                    '${picked.day.toString().padLeft(2, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.year}';
               });
             }
           },
@@ -659,19 +677,64 @@ class _EditProfilePageState extends State<EditProfilePage> {
         final heightText = _heightController.text.replaceAll(RegExp(r'[^0-9.]'), '');
         final householdText = _householdSizeController.text.replaceAll(RegExp(r'[^0-9]'), '');
         
-        // Parse budget - handle both range format and 3000+ format
+        // Parse birthdate from controller (DD-MM-YYYY format)
+        DateTime? parsedBirthdate;
+        try {
+          final birthdateText = _birthdateController.text.trim();
+          if (birthdateText.isNotEmpty) {
+            final parts = birthdateText.split('-');
+            if (parts.length == 3) {
+              final day = int.parse(parts[0]);
+              final month = int.parse(parts[1]);
+              final year = int.parse(parts[2]);
+              parsedBirthdate = DateTime(year, month, day);
+            }
+          }
+        } catch (e) {
+          // If parsing fails, keep the original birthdate
+          parsedBirthdate = _currentUser!.birthdate;
+        }
+        
+        // Parse budget from text input
         int budgetMin, budgetMax;
-        if (_selectedBudget == '₱3000+') {
-          budgetMin = 3000;
-          budgetMax = 5000; // Default max for 3000+ range
-        } else {
-          final budgetMatch = RegExp(r'₱(\d+)-(\d+)').firstMatch(_selectedBudget);
-          budgetMin = budgetMatch != null ? int.parse(budgetMatch.group(1)!) : _currentUser!.weeklyBudgetMin;
-          budgetMax = budgetMatch != null ? int.parse(budgetMatch.group(2)!) : _currentUser!.weeklyBudgetMax;
+        try {
+          final budgetText = _weeklyBudgetController.text.trim();
+          
+          // Handle different formats: "₱1000-2000", "1000-2000", "₱1500", "1500"
+          final budgetClean = budgetText.replaceAll('₱', '').replaceAll(',', '');
+          
+          if (budgetClean.contains('-')) {
+            // Range format: "1000-2000"
+            final parts = budgetClean.split('-');
+            if (parts.length == 2) {
+              budgetMin = int.parse(parts[0].trim());
+              budgetMax = int.parse(parts[1].trim());
+            } else {
+              // Fallback to current values
+              budgetMin = _currentUser!.weeklyBudgetMin;
+              budgetMax = _currentUser!.weeklyBudgetMax;
+            }
+          } else {
+            // Single value format: "1500" - treat as both min and max
+            final amount = int.parse(budgetClean);
+            budgetMin = amount;
+            budgetMax = amount;
+          }
+        } catch (e) {
+          // If parsing fails, keep the original budget
+          budgetMin = _currentUser!.weeklyBudgetMin;
+          budgetMax = _currentUser!.weeklyBudgetMax;
         }
         
         // Parse health conditions
         List<String> healthConditions = _healthConditionsController.text
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+        
+        // Parse food allergies
+        List<String> foodAllergies = _foodAllergiesController.text
             .split(',')
             .map((e) => e.trim())
             .where((e) => e.isNotEmpty)
@@ -682,12 +745,14 @@ class _EditProfilePageState extends State<EditProfilePage> {
           fullName: _fullNameController.text.trim(),
           phoneNumber: _phoneController.text.trim().isEmpty ? null : _phoneController.text.trim(),
           gender: _selectedGender,
+          birthdate: parsedBirthdate ?? _currentUser!.birthdate,
           weightKg: double.tryParse(weightText) ?? _currentUser!.weightKg,
           heightCm: double.tryParse(heightText) ?? _currentUser!.heightCm,
           householdSize: int.tryParse(householdText) ?? _currentUser!.householdSize,
           weeklyBudgetMin: budgetMin,
           weeklyBudgetMax: budgetMax,
           healthConditions: healthConditions.isEmpty ? null : healthConditions,
+          foodAllergies: foodAllergies.isEmpty ? null : foodAllergies,
         );
         
         // Save to Firebase
@@ -712,7 +777,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
             ),
           ),
         );
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(true); // Return true to indicate success
       }
     } catch (e) {
       setState(() {

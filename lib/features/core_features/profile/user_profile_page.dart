@@ -22,6 +22,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
   bool _isLoading = true;
   String? _error;
 
+  // Formats the weekly budget display. Shows a single amount when min == max,
+  // otherwise shows a range: ₱min - ₱max.
+  String _formattedWeeklyBudget() {
+    if (_currentUser == null) return '₱0';
+    final min = _currentUser!.weeklyBudgetMin;
+    final max = _currentUser!.weeklyBudgetMax;
+    if (min == max) return '₱$min';
+    return '₱$min - ₱$max';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -75,8 +85,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
     return Scaffold(
       backgroundColor: AppColors.successGreen,
-      body: CustomScrollView(
-        slivers: [
+      body: RefreshIndicator(
+        onRefresh: _loadUserData,
+        color: AppColors.successGreen,
+        child: CustomScrollView(
+          slivers: [
           // Modern App Bar with Gradient
           SliverAppBar(
             expandedHeight: 240,
@@ -116,10 +129,14 @@ class _UserProfilePageState extends State<UserProfilePage> {
                           child: CircleAvatar(
                             radius: 40,
                             backgroundColor: AppColors.white,
-                            child: Icon(
-                              Icons.person,
-                              size: 40,
-                              color: AppColors.successGreen,
+                            child: Text(
+                              _getInitials(_currentUser?.fullName ?? 'User'),
+                              style: TextStyle(
+                                fontFamily: 'Lato',
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.successGreen,
+                              ),
                             ),
                           ),
                         ),
@@ -177,7 +194,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                               const SizedBox(width: 4),
                               Flexible(
                                 child: Text(
-                                  'Premium Member - Gold',
+                                    'Fitness Member',
                                   overflow: TextOverflow.ellipsis,
                                   maxLines: 1,
                                   style: TextStyle(
@@ -238,6 +255,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
             ),
           ),
         ],
+        ),
       ),
     );
   }
@@ -280,12 +298,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 title: 'Edit Profile',
                 subtitle: 'Update Info',
                 gradient: [AppColors.successGreen, AppColors.successGreen.withOpacity(0.7)],
-                onTap: () {
-                  Navigator.of(context).push(
+                onTap: () async {
+                  final result = await Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => const EditProfilePage(),
                     ),
                   );
+                  // Refresh user data when returning from edit page
+                  if (result == true || result == null) {
+                    _loadUserData();
+                  }
                 },
               ),
             ),
@@ -479,7 +501,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                             ),
                           ),
                           Text(
-                            '₱${_currentUser?.weeklyBudgetMin ?? 0} - ₱${_currentUser?.weeklyBudgetMax ?? 0}',
+                            _formattedWeeklyBudget(),
                             style: TextStyle(
                               fontFamily: 'Lato',
                               fontSize: 16,
@@ -641,6 +663,62 @@ class _UserProfilePageState extends State<UserProfilePage> {
                           .toList(),
                     )
                   : _buildHealthConditionChip('No health conditions', Icons.check_circle, isPositive: true),
+              
+              const SizedBox(height: 24),
+              
+              // Food Allergies Section
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.warning_amber_outlined,
+                      color: Colors.orange,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Food Allergies',
+                          style: TextStyle(
+                            fontFamily: 'Lato',
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.blackText,
+                          ),
+                        ),
+                        Text(
+                          'Dietary restrictions and allergies',
+                          style: TextStyle(
+                            fontFamily: 'OpenSans',
+                            fontSize: 12,
+                            color: AppColors.grayText,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              // Display user food allergies from Firebase
+              _currentUser?.foodAllergies != null && _currentUser!.foodAllergies!.isNotEmpty
+                  ? Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _currentUser!.foodAllergies!
+                          .map((allergy) => _buildHealthConditionChip(allergy, Icons.no_food, isPositive: false))
+                          .toList(),
+                    )
+                  : _buildHealthConditionChip('No food allergies', Icons.check_circle, isPositive: true),
             ],
           ),
         ),
@@ -797,5 +875,15 @@ class _UserProfilePageState extends State<UserProfilePage> {
         );
       },
     );
+  }
+
+  String _getInitials(String fullName) {
+    if (fullName.trim().isEmpty) return 'U';
+    final parts = fullName.trim().split(RegExp(r"\s+"));
+    if (parts.length == 1) return parts[0][0].toUpperCase();
+    // Return only first two initials even if there are more name parts
+    final first = parts[0][0];
+    final second = parts[1][0];
+    return (first + second).toUpperCase();
   }
 }

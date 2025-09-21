@@ -65,7 +65,17 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
             _buildHeader(),
             // Nutrition Facts Content
             Expanded(
-              child: _buildNutritionContent(),
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  // Simple refresh for nutrition facts
+                  await Future.delayed(const Duration(milliseconds: 500));
+                },
+                color: AppColors.successGreen,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(bottom: 220), // leave room for bottom keypad
+                  child: _buildNutritionContent(),
+                ),
+              ),
             ),
             // Bottom Section with Save Button and Numeric Keypad
             _buildBottomSection(),
@@ -177,9 +187,8 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
             const SizedBox(height: 32),
             
             // Nutrition Details
-            Expanded(
-              child: Row(
-                children: [
+            Row(
+              children: [
                   // Left Column
                   Expanded(
                     child: Column(
@@ -226,13 +235,12 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+                ], // end Row children
+            ), // end Row
+            ], // end Column children
+        ), // end Column
+      ), // end Padding
+    ); // end Container
   }
 
   Widget _buildNutritionItem(String label, String value, {bool isRight = false}) {

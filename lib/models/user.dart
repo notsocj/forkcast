@@ -18,6 +18,7 @@ class User {
   final String role;
   final String? specialization;
   final List<String>? healthConditions;
+  final List<String>? foodAllergies;
 
   User({
     this.id,
@@ -37,6 +38,7 @@ class User {
     this.role = 'user',
     this.specialization,
     this.healthConditions,
+    this.foodAllergies,
   });
 
   // Factory constructor to create User from Firebase document
@@ -64,6 +66,9 @@ class User {
       healthConditions: data['health_conditions'] != null
           ? List<String>.from(data['health_conditions'])
           : null,
+      foodAllergies: data['food_allergies'] != null
+          ? List<String>.from(data['food_allergies'])
+          : null,
     );
   }
 
@@ -88,6 +93,7 @@ class User {
       'role': role,
       if (specialization != null) 'specialization': specialization,
       if (healthConditions != null) 'health_conditions': healthConditions,
+      if (foodAllergies != null) 'food_allergies': foodAllergies,
     };
   }
 
@@ -110,6 +116,7 @@ class User {
     String? role,
     String? specialization,
     List<String>? healthConditions,
+    List<String>? foodAllergies,
   }) {
     return User(
       id: id ?? this.id,
@@ -129,6 +136,7 @@ class User {
       role: role ?? this.role,
       specialization: specialization ?? this.specialization,
       healthConditions: healthConditions ?? this.healthConditions,
+      foodAllergies: foodAllergies ?? this.foodAllergies,
     );
   }
 

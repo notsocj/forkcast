@@ -208,12 +208,20 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
         ),
         // Results list
         Expanded(
-          child: ListView.builder(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            itemCount: _currentResults.length,
-            itemBuilder: (context, index) {
-              return _buildRecipeCard(_currentResults[index]);
+          child: RefreshIndicator(
+            onRefresh: () async {
+              // Refresh the search results
+              _performSearch(widget.searchQuery);
+              await Future.delayed(const Duration(milliseconds: 500));
             },
+            color: AppColors.successGreen,
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+              itemCount: _currentResults.length,
+              itemBuilder: (context, index) {
+                return _buildRecipeCard(_currentResults[index]);
+              },
+            ),
           ),
         ),
       ],

@@ -4,6 +4,8 @@ import 'dashboard/user_dashboard_page.dart';
 import 'profile/user_profile_page.dart';
 import '../market/market_price_dashboard_page.dart';
 import '../meal_planning/meal_plan_page.dart';
+import '../qna/qna_forum_page.dart';
+import '../teleconsultation/book_consultation_page.dart';
 
 class MainNavigationWrapper extends StatefulWidget {
   const MainNavigationWrapper({super.key});
@@ -20,8 +22,8 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
     const UserProfilePage(),        // Profile
     const MarketPriceDashboardPage(),    // Price Monitoring
     const MealPlanPage(),           // Meal Plan
-    const PlaceholderPage(title: 'Q&A Forum'),          // Q&A Forum
-    const PlaceholderPage(title: 'Teleconsultation'),    // Teleconsultation
+    const QnaForumPage(),          // Q&A Forum
+    const BookConsultationPage(),    // Teleconsultation
   ];
 
   @override

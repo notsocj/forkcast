@@ -95,6 +95,11 @@ applyTo: '**'
   - [x] `weekly_budget_page.dart` (progress 6/8, modern numeric input, +/- controls, custom dialog)
     - [x] Navigate medical conditions → BMI (profile flow navigation wired)
    - [x] `edit_profile_page.dart` (comprehensive profile editing with all Firebase schema fields, modern UI design)
+   - [x] **Food Allergies Integration** (Complete implementation)
+     - [x] `User` model updated with `foodAllergies` field and Firebase serialization
+     - [x] Edit profile page connected to save allergies to Firebase
+     - [x] User profile page displays allergies chips in health information section
+     - [x] Add/edit allergies dialog functionality implemented
   - [x] Profile connected to Firestore `users` collection
   - [x] **Profile Setup Backend Integration**
     - [x] `User` model class created (`lib/models/user.dart`) with Firebase serialization
@@ -197,13 +202,60 @@ applyTo: '**'
     - [x] Price trends section with custom chart painter
     - [x] Integrated into navigation wrapper at index 2 (Price Monitoring tab)
   - [x] Price alerts & trends functional (sample data implementation)
-- [ ] **Q&A Forum**
-  - [ ] Forum page implemented (`qna_forum_page.dart`)
-  - [ ] Posting, commenting, saving posts functional
-- [ ] **Teleconsultation**
-  - [ ] Consultation page implemented (`teleconsultation_page.dart`)
-  - [ ] Booking page functional (`book_consultation_page.dart`)
-  - [ ] Confirmation page implemented (`book_confirmation_page.dart`)
+- [x] **Q&A Forum**
+  - [x] Forum page implemented (`qna_forum_page.dart`)
+    - [x] Green header with search bar and "Saved" button
+    - [x] "Ask question..." input section with user avatar
+    - [x] Question cards with user info, question text, answer count, and save functionality
+    - [x] Special badge for verified nutritionists
+    - [x] Modal bottom sheet for posting new questions
+    - [x] Sample data implementation (ready for Firebase integration)
+    - [x] Integrated into navigation wrapper at index 4 (Q&A tab)
+  - [x] **Q&A Answers Page** (`qna_answers_page.dart`)
+    - [x] Question display at top (original question with user details)
+    - [x] Answer cards with user info, answer text, and interaction buttons
+    - [x] Like/unlike functionality for answers
+    - [x] Report dialog for inappropriate content
+    - [x] Fixed bottom input for posting new answers
+    - [x] Reply functionality with user feedback
+    - [x] Sample answers data with verified nutritionist badges
+  - [x] **Complete Navigation Flow**
+    - [x] Question cards in forum page are tappable
+    - [x] Navigation from forum to answers page with question data
+    - [x] Proper data passing between pages
+    - [x] All UI interactions functional (save, like, reply, report)
+- [x] **Teleconsultation**
+  - [x] Consultation page implemented (`book_consultation_page.dart`)
+    - [x] Green header with "Book Consultation" and "My Appointments" tabs
+    - [x] Search bar for finding professionals
+    - [x] Professional cards with profile info, specializations, schedules, and ratings
+    - [x] Available/Busy status indicators for professionals
+    - [x] Schedule time chips showing available appointment slots
+    - [x] "Book now" buttons with navigation to schedule page
+    - [x] My Appointments tab showing booked consultations
+    - [x] Appointment cards with professional details, date/time, and status
+    - [x] Empty state for when no appointments are booked
+    - [x] Sample data implementation (ready for Firebase integration)
+    - [x] Integrated into navigation wrapper at index 5 (Teleconsultation tab)
+  - [x] **Book Consultation Schedule Page** (`book_consultation_schedule_page.dart`)
+    - [x] Green header with back button and "Book Consultation" title
+    - [x] Professional info card displaying selected professional details
+    - [x] Date section with interactive calendar widget (June 2025 layout)
+    - [x] Time dropdown selection with available time slots
+    - [x] "What do you want to talk about?" text area for consultation topic
+    - [x] "Book Appointment" button with confirmation flow
+    - [x] Navigation from Book Consultation page when "Book now" is clicked
+    - [x] Complete booking flow with success feedback
+  - [x] **Booking Confirmation Page** (`booking_confirmation_page.dart`)
+    - [x] Green background with success styling
+    - [x] Success checkmark icon in circular container
+    - [x] "Your appointment is booked!" confirmation message
+    - [x] Professional info display (avatar, name, specialization)
+    - [x] Appointment details (formatted date, time, reference number)
+    - [x] Optional topic display if user entered consultation topic
+    - [x] "Go to My Appointments" button with navigation
+    - [x] Complete navigation flow from schedule page
+    - [x] Auto-generated reference numbers for bookings
 - [ ] **Admin Features**
   - [ ] User management pages (`manage_users_page.dart`)
   - [ ] Recipe management pages (`manage_recipes_page.dart`)

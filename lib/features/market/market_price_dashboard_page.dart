@@ -71,8 +71,14 @@ class _MarketPriceDashboardPageState extends State<MarketPriceDashboardPage> {
     return Scaffold(
       backgroundColor: AppColors.successGreen,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            // Refresh market price data - would call actual API in real app
+            await Future.delayed(const Duration(seconds: 1));
+          },
+          color: AppColors.successGreen,
+          child: SingleChildScrollView(
+            child: Column(
             children: [
               // Header
               _buildHeader(),
@@ -113,6 +119,7 @@ class _MarketPriceDashboardPageState extends State<MarketPriceDashboardPage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

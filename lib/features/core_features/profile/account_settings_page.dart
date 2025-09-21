@@ -64,8 +64,14 @@ class AccountSettingsPage extends StatelessWidget {
               ),
             ),
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  // Simple refresh delay since this is a StatelessWidget
+                  await Future.delayed(const Duration(milliseconds: 500));
+                },
+                color: AppColors.successGreen,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
@@ -129,6 +135,7 @@ class AccountSettingsPage extends StatelessWidget {
                   ),
                 ),
               ),
+            ),
             ),
           ],
         ),
