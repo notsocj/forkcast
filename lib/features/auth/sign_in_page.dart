@@ -3,6 +3,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
 import 'forgot_password/forgot_password_page.dart';
 import '../../services/auth_service.dart';
+import '../../services/persistent_auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../core_features/main_navigation_wrapper.dart';
 
@@ -19,6 +20,26 @@ class _SignInPageState extends State<SignInPage> {
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _rememberMe = false;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStoredCredentials();
+  }
+
+  /// Load stored credentials if remember me was enabled
+  Future<void> _loadStoredCredentials() async {
+    final rememberMe = await PersistentAuthService.getRememberMeState();
+    final storedEmail = await PersistentAuthService.getStoredEmail();
+    
+    if (rememberMe && storedEmail != null) {
+      setState(() {
+        _rememberMe = true;
+        _emailController.text = storedEmail;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -344,7 +365,7 @@ class _SignInPageState extends State<SignInPage> {
                     width: double.infinity,
                     height: 50,
                     child: ElevatedButton(
-                      onPressed: _handleSignIn,
+                      onPressed: _isLoading ? null : _handleSignIn,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.successGreen,
                         foregroundColor: AppColors.white,
@@ -352,14 +373,23 @@ class _SignInPageState extends State<SignInPage> {
                           borderRadius: BorderRadius.circular(25),
                         ),
                       ),
-                      child: const Text(
-                        "Sign in",
-                        style: TextStyle(
-                          fontFamily: AppConstants.primaryFont,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: AppColors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              "Sign in",
+                              style: TextStyle(
+                                fontFamily: AppConstants.primaryFont,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
                   ),
                   
@@ -395,6 +425,10 @@ class _SignInPageState extends State<SignInPage> {
 
   void _handleSignIn() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
       final email = _emailController.text.trim();
       final password = _passwordController.text.trim();
 
@@ -404,6 +438,12 @@ class _SignInPageState extends State<SignInPage> {
         final userCredential = await authService.signIn(email, password);
 
         if (userCredential.user != null) {
+          // Save remember me state and credentials
+          await PersistentAuthService.saveRememberMeState(
+            rememberMe: _rememberMe,
+            email: email,
+          );
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('Sign in successful!'),
@@ -441,6 +481,12 @@ class _SignInPageState extends State<SignInPage> {
             backgroundColor: Colors.red,
           ),
         );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+          });
+        }
       }
     }
   }

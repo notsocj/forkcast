@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/auth_service.dart';
 import '../../../services/user_service.dart';
+import '../../../services/meal_logging_service.dart';
 import '../../../models/user.dart';
 
 class UserDashboardPage extends StatefulWidget {
@@ -14,8 +15,10 @@ class UserDashboardPage extends StatefulWidget {
 class _UserDashboardPageState extends State<UserDashboardPage> {
   final AuthService _authService = AuthService();
   final UserService _userService = UserService();
+  final MealLoggingService _mealLoggingService = MealLoggingService();
   
   User? _currentUser;
+  Map<String, dynamic>? _todaysMealStatus;
   bool _isLoading = true;
   String? _error;
 
@@ -29,9 +32,15 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     try {
       final currentUser = _authService.currentUser;
       if (currentUser != null) {
-        final userData = await _userService.getUser(currentUser.uid);
+        // Load user data and today's meals in parallel
+        final futures = await Future.wait([
+          _userService.getUser(currentUser.uid),
+          _mealLoggingService.getTodaysMealStatus(),
+        ]);
+        
         setState(() {
-          _currentUser = userData;
+          _currentUser = futures[0] as User;
+          _todaysMealStatus = futures[1] as Map<String, dynamic>;
           _isLoading = false;
         });
       } else {
@@ -41,12 +50,226 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
         });
       }
     } catch (e) {
+      print('Dashboard - Error loading user data: $e');
       setState(() {
         _error = 'Failed to load user data: $e';
         _isLoading = false;
       });
     }
   }
+
+  /// Calculate total calories consumed today
+  double _getConsumedCalories() {
+    if (_todaysMealStatus == null) return 0.0;
+    
+    double totalCalories = 0.0;
+    
+    for (String mealType in ['Breakfast', 'Lunch', 'Dinner', 'Snack']) {
+      final mealData = _todaysMealStatus![mealType];
+      if (mealData != null && mealData['logged'] == true) {
+        final data = mealData['data'] as Map<String, dynamic>?;
+        if (data != null && data['scaled_kcal'] != null) {
+          totalCalories += (data['scaled_kcal'] as num).toDouble();
+        }
+      }
+    }
+    
+    return totalCalories;
+  }
+
+  /// Calculate daily calorie limit based on user profile (simplified version)
+  double _getDailyCalorieLimit() {
+    if (_currentUser == null) return 2000.0; // default
+    
+    // This is a simplified calculation. In a real app, you'd use more complex formulas
+    // like Harris-Benedict or Mifflin-St Jeor equations
+    double baseCalories = 1800; // base for adults
+    
+    // Adjust based on age (simplified)
+    int age = DateTime.now().year - _currentUser!.birthdate.year;
+    if (age > 50) {
+      baseCalories -= 100;
+    } else if (age < 25) {
+      baseCalories += 100;
+    }
+    
+    // Adjust based on gender (simplified)
+    if (_currentUser!.gender.toLowerCase() == 'male') {
+      baseCalories += 300;
+    }
+    
+    // Adjust based on weight (simplified)
+    double weight = _currentUser!.weightKg;
+    if (weight > 70) {
+      baseCalories += (weight - 70) * 10;
+    } else if (weight < 60) {
+      baseCalories -= (60 - weight) * 8;
+    }
+    
+    return baseCalories;
+  }
+
+  /// Get health status based on BMI and medical conditions
+  String _getHealthStatus() {
+    if (_currentUser == null) return 'Unknown';
+    
+    final healthConditions = _currentUser!.healthConditions;
+    if (healthConditions != null && healthConditions.isNotEmpty) {
+      // If user has health conditions, show the primary one
+      return healthConditions.first;
+    }
+    
+    final bmi = _currentUser!.bmi ?? _currentUser!.calculatedBmi;
+    if (bmi < 18.5) {
+      return 'Underweight';
+    } else if (bmi < 25.0) {
+      return 'Healthy';
+    } else if (bmi < 30.0) {
+      return 'Overweight';
+    } else {
+      return 'Obese';
+    }
+  }
+
+  /// Get meal data for a specific meal type
+  Map<String, dynamic> _getMealDataForType(String mealType) {
+    if (_todaysMealStatus == null) {
+      return {
+        'name': 'No meal logged',
+        'calories': '0 kcal',
+        'hasData': false,
+        'source': 'none',
+      };
+    }
+    
+    final mealData = _todaysMealStatus![mealType];
+    if (mealData != null && mealData['logged'] == true) {
+      final data = mealData['data'] as Map<String, dynamic>?;
+      final source = mealData['source'] as String? ?? 'today';
+      if (data != null) {
+        return {
+          'name': data['recipe_name'] ?? 'Unknown meal',
+          'calories': '${data['scaled_kcal']?.toInt() ?? 0} kcal',
+          'hasData': true,
+          'source': source,
+        };
+      }
+    }
+    
+    return {
+      'name': 'No meal logged',
+      'calories': '0 kcal',
+      'hasData': false,
+      'source': 'none',
+    };
+  }
+
+  /// Get meal icon for meal type
+  String _getMealIcon(String mealType) {
+    switch (mealType) {
+      case 'BREAKFAST':
+        return '🥐';
+      case 'LUNCH':
+        return '🍽️';
+      case 'DINNER':
+        return '🥗';
+      case 'SNACK':
+        return '🍎';
+      default:
+        return '🍴';
+    }
+  }
+
+  /// Get meal color for meal type
+  Color _getMealColor(String mealType) {
+    switch (mealType) {
+      case 'BREAKFAST':
+        return AppColors.primaryAccent;
+      case 'LUNCH':
+        return AppColors.successGreen;
+      case 'DINNER':
+        return AppColors.purpleAccent;
+      case 'SNACK':
+        return Colors.orange;
+      default:
+        return AppColors.grayText;
+    }
+  }
+
+  /// Calculate total nutrients consumed today
+  Map<String, double> _getTodayNutrients() {
+    if (_todaysMealStatus == null) {
+      return {'protein': 0.0, 'carbs': 0.0, 'fat': 0.0};
+    }
+    
+    double totalProtein = 0.0;
+    double totalCarbs = 0.0;
+    double totalFat = 0.0;
+    
+    for (String mealType in ['Breakfast', 'Lunch', 'Dinner', 'Snack']) {
+      final mealData = _todaysMealStatus![mealType];
+      if (mealData != null && mealData['logged'] == true) {
+        final data = mealData['data'] as Map<String, dynamic>?;
+        if (data != null) {
+          // These are estimated from calories since we don't have exact macros
+          // In a real app, you'd store protein/carbs/fat values in Firebase
+          final calories = (data['scaled_kcal'] as num?)?.toDouble() ?? 0.0;
+          
+          // Rough estimation: 
+          // - Breakfast/Snack: more carbs (60% carbs, 20% protein, 20% fat)
+          // - Lunch/Dinner: balanced (40% carbs, 30% protein, 30% fat)
+          if (mealType == 'Breakfast' || mealType == 'Snack') {
+            totalCarbs += (calories * 0.60) / 4; // 4 calories per gram of carbs
+            totalProtein += (calories * 0.20) / 4; // 4 calories per gram of protein
+            totalFat += (calories * 0.20) / 9; // 9 calories per gram of fat
+          } else {
+            totalCarbs += (calories * 0.40) / 4;
+            totalProtein += (calories * 0.30) / 4;
+            totalFat += (calories * 0.30) / 9;
+          }
+        }
+      }
+    }
+    
+    return {
+      'protein': totalProtein,
+      'carbs': totalCarbs,
+      'fat': totalFat,
+    };
+  }
+
+  /// Get daily nutrient targets based on user profile
+  Map<String, double> _getNutrientTargets() {
+    if (_currentUser == null) {
+      return {'protein': 50.0, 'carbs': 250.0, 'fat': 65.0}; // default values
+    }
+    
+    final dailyCalories = _getDailyCalorieLimit();
+    final weight = _currentUser!.weightKg;
+    
+    // Calculate targets based on standard recommendations
+    final proteinTarget = weight * 0.8; // 0.8g per kg body weight
+    final fatTarget = (dailyCalories * 0.25) / 9; // 25% of calories from fat
+    final carbsTarget = (dailyCalories - (proteinTarget * 4) - (fatTarget * 9)) / 4; // remaining calories from carbs
+    
+    return {
+      'protein': proteinTarget,
+      'carbs': carbsTarget,
+      'fat': fatTarget,
+    };
+  }
+
+  /// Get nutrient progress (0.0 to 1.0)
+  double _getNutrientProgress(String nutrient) {
+    final consumed = _getTodayNutrients();
+    final targets = _getNutrientTargets();
+    
+    final consumedAmount = consumed[nutrient] ?? 0.0;
+    final targetAmount = targets[nutrient] ?? 1.0;
+    
+    return (consumedAmount / targetAmount).clamp(0.0, 1.0);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -194,19 +417,19 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
               _buildCalorieItem(
                 icon: Icons.restaurant_outlined,
                 title: 'Consumed',
-                value: 'TODO', // TODO: Implement meal tracking
+                value: '${_getConsumedCalories().toInt()}',
                 color: AppColors.primaryAccent,
               ),
               _buildCalorieItem(
                 icon: Icons.local_fire_department_outlined,
-                title: 'Calories Limit',
-                value: 'TODO', // TODO: Calculate based on user profile
+                title: 'Daily Limit',
+                value: '${_getDailyCalorieLimit().toInt()}',
                 color: AppColors.successGreen,
               ),
               _buildCalorieItem(
                 icon: Icons.fitness_center_outlined,
-                title: 'BMI',
-                value: _currentUser?.bmi?.toStringAsFixed(1) ?? _currentUser?.calculatedBmi.toStringAsFixed(1) ?? '0.0',
+                title: 'Health Status',
+                value: _getHealthStatus(),
                 color: AppColors.purpleAccent,
               ),
             ],
@@ -222,32 +445,38 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     required String value,
     required Color color,
   }) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
+    // Check if value is numeric for styling
+    final isNumeric = double.tryParse(value) != null;
+    
+    return Expanded(
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 24,
+            ),
           ),
-          child: Icon(
-            icon,
-            color: color,
-            size: 24,
+          const SizedBox(height: 8),
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Lato',
+              fontSize: isNumeric ? 20 : 14,
+              fontWeight: FontWeight.bold,
+              color: AppColors.blackText,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontFamily: 'Lato',
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppColors.blackText,
-          ),
-        ),
         Text(
           title,
+          textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: 'OpenSans',
             fontSize: 12,
@@ -255,10 +484,9 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
           ),
         ),
       ],
+      ),
     );
-  }
-
-  Widget _buildNutrientBreakdownCard() {
+  }  Widget _buildNutrientBreakdownCard() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -285,18 +513,20 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
             ),
           ),
           const SizedBox(height: 16),
-          // TODO: Connect to meal tracking to show real nutrient data
-          _buildNutrientProgressBar('Protein', 0.0, AppColors.primaryAccent), // TODO: Calculate from meals
+          _buildNutrientProgressBar('Protein', _getNutrientProgress('protein'), AppColors.primaryAccent),
           const SizedBox(height: 12),
-          _buildNutrientProgressBar('Carbs', 0.0, AppColors.successGreen), // TODO: Calculate from meals
+          _buildNutrientProgressBar('Carbs', _getNutrientProgress('carbs'), AppColors.successGreen),
           const SizedBox(height: 12),
-          _buildNutrientProgressBar('Fat', 0.0, AppColors.purpleAccent), // TODO: Calculate from meals
+          _buildNutrientProgressBar('Fat', _getNutrientProgress('fat'), AppColors.purpleAccent),
         ],
       ),
     );
   }
 
   Widget _buildNutrientProgressBar(String nutrient, double progress, Color color) {
+    final consumed = _getTodayNutrients()[nutrient.toLowerCase()] ?? 0.0;
+    final target = _getNutrientTargets()[nutrient.toLowerCase()] ?? 1.0;
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -313,7 +543,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
               ),
             ),
             Text(
-              '${(progress * 100).toInt()}%',
+              '${consumed.toInt()}g / ${target.toInt()}g',
               style: TextStyle(
                 fontFamily: 'OpenSans',
                 fontSize: 12,
@@ -372,49 +602,43 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
           ],
         ),
         const SizedBox(height: 12),
-        // TODO: Connect to meal plan service to show personalized meal plans
-        _buildMealCard(
-          mealType: 'BREAKFAST',
-          calories: 'TODO', // TODO: Calculate based on user profile and health conditions
-          icon: '🥐',
-          color: AppColors.primaryAccent,
-        ),
-        const SizedBox(height: 12),
-        _buildMealCard(
-          mealType: 'LUNCH',
-          calories: 'TODO', // TODO: Calculate based on user profile and health conditions
-          icon: '🍽️',
-          color: AppColors.successGreen,
-        ),
-        const SizedBox(height: 12),
-        _buildMealCard(
-          mealType: 'DINNER',
-          calories: 'TODO', // TODO: Calculate based on user profile and health conditions
-          icon: '🥗',
-          color: AppColors.purpleAccent,
-        ),
-        const SizedBox(height: 12),
-        _buildMealCard(
-          mealType: 'SNACK',
-          calories: 'TODO', // TODO: Calculate based on user profile and health conditions
-          icon: '🍎',
-          color: AppColors.primaryAccent,
-        ),
+        // Dynamic meal cards based on Firebase data
+        ...['Breakfast', 'Lunch', 'Dinner', 'Snack'].map((mealType) {
+          final mealData = _getMealDataForType(mealType);
+          return Column(
+            children: [
+              _buildMealCard(
+                mealType: mealType.toUpperCase(), // Display as uppercase
+                mealName: mealData['name'],
+                calories: mealData['calories'],
+                icon: _getMealIcon(mealType.toUpperCase()),
+                color: _getMealColor(mealType.toUpperCase()),
+                hasData: mealData['hasData'],
+                source: mealData['source'],
+              ),
+              const SizedBox(height: 12),
+            ],
+          );
+        }).toList(),
       ],
     );
   }
 
   Widget _buildMealCard({
     required String mealType,
+    required String mealName,
     required String calories,
     required String icon,
     required Color color,
+    required bool hasData,
+    String source = 'none',
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(12),
+        border: source == 'yesterday' ? Border.all(color: AppColors.primaryAccent.withOpacity(0.3), width: 1) : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -456,14 +680,50 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  calories,
+                  hasData ? mealName : 'No meal logged',
                   style: TextStyle(
                     fontFamily: 'Lato',
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.blackText,
+                    color: hasData ? AppColors.blackText : AppColors.grayText,
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+                if (hasData) ...[
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Text(
+                        calories,
+                        style: TextStyle(
+                          fontFamily: 'OpenSans',
+                          fontSize: 12,
+                          color: AppColors.grayText,
+                        ),
+                      ),
+                      if (source == 'yesterday') ...[
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColors.primaryAccent.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Text(
+                            'Yesterday',
+                            style: TextStyle(
+                              fontFamily: 'OpenSans',
+                              fontSize: 10,
+                              color: AppColors.primaryAccent,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
               ],
             ),
           ),

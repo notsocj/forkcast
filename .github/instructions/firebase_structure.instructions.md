@@ -81,6 +81,15 @@ collections:
           start_time: string | timestamp
           end_time: string | timestamp
 
+  qna_questions:
+    documentId: questionId (string)
+    fields:
+      question_text: string
+      posted_at: timestamp
+      user_id: reference (→ users.userId)
+      user_name: string (denormalized for quick access)
+      user_specialization: string (optional, for professionals)
+
   recipes:
     documentId: recipeId (string)
     fields:
@@ -115,8 +124,10 @@ collections:
   qna_answers:
     documentId: answerId (string)
     fields:
-      question_id: reference (→ users.qna_questions.questionId)
+      question_id: reference (→ qna_questions.questionId)
       expert_id: reference (→ users.userId)
+      expert_name: string (denormalized for quick access)
+      expert_specialization: string (optional, for professionals)
       answer_text: string
       answered_at: timestamp
 

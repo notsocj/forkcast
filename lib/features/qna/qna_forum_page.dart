@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/theme/app_colors.dart';
+import '../../services/qna_service.dart';
 import 'qna_answers_page.dart';
 
 class QnaForumPage extends StatefulWidget {
@@ -12,31 +14,10 @@ class QnaForumPage extends StatefulWidget {
 class _QnaForumPageState extends State<QnaForumPage> {
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _questionController = TextEditingController();
+  final QnAService _qnaService = QnAService();
 
-  // Sample data for demonstration (will be replaced with Firebase data later)
-  final List<Map<String, dynamic>> _sampleQuestions = [
-    {
-      'id': '1',
-      'userName': 'Juan Dela Cruz',
-      'userAvatar': 'JD',
-      'timeAgo': '3 hrs ago',
-      'questionText': 'What\'s the best diet for someone who has hypertension?',
-      'answersCount': 3,
-      'isSaved': false,
-      'isVerifiedUser': false,
-    },
-    {
-      'id': '2',
-      'userName': 'Maria Santos',
-      'userAvatar': 'MS',
-      'timeAgo': '5 hrs ago',
-      'questionText': 'Here are some tips for maintaining a balanced diet.',
-      'answersCount': 5,
-      'isSaved': true,
-      'isVerifiedUser': true,
-      'isNutritionist': true,
-    },
-  ];
+  // Track loading state
+  bool _isPostingQuestion = false;
 
   @override
   void dispose() {
@@ -80,10 +61,73 @@ class _QnaForumPageState extends State<QnaForumPage> {
                               // Ask question input
                               _buildAskQuestionSection(),
                               const SizedBox(height: 24),
-                              // Questions list
-                              ..._sampleQuestions.map((question) => 
-                                _buildQuestionCard(question)
-                              ).toList(),
+                              // Questions list from Firebase
+                              StreamBuilder<List<Map<String, dynamic>>>(
+                                stream: _qnaService.getAllQuestions(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState == ConnectionState.waiting) {
+                                    return const Center(
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.successGreen,
+                                      ),
+                                    );
+                                  }
+                                  
+                                  if (snapshot.hasError) {
+                                    return Center(
+                                      child: Text(
+                                        'Error loading questions: ${snapshot.error}',
+                                        style: TextStyle(
+                                          color: Colors.red,
+                                          fontFamily: 'OpenSans',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  
+                                  final questions = snapshot.data ?? [];
+                                  
+                                  if (questions.isEmpty) {
+                                    return Center(
+                                      child: Column(
+                                        children: [
+                                          const SizedBox(height: 40),
+                                          Icon(
+                                            Icons.help_outline,
+                                            size: 64,
+                                            color: AppColors.grayText,
+                                          ),
+                                          const SizedBox(height: 16),
+                                          Text(
+                                            'No questions yet',
+                                            style: TextStyle(
+                                              fontFamily: 'Lato',
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.blackText,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Text(
+                                            'Be the first to ask a question!',
+                                            style: TextStyle(
+                                              fontFamily: 'OpenSans',
+                                              fontSize: 14,
+                                              color: AppColors.grayText,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }
+                                  
+                                  return Column(
+                                    children: questions.map((question) => 
+                                      _buildQuestionCard(question)
+                                    ).toList(),
+                                  );
+                                },
+                              ),
                             ],
                           ),
                         ),
@@ -249,6 +293,43 @@ class _QnaForumPageState extends State<QnaForumPage> {
   }
 
   Widget _buildQuestionCard(Map<String, dynamic> question) {
+    // Debug: Print question data to verify Firebase fields
+    print('Forum question data: $question');
+    
+    // Helper function to format posted time
+    String getTimeAgo(question) {
+      final postedAt = question['posted_at'];
+      if (postedAt == null) return '';
+      
+      final now = DateTime.now();
+      final posted = (postedAt is Timestamp) 
+          ? postedAt.toDate() 
+          : DateTime.tryParse(postedAt.toString()) ?? now;
+      final difference = now.difference(posted);
+      
+      if (difference.inDays > 0) {
+        return '${difference.inDays}d ago';
+      } else if (difference.inHours > 0) {
+        return '${difference.inHours}h ago';
+      } else if (difference.inMinutes > 0) {
+        return '${difference.inMinutes}m ago';
+      } else {
+        return 'Just now';
+      }
+    }
+
+    // Get user initials for avatar
+    String getUserInitials(String? userName) {
+      if (userName == null || userName.isEmpty) return 'U';
+      final parts = userName.trim().split(' ');
+      if (parts.length >= 2) {
+        return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      }
+      return userName[0].toUpperCase();
+    }
+
+    final isNutritionist = (question['user_specialization'] ?? '').toLowerCase().contains('nutritionist');
+    
     return GestureDetector(
       onTap: () {
         // Navigate to answers page
@@ -272,7 +353,7 @@ class _QnaForumPageState extends State<QnaForumPage> {
               offset: const Offset(0, 2),
             ),
           ],
-          border: question['isNutritionist'] == true
+          border: isNutritionist
               ? Border.all(
                   color: AppColors.successGreen.withOpacity(0.3),
                   width: 2,
@@ -295,7 +376,7 @@ class _QnaForumPageState extends State<QnaForumPage> {
                   ),
                   child: Center(
                     child: Text(
-                      question['userAvatar'] ?? 'U',
+                      getUserInitials(question['user_name']),
                       style: TextStyle(
                         fontFamily: 'Lato',
                         fontSize: 14,
@@ -314,7 +395,7 @@ class _QnaForumPageState extends State<QnaForumPage> {
                       Row(
                         children: [
                           Text(
-                            question['userName'] ?? 'Anonymous',
+                            question['user_name'] ?? 'Anonymous',
                             style: TextStyle(
                               fontFamily: 'Lato',
                               fontSize: 14,
@@ -322,7 +403,7 @@ class _QnaForumPageState extends State<QnaForumPage> {
                               color: AppColors.blackText,
                             ),
                           ),
-                          if (question['isNutritionist'] == true) ...[
+                          if (isNutritionist) ...[
                             const SizedBox(width: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -347,7 +428,7 @@ class _QnaForumPageState extends State<QnaForumPage> {
                         ],
                       ),
                       Text(
-                        question['timeAgo'] ?? '',
+                        getTimeAgo(question),
                         style: TextStyle(
                           fontFamily: 'OpenSans',
                           fontSize: 12,
@@ -362,7 +443,7 @@ class _QnaForumPageState extends State<QnaForumPage> {
             const SizedBox(height: 12),
             // Question text
             Text(
-              question['questionText'] ?? '',
+              question['question_text'] ?? '',
               style: TextStyle(
                 fontFamily: 'OpenSans',
                 fontSize: 14,
@@ -384,7 +465,7 @@ class _QnaForumPageState extends State<QnaForumPage> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '${question['answersCount'] ?? 0} answers',
+                      '${question['answers_count'] ?? 0} answers',
                       style: TextStyle(
                         fontFamily: 'OpenSans',
                         fontSize: 12,
@@ -394,23 +475,24 @@ class _QnaForumPageState extends State<QnaForumPage> {
                   ],
                 ),
                 const Spacer(),
-                // Save button
+                // Save button (disabled for now)
                 GestureDetector(
                   onTap: () {
-                    setState(() {
-                      question['isSaved'] = !(question['isSaved'] ?? false);
-                    });
+                    // TODO: Implement save functionality
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Save feature coming soon!'),
+                        backgroundColor: AppColors.successGreen,
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
                   },
                   child: Row(
                     children: [
                       Icon(
-                        question['isSaved'] == true
-                            ? Icons.bookmark
-                            : Icons.bookmark_outline,
+                        Icons.bookmark_outline,
                         size: 16,
-                        color: question['isSaved'] == true
-                            ? AppColors.successGreen
-                            : AppColors.grayText,
+                        color: AppColors.grayText,
                       ),
                       const SizedBox(width: 4),
                       Text(
@@ -418,9 +500,7 @@ class _QnaForumPageState extends State<QnaForumPage> {
                         style: TextStyle(
                           fontFamily: 'OpenSans',
                           fontSize: 12,
-                          color: question['isSaved'] == true
-                              ? AppColors.successGreen
-                              : AppColors.grayText,
+                          color: AppColors.grayText,
                         ),
                       ),
                     ],
@@ -432,6 +512,76 @@ class _QnaForumPageState extends State<QnaForumPage> {
         ),
       ),
     );
+  }
+
+  /// Post a new question to Firebase
+  Future<void> _postQuestion() async {
+    if (_questionController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Please enter a question',
+            style: TextStyle(
+              fontFamily: 'OpenSans',
+              color: AppColors.white,
+            ),
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isPostingQuestion = true;
+    });
+
+    try {
+      await _qnaService.postQuestion(
+        questionText: _questionController.text.trim(),
+      );
+
+      if (mounted) {
+        Navigator.pop(context);
+        _questionController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Question posted successfully!',
+              style: TextStyle(
+                fontFamily: 'OpenSans',
+                color: AppColors.white,
+              ),
+            ),
+            backgroundColor: AppColors.successGreen,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to post question: $e',
+              style: TextStyle(
+                fontFamily: 'OpenSans',
+                color: AppColors.white,
+              ),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isPostingQuestion = false;
+        });
+      }
+    }
   }
 
   void _showAskQuestionDialog() {
@@ -519,39 +669,31 @@ class _QnaForumPageState extends State<QnaForumPage> {
                   width: double.infinity,
                   height: 48,
                   child: ElevatedButton(
-                    onPressed: () {
-                      // TODO: Handle posting question to Firebase
-                      Navigator.pop(context);
-                      _questionController.clear();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Question posted successfully!',
-                            style: TextStyle(
-                              fontFamily: 'OpenSans',
-                              color: AppColors.white,
-                            ),
-                          ),
-                          backgroundColor: AppColors.successGreen,
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    },
+                    onPressed: _isPostingQuestion ? null : () => _postQuestion(),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.successGreen,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
                     ),
-                    child: Text(
-                      'Post Question',
-                      style: TextStyle(
-                        fontFamily: 'Lato',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.white,
-                      ),
-                    ),
+                    child: _isPostingQuestion
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              color: AppColors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Text(
+                            'Post Question',
+                            style: TextStyle(
+                              fontFamily: 'Lato',
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.white,
+                            ),
+                          ),
                   ),
                 ),
                 const SizedBox(height: 20),

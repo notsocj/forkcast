@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
+import '../../services/persistent_auth_service.dart';
+import '../core_features/main_navigation_wrapper.dart';
 import 'get_started_page.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -21,11 +24,26 @@ class _SplashScreenState extends State<SplashScreen> {
 
   void _navigateToHome() async {
     await Future.delayed(AppConstants.splashScreenDuration);
+    
     if (mounted) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => const GetStartedPage()),
-      );
+      // Check if user should stay logged in
+      final shouldStayLoggedIn = await PersistentAuthService.shouldStayLoggedIn();
+      final currentUser = FirebaseAuth.instance.currentUser;
+      
+      // If remember me is enabled and user is authenticated, go directly to main app
+      if (shouldStayLoggedIn && currentUser != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MainNavigationWrapper()),
+        );
+      } else {
+        // Clear any stale auth data and go to get started page
+        await PersistentAuthService.clearAuthData();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const GetStartedPage()),
+        );
+      }
     }
   }
 

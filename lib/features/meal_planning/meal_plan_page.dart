@@ -403,7 +403,7 @@ class _MealPlanPageState extends State<MealPlanPage> {
                   ),
                   const SizedBox(width: 4),
                   Text(
-                    _isGeneratingAISuggestions ? 'GENERATING...' : 'AI SUGGESTIONS',
+                    _isGeneratingAISuggestions ? 'GENERATING...' : 'Suggestion',
                     style: TextStyle(
                       fontFamily: 'OpenSans',
                       fontSize: 12,
@@ -1015,7 +1015,7 @@ class _MealPlanPageState extends State<MealPlanPage> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
-                          'AI $mealType Suggestions',
+                          'Refresh $mealType Suggestion',
                           style: TextStyle(
                             fontFamily: 'Lato',
                             fontSize: 18,
