@@ -402,7 +402,7 @@ class _SignInPageState extends State<SignInPage> {
         // Sign in with Firebase Auth
         final authService = AuthService();
         final userCredential = await authService.signIn(email, password);
-        
+
         if (userCredential.user != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -411,7 +411,7 @@ class _SignInPageState extends State<SignInPage> {
             ),
           );
 
-          // Navigate to main app wrapper (clear previous routes so bottom nav shows)
+          // Directly navigate to main app wrapper (bottom navigation)
           Navigator.of(context).pushAndRemoveUntil(
             MaterialPageRoute(builder: (context) => const MainNavigationWrapper()),
             (route) => false,

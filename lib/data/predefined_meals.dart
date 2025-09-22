@@ -1,33 +1,167 @@
-// Predefined meals data for ForkCast
-// This file contains a comprehensive list of Filipino and international dishes
-// Used instead of Firebase recipes collection for meal planning functionality
+// FNRI Recipes data for ForkCast
+// This file contains recipes from FNRI (Food and Nutrition Research Institute)
+// Used for meal planning functionality with health condition filtering
+
+class HealthConditions {
+  final bool diabetes;
+  final bool hypertension;
+  final bool obesityOverweight;
+  final bool underweightMalnutrition;
+  final bool heartDiseaseChol;
+  final bool anemia;
+  final bool osteoporosis;
+  final bool none; // Safe for healthy individuals
+
+  const HealthConditions({
+    required this.diabetes,
+    required this.hypertension,
+    required this.obesityOverweight,
+    required this.underweightMalnutrition,
+    required this.heartDiseaseChol,
+    required this.anemia,
+    required this.osteoporosis,
+    required this.none,
+  });
+
+  factory HealthConditions.fromCsv({
+    required int diabetes,
+    required int hypertension,
+    required int obesity,
+    required int underweight,
+    required int heartDisease,
+    required int anemia,
+    required int osteoporosis,
+    required int none,
+  }) {
+    return HealthConditions(
+      diabetes: diabetes == 1,
+      hypertension: hypertension == 1,
+      obesityOverweight: obesity == 1,
+      underweightMalnutrition: underweight == 1,
+      heartDiseaseChol: heartDisease == 1,
+      anemia: anemia == 1,
+      osteoporosis: osteoporosis == 1,
+      none: none == 1,
+    );
+  }
+}
+
+class MealTiming {
+  final bool breakfast;
+  final bool lunch;
+  final bool dinner;
+  final bool snack;
+
+  const MealTiming({
+    required this.breakfast,
+    required this.lunch,
+    required this.dinner,
+    required this.snack,
+  });
+
+  factory MealTiming.fromCsv({
+    int breakfast = 1, // Default to 1 (most meals suitable for breakfast)
+    required int lunch,
+    required int dinner,
+    required int snack,
+  }) {
+    return MealTiming(
+      breakfast: breakfast == 1,
+      lunch: lunch == 1,
+      dinner: dinner == 1,
+      snack: snack == 1,
+    );
+  }
+}
 
 class PredefinedMeal {
   final String id;
   final String recipeName;
   final String description;
+  final int baseServings;
   final int kcal;
-  final int servings;
+  final String funFact;
+  final List<MealIngredient> ingredients;
   final String cookingInstructions;
+  final HealthConditions healthConditions;
+  final MealTiming mealTiming;
+  
+  // Backward compatibility fields
   final List<String> tags;
   final String difficulty;
   final int prepTimeMinutes;
   final String imageUrl;
-  final List<MealIngredient> ingredients;
 
   const PredefinedMeal({
     required this.id,
     required this.recipeName,
     required this.description,
+    required this.baseServings,
     required this.kcal,
-    required this.servings,
-    required this.cookingInstructions,
-    required this.tags,
-    required this.difficulty,
-    required this.prepTimeMinutes,
-    required this.imageUrl,
+    required this.funFact,
     required this.ingredients,
+    required this.cookingInstructions,
+    required this.healthConditions,
+    required this.mealTiming,
+    this.tags = const [],
+    this.difficulty = 'Medium',
+    this.prepTimeMinutes = 30,
+    this.imageUrl = '',
   });
+
+  // Backward compatibility getter
+  int get servings => baseServings;
+
+  // Helper method to check if suitable for a specific health condition
+  bool isSuitableFor(List<String> userConditions) {
+    if (userConditions.isEmpty) return healthConditions.none;
+    
+    for (String condition in userConditions) {
+      switch (condition.toLowerCase()) {
+        case 'diabetes':
+          if (!healthConditions.diabetes) return false;
+          break;
+        case 'hypertension':
+          if (!healthConditions.hypertension) return false;
+          break;
+        case 'obesity':
+        case 'overweight':
+          if (!healthConditions.obesityOverweight) return false;
+          break;
+        case 'underweight':
+        case 'malnutrition':
+          if (!healthConditions.underweightMalnutrition) return false;
+          break;
+        case 'heart disease':
+        case 'high cholesterol':
+          if (!healthConditions.heartDiseaseChol) return false;
+          break;
+        case 'anemia':
+          if (!healthConditions.anemia) return false;
+          break;
+        case 'osteoporosis':
+          if (!healthConditions.osteoporosis) return false;
+          break;
+      }
+    }
+    return true;
+  }
+
+  // Helper method to check if suitable for meal time
+  bool isSuitableForMealTime(String mealTime) {
+    switch (mealTime.toLowerCase()) {
+      case 'breakfast':
+        return mealTiming.breakfast;
+      case 'lunch':
+        return mealTiming.lunch;
+      case 'dinner':
+        return mealTiming.dinner;
+      case 'snack':
+        return mealTiming.snack;
+      default:
+        return false;
+    }
+  }
 }
 
 class MealIngredient {
@@ -43,342 +177,482 @@ class MealIngredient {
 }
 
 class PredefinedMealsData {
-  static const List<PredefinedMeal> meals = [
-    // === FILIPINO BREAKFAST ===
+  // FNRI Recipes from CSV data
+  static final List<PredefinedMeal> meals = [
     PredefinedMeal(
-      id: 'fil_001',
-      recipeName: 'Tapsilog',
-      description: 'Filipino breakfast combo with beef tapa, sinangag (garlic rice), and itlog (egg)',
-      kcal: 580,
-      servings: 1,
-      cookingInstructions: '1. Marinate beef strips in soy sauce, garlic, and sugar for 2 hours.\n2. Pan-fry beef until caramelized.\n3. Prepare garlic fried rice with day-old rice.\n4. Fry egg sunny-side up.\n5. Serve together with pickled vegetables.',
-      tags: ['Filipino', 'Breakfast', 'High-protein', 'Comfort food'],
-      difficulty: 'Medium',
-      prepTimeMinutes: 30,
-      imageUrl: 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=Tapsilog',
+      id: 'fnri_001',
+      recipeName: 'Chicken Lumpia and Ginulay na Mais at Malunggay',
+      description: 'Kids enjoy veggies when hidden in tasty lumpia. Malunggay boosts vitamin A and C for immunity.',
+      baseServings: 20,
+      kcal: 552,
+      funFact: 'Kids enjoy veggies when hidden in tasty lumpia. Malunggay boosts vitamin A and C for immunity.',
       ingredients: [
-        MealIngredient(ingredientName: 'Beef sirloin', quantity: 150, unit: 'g'),
-        MealIngredient(ingredientName: 'Cooked rice', quantity: 1, unit: 'cup'),
-        MealIngredient(ingredientName: 'Egg', quantity: 1, unit: 'piece'),
-        MealIngredient(ingredientName: 'Garlic', quantity: 3, unit: 'cloves'),
-        MealIngredient(ingredientName: 'Soy sauce', quantity: 2, unit: 'tbsp'),
-        MealIngredient(ingredientName: 'Brown sugar', quantity: 1, unit: 'tbsp'),
+        MealIngredient(ingredientName: 'Ground chicken', quantity: 3, unit: 'cups'),
+        MealIngredient(ingredientName: 'Carrots, chopped', quantity: 1.33, unit: 'cups'),
+        MealIngredient(ingredientName: 'Kinchay, chopped', quantity: 0.33, unit: 'cups'),
+        MealIngredient(ingredientName: 'Lumpia wrapper', quantity: 20, unit: 'pcs'),
+        MealIngredient(ingredientName: 'Corn, shredded', quantity: 4, unit: 'cups'),
+        MealIngredient(ingredientName: 'Malunggay leaves, chopped', quantity: 3, unit: 'cups'),
       ],
-    ),
-
-    PredefinedMeal(
-      id: 'fil_002',
-      recipeName: 'Longsilog',
-      description: 'Sweet Filipino longanisa sausage with garlic rice and egg',
-      kcal: 620,
-      servings: 1,
-      cookingInstructions: '1. Pan-fry longanisa until golden brown and cooked through.\n2. Prepare garlic fried rice using the oil from longanisa.\n3. Fry egg to preference.\n4. Serve hot with atchara (pickled papaya).',
-      tags: ['Filipino', 'Breakfast', 'Sweet', 'Traditional'],
-      difficulty: 'Easy',
-      prepTimeMinutes: 20,
-      imageUrl: 'https://via.placeholder.com/300x200/FF9800/FFFFFF?text=Longsilog',
-      ingredients: [
-        MealIngredient(ingredientName: 'Longanisa', quantity: 4, unit: 'pieces'),
-        MealIngredient(ingredientName: 'Cooked rice', quantity: 1, unit: 'cup'),
-        MealIngredient(ingredientName: 'Egg', quantity: 1, unit: 'piece'),
-        MealIngredient(ingredientName: 'Garlic', quantity: 2, unit: 'cloves'),
-        MealIngredient(ingredientName: 'Cooking oil', quantity: 2, unit: 'tbsp'),
-      ],
-    ),
-
-    PredefinedMeal(
-      id: 'fil_003',
-      recipeName: 'Champorado',
-      description: 'Filipino chocolate rice porridge, perfect for breakfast',
-      kcal: 320,
-      servings: 1,
-      cookingInstructions: '1. Cook glutinous rice with water until soft.\n2. Add tablea or cocoa powder, stir continuously.\n3. Sweeten with brown sugar to taste.\n4. Serve hot with tuyo (dried fish) or evaporated milk.',
-      tags: ['Filipino', 'Breakfast', 'Sweet', 'Porridge', 'Traditional'],
-      difficulty: 'Easy',
-      prepTimeMinutes: 25,
-      imageUrl: 'https://via.placeholder.com/300x200/8D6E63/FFFFFF?text=Champorado',
-      ingredients: [
-        MealIngredient(ingredientName: 'Glutinous rice', quantity: 0.5, unit: 'cup'),
-        MealIngredient(ingredientName: 'Tablea or cocoa powder', quantity: 2, unit: 'tbsp'),
-        MealIngredient(ingredientName: 'Brown sugar', quantity: 3, unit: 'tbsp'),
-        MealIngredient(ingredientName: 'Water', quantity: 2, unit: 'cups'),
-        MealIngredient(ingredientName: 'Evaporated milk', quantity: 2, unit: 'tbsp'),
-      ],
-    ),
-
-    // === FILIPINO LUNCH/DINNER ===
-    PredefinedMeal(
-      id: 'fil_004',
-      recipeName: 'Adobong Manok',
-      description: 'Classic Filipino chicken adobo in soy sauce and vinegar',
-      kcal: 485,
-      servings: 4,
-      cookingInstructions: '1. Marinate chicken pieces in soy sauce and vinegar for 30 minutes.\n2. Brown chicken in oil, remove and set aside.\n3. Sauté garlic and onion.\n4. Add marinade, bring to boil, add chicken back.\n5. Simmer covered for 30-40 minutes until tender.\n6. Serve with steamed rice.',
-      tags: ['Filipino', 'Main dish', 'Traditional', 'Salty', 'High-protein'],
-      difficulty: 'Easy',
-      prepTimeMinutes: 60,
-      imageUrl: 'https://via.placeholder.com/300x200/795548/FFFFFF?text=Adobong+Manok',
-      ingredients: [
-        MealIngredient(ingredientName: 'Chicken', quantity: 1, unit: 'kg'),
-        MealIngredient(ingredientName: 'Soy sauce', quantity: 0.5, unit: 'cup'),
-        MealIngredient(ingredientName: 'Vinegar', quantity: 0.25, unit: 'cup'),
-        MealIngredient(ingredientName: 'Garlic', quantity: 6, unit: 'cloves'),
-        MealIngredient(ingredientName: 'Onion', quantity: 1, unit: 'medium'),
-        MealIngredient(ingredientName: 'Bay leaves', quantity: 3, unit: 'pieces'),
-        MealIngredient(ingredientName: 'Black peppercorns', quantity: 1, unit: 'tsp'),
-      ],
-    ),
-
-    PredefinedMeal(
-      id: 'fil_005',
-      recipeName: 'Sinigang na Baboy',
-      description: 'Sour Filipino pork soup with tamarind and vegetables',
-      kcal: 380,
-      servings: 6,
-      cookingInstructions: '1. Boil pork ribs until tender (about 1 hour).\n2. Add onion and tomato, cook until soft.\n3. Add sinigang mix or tamarind paste.\n4. Add radish, cook for 5 minutes.\n5. Add kangkong and other vegetables.\n6. Season with fish sauce. Serve hot.',
-      tags: ['Filipino', 'Soup', 'Sour', 'Vegetables', 'Traditional'],
-      difficulty: 'Medium',
-      prepTimeMinutes: 90,
-      imageUrl: 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=Sinigang+na+Baboy',
-      ingredients: [
-        MealIngredient(ingredientName: 'Pork ribs', quantity: 500, unit: 'g'),
-        MealIngredient(ingredientName: 'Sinigang mix', quantity: 1, unit: 'pack'),
-        MealIngredient(ingredientName: 'Kangkong', quantity: 1, unit: 'bundle'),
-        MealIngredient(ingredientName: 'Radish', quantity: 1, unit: 'medium'),
-        MealIngredient(ingredientName: 'Tomato', quantity: 2, unit: 'medium'),
-        MealIngredient(ingredientName: 'Onion', quantity: 1, unit: 'medium'),
-        MealIngredient(ingredientName: 'Fish sauce', quantity: 2, unit: 'tbsp'),
-      ],
-    ),
-
-    PredefinedMeal(
-      id: 'fil_006',
-      recipeName: 'Kare-Kare',
-      description: 'Filipino oxtail stew with peanut sauce and vegetables',
-      kcal: 520,
-      servings: 6,
-      cookingInstructions: '1. Boil oxtail and tripe until tender (2-3 hours).\n2. In another pot, sauté garlic and onion.\n3. Add ground peanuts and rice flour, gradually add broth.\n4. Add oxtail and vegetables (eggplant, kangkong, banana heart).\n5. Simmer until vegetables are tender.\n6. Serve with bagoong (shrimp paste).',
-      tags: ['Filipino', 'Main dish', 'Traditional', 'Peanut sauce', 'Special occasion'],
-      difficulty: 'Hard',
-      prepTimeMinutes: 180,
-      imageUrl: 'https://via.placeholder.com/300x200/FF5722/FFFFFF?text=Kare-Kare',
-      ingredients: [
-        MealIngredient(ingredientName: 'Oxtail', quantity: 1, unit: 'kg'),
-        MealIngredient(ingredientName: 'Ground peanuts', quantity: 1, unit: 'cup'),
-        MealIngredient(ingredientName: 'Rice flour', quantity: 3, unit: 'tbsp'),
-        MealIngredient(ingredientName: 'Eggplant', quantity: 2, unit: 'medium'),
-        MealIngredient(ingredientName: 'Kangkong', quantity: 1, unit: 'bundle'),
-        MealIngredient(ingredientName: 'Banana heart', quantity: 0.5, unit: 'cup'),
-        MealIngredient(ingredientName: 'Bagoong', quantity: 2, unit: 'tbsp'),
-      ],
-    ),
-
-    PredefinedMeal(
-      id: 'fil_007',
-      recipeName: 'Pinakbet',
-      description: 'Mixed vegetables stew with shrimp paste, Ilocano style',
-      kcal: 180,
-      servings: 4,
-      cookingInstructions: '1. Sauté garlic, onion, and tomato.\n2. Add pork belly, cook until lightly browned.\n3. Add bagoong (shrimp paste) and a little water.\n4. Layer vegetables according to cooking time (squash, eggplant, okra, sitaw, ampalaya).\n5. Cover and steam until vegetables are tender.\n6. Serve with steamed rice.',
-      tags: ['Filipino', 'Vegetables', 'Low-calorie', 'Traditional', 'Healthy'],
+      cookingInstructions: 'Step 1: Sauté garlic and onion, then add corn and water and let it simmer. Step 2: Mix ground chicken, carrots, and kinchay, then wrap the mixture in lumpia wrappers. Step 3: Add malunggay leaves to the corn mixture and serve, while frying the lumpia until golden brown.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 0, hypertension: 0, obesity: 0, underweight: 1,
+        heartDisease: 0, anemia: 1, osteoporosis: 0, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 1),
+      tags: ['Filipino', 'chicken', 'vegetables'],
       difficulty: 'Medium',
       prepTimeMinutes: 45,
-      imageUrl: 'https://via.placeholder.com/300x200/8BC34A/FFFFFF?text=Pinakbet',
-      ingredients: [
-        MealIngredient(ingredientName: 'Pork belly', quantity: 200, unit: 'g'),
-        MealIngredient(ingredientName: 'Squash', quantity: 1, unit: 'cup'),
-        MealIngredient(ingredientName: 'Eggplant', quantity: 1, unit: 'medium'),
-        MealIngredient(ingredientName: 'Okra', quantity: 10, unit: 'pieces'),
-        MealIngredient(ingredientName: 'String beans', quantity: 10, unit: 'pieces'),
-        MealIngredient(ingredientName: 'Bitter melon', quantity: 1, unit: 'small'),
-        MealIngredient(ingredientName: 'Bagoong', quantity: 2, unit: 'tbsp'),
-      ],
-    ),
-
-    // === INTERNATIONAL DISHES ===
-    PredefinedMeal(
-      id: 'int_001',
-      recipeName: 'Grilled Chicken Caesar Salad',
-      description: 'Fresh romaine lettuce with grilled chicken, parmesan, and caesar dressing',
-      kcal: 420,
-      servings: 1,
-      cookingInstructions: '1. Season and grill chicken breast until fully cooked.\n2. Wash and chop romaine lettuce.\n3. Prepare caesar dressing with mayo, parmesan, lemon, and anchovies.\n4. Toss lettuce with dressing.\n5. Top with sliced grilled chicken and parmesan cheese.\n6. Serve with croutons.',
-      tags: ['International', 'Salad', 'High-protein', 'Low-carb', 'Healthy'],
-      difficulty: 'Easy',
-      prepTimeMinutes: 20,
-      imageUrl: 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=Caesar+Salad',
-      ingredients: [
-        MealIngredient(ingredientName: 'Chicken breast', quantity: 150, unit: 'g'),
-        MealIngredient(ingredientName: 'Romaine lettuce', quantity: 2, unit: 'cups'),
-        MealIngredient(ingredientName: 'Parmesan cheese', quantity: 30, unit: 'g'),
-        MealIngredient(ingredientName: 'Caesar dressing', quantity: 3, unit: 'tbsp'),
-        MealIngredient(ingredientName: 'Croutons', quantity: 0.25, unit: 'cup'),
-      ],
     ),
 
     PredefinedMeal(
-      id: 'int_002',
-      recipeName: 'Spaghetti Carbonara',
-      description: 'Classic Italian pasta with eggs, cheese, pancetta, and black pepper',
-      kcal: 580,
-      servings: 1,
-      cookingInstructions: '1. Cook spaghetti al dente according to package instructions.\n2. Render pancetta in a pan until crispy.\n3. Beat eggs with parmesan cheese and black pepper.\n4. Drain pasta, reserving some pasta water.\n5. Toss hot pasta with pancetta, then with egg mixture off heat.\n6. Add pasta water if needed. Serve immediately.',
-      tags: ['International', 'Italian', 'Pasta', 'High-calorie', 'Comfort food'],
-      difficulty: 'Medium',
-      prepTimeMinutes: 25,
-      imageUrl: 'https://via.placeholder.com/300x200/FFD700/FFFFFF?text=Carbonara',
+      id: 'fnri_002',
+      recipeName: 'Ground Pork Menudo',
+      description: 'Raisins provide iron for healthy growth.',
+      baseServings: 20,
+      kcal: 563,
+      funFact: 'Raisins provide iron for healthy growth.',
       ingredients: [
-        MealIngredient(ingredientName: 'Spaghetti', quantity: 100, unit: 'g'),
-        MealIngredient(ingredientName: 'Pancetta', quantity: 50, unit: 'g'),
-        MealIngredient(ingredientName: 'Eggs', quantity: 2, unit: 'pieces'),
-        MealIngredient(ingredientName: 'Parmesan cheese', quantity: 50, unit: 'g'),
-        MealIngredient(ingredientName: 'Black pepper', quantity: 1, unit: 'tsp'),
+        MealIngredient(ingredientName: 'Ground pork', quantity: 4, unit: 'cups'),
+        MealIngredient(ingredientName: 'Potato, cubed', quantity: 3.5, unit: 'cups'),
       ],
-    ),
-
-    PredefinedMeal(
-      id: 'int_003',
-      recipeName: 'Beef Teriyaki Bowl',
-      description: 'Japanese-style beef with teriyaki sauce over steamed rice',
-      kcal: 520,
-      servings: 1,
-      cookingInstructions: '1. Slice beef thinly against the grain.\n2. Make teriyaki sauce with soy sauce, mirin, sake, and sugar.\n3. Marinate beef in half the sauce for 15 minutes.\n4. Cook beef in a hot pan until caramelized.\n5. Add remaining sauce and cook until glossy.\n6. Serve over steamed rice with vegetables.',
-      tags: ['International', 'Japanese', 'Rice bowl', 'High-protein', 'Asian'],
-      difficulty: 'Medium',
-      prepTimeMinutes: 35,
-      imageUrl: 'https://via.placeholder.com/300x200/8BC34A/FFFFFF?text=Teriyaki+Bowl',
-      ingredients: [
-        MealIngredient(ingredientName: 'Beef sirloin', quantity: 150, unit: 'g'),
-        MealIngredient(ingredientName: 'Steamed rice', quantity: 1, unit: 'cup'),
-        MealIngredient(ingredientName: 'Soy sauce', quantity: 3, unit: 'tbsp'),
-        MealIngredient(ingredientName: 'Mirin', quantity: 2, unit: 'tbsp'),
-        MealIngredient(ingredientName: 'Sugar', quantity: 1, unit: 'tbsp'),
-        MealIngredient(ingredientName: 'Mixed vegetables', quantity: 0.5, unit: 'cup'),
-      ],
-    ),
-
-    PredefinedMeal(
-      id: 'int_004',
-      recipeName: 'Greek Chicken Gyro',
-      description: 'Marinated chicken with tzatziki sauce in pita bread',
-      kcal: 450,
-      servings: 1,
-      cookingInstructions: '1. Marinate chicken in lemon juice, olive oil, garlic, and oregano.\n2. Grill or pan-cook chicken until fully cooked.\n3. Prepare tzatziki with yogurt, cucumber, garlic, and dill.\n4. Warm pita bread.\n5. Assemble with chicken, tzatziki, tomatoes, onion, and lettuce.\n6. Serve immediately.',
-      tags: ['International', 'Greek', 'Mediterranean', 'Healthy', 'High-protein'],
+      cookingInstructions: 'Step 1: Brown ground pork. Step 2: Add potatoes and simmer until tender. Step 3: Add vegetables and seasonings; simmer until cooked.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 0, hypertension: 0, obesity: 0, underweight: 1,
+        heartDisease: 0, anemia: 1, osteoporosis: 0, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 0),
+      tags: ['Filipino', 'pork', 'menudo'],
       difficulty: 'Easy',
       prepTimeMinutes: 30,
-      imageUrl: 'https://via.placeholder.com/300x200/2196F3/FFFFFF?text=Greek+Gyro',
-      ingredients: [
-        MealIngredient(ingredientName: 'Chicken thigh', quantity: 150, unit: 'g'),
-        MealIngredient(ingredientName: 'Pita bread', quantity: 1, unit: 'piece'),
-        MealIngredient(ingredientName: 'Greek yogurt', quantity: 0.25, unit: 'cup'),
-        MealIngredient(ingredientName: 'Cucumber', quantity: 0.5, unit: 'medium'),
-        MealIngredient(ingredientName: 'Tomato', quantity: 0.5, unit: 'medium'),
-        MealIngredient(ingredientName: 'Red onion', quantity: 0.25, unit: 'small'),
-        MealIngredient(ingredientName: 'Lettuce', quantity: 2, unit: 'leaves'),
-      ],
     ),
 
-    // === HEALTHY/DIET OPTIONS ===
     PredefinedMeal(
-      id: 'healthy_001',
-      recipeName: 'Quinoa Buddha Bowl',
-      description: 'Nutritious bowl with quinoa, roasted vegetables, and tahini dressing',
-      kcal: 380,
-      servings: 1,
-      cookingInstructions: '1. Cook quinoa according to package instructions.\n2. Roast mixed vegetables (sweet potato, broccoli, chickpeas) with olive oil.\n3. Prepare tahini dressing with tahini, lemon juice, and water.\n4. Arrange quinoa and vegetables in a bowl.\n5. Drizzle with tahini dressing.\n6. Top with seeds and herbs.',
-      tags: ['Healthy', 'Vegetarian', 'High-fiber', 'Low-calorie', 'Bowl'],
-      difficulty: 'Easy',
+      id: 'fnri_003',
+      recipeName: 'Tokwa Balls with Gravy',
+      description: 'Tokwa is a protein-rich, affordable meat substitute.',
+      baseServings: 20,
+      kcal: 623,
+      funFact: 'Tokwa is a protein-rich, affordable meat substitute.',
+      ingredients: [
+        MealIngredient(ingredientName: 'Tokwa (tofu), mashed', quantity: 3, unit: 'cups'),
+        MealIngredient(ingredientName: 'Ground pork', quantity: 2, unit: 'cups'),
+      ],
+      cookingInstructions: 'Step 1: Mash tofu and mix with ground pork. Step 2: Form into balls and fry until golden. Step 3: Prepare gravy and serve with balls.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 0, hypertension: 0, obesity: 0, underweight: 1,
+        heartDisease: 0, anemia: 0, osteoporosis: 1, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 1),
+      tags: ['Filipino', 'tokwa', 'tofu'],
+      difficulty: 'Medium',
       prepTimeMinutes: 40,
-      imageUrl: 'https://via.placeholder.com/300x200/4CAF50/FFFFFF?text=Buddha+Bowl',
-      ingredients: [
-        MealIngredient(ingredientName: 'Quinoa', quantity: 0.5, unit: 'cup'),
-        MealIngredient(ingredientName: 'Sweet potato', quantity: 100, unit: 'g'),
-        MealIngredient(ingredientName: 'Broccoli', quantity: 100, unit: 'g'),
-        MealIngredient(ingredientName: 'Chickpeas', quantity: 0.5, unit: 'cup'),
-        MealIngredient(ingredientName: 'Tahini', quantity: 2, unit: 'tbsp'),
-        MealIngredient(ingredientName: 'Lemon juice', quantity: 1, unit: 'tbsp'),
-      ],
     ),
 
     PredefinedMeal(
-      id: 'healthy_002',
-      recipeName: 'Grilled Salmon with Vegetables',
-      description: 'Heart-healthy salmon with steamed vegetables and lemon',
-      kcal: 420,
-      servings: 1,
-      cookingInstructions: '1. Season salmon fillet with salt, pepper, and herbs.\n2. Grill salmon for 4-5 minutes per side.\n3. Steam mixed vegetables (broccoli, carrots, zucchini).\n4. Prepare lemon butter sauce.\n5. Serve salmon with vegetables and sauce.\n6. Garnish with fresh herbs.',
-      tags: ['Healthy', 'High-protein', 'Low-carb', 'Heart-healthy', 'Omega-3'],
+      id: 'fnri_004',
+      recipeName: 'Sardines-Kalabasa Patties',
+      description: 'Sardines are rich in calcium for strong bones.',
+      baseServings: 20,
+      kcal: 576,
+      funFact: 'Sardines are rich in calcium for strong bones.',
+      ingredients: [
+        MealIngredient(ingredientName: 'Sardines, mashed', quantity: 2, unit: 'cups'),
+        MealIngredient(ingredientName: 'Kalabasa (squash), grated', quantity: 3, unit: 'cups'),
+      ],
+      cookingInstructions: 'Step 1: Mash sardines and mix with grated squash. Step 2: Form into patties and fry until golden.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 1, hypertension: 1, obesity: 1, underweight: 0,
+        heartDisease: 1, anemia: 1, osteoporosis: 1, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 1),
+      tags: ['Filipino', 'sardines', 'kalabasa', 'healthy'],
       difficulty: 'Easy',
       prepTimeMinutes: 20,
-      imageUrl: 'https://via.placeholder.com/300x200/FF5722/FFFFFF?text=Grilled+Salmon',
-      ingredients: [
-        MealIngredient(ingredientName: 'Salmon fillet', quantity: 150, unit: 'g'),
-        MealIngredient(ingredientName: 'Broccoli', quantity: 100, unit: 'g'),
-        MealIngredient(ingredientName: 'Carrots', quantity: 80, unit: 'g'),
-        MealIngredient(ingredientName: 'Zucchini', quantity: 80, unit: 'g'),
-        MealIngredient(ingredientName: 'Lemon', quantity: 0.5, unit: 'piece'),
-        MealIngredient(ingredientName: 'Olive oil', quantity: 1, unit: 'tbsp'),
-      ],
     ),
 
-    // === SNACKS ===
     PredefinedMeal(
-      id: 'snack_001',
-      recipeName: 'Halo-Halo',
-      description: 'Filipino shaved ice dessert with mixed ingredients and ice cream',
-      kcal: 350,
-      servings: 1,
-      cookingInstructions: '1. Layer sweetened beans, jellies, and fruits in a tall glass.\n2. Add cooked sago pearls and sweetened banana.\n3. Top with shaved ice.\n4. Drizzle with evaporated milk and ube flavoring.\n5. Top with ice cream and leche flan.\n6. Serve with a spoon and straw.',
-      tags: ['Filipino', 'Dessert', 'Sweet', 'Cold', 'Traditional'],
+      id: 'fnri_005',
+      recipeName: 'Chicken Almondigas',
+      description: 'This recipe is high in vitamin A and C which can boosts your child\'s immunity against infections and diseases.',
+      baseServings: 20,
+      kcal: 571,
+      funFact: 'This recipe is high in vitamin A and C which can boosts your child\'s immunity against infections and diseases.',
+      ingredients: [
+        MealIngredient(ingredientName: 'Chicken eggs, beaten', quantity: 4, unit: 'pcs'),
+        MealIngredient(ingredientName: 'Chicken breast, ground', quantity: 3, unit: 'cups'),
+        MealIngredient(ingredientName: 'Carrots, chopped', quantity: 1.5, unit: 'cups'),
+        MealIngredient(ingredientName: 'Cooking oil, for frying', quantity: 2, unit: 'cups'),
+      ],
+      cookingInstructions: 'Step 1: Make and fry meatballs; Step 2: Sauté garlic and onion then add water, patis, patola, and meatballs; Step 3: Add misua, carrots, and malunggay then simmer until cooked.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 0, hypertension: 1, obesity: 1, underweight: 0,
+        heartDisease: 0, anemia: 1, osteoporosis: 0, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 0),
+      tags: ['Filipino', 'chicken', 'soup', 'almondigas'],
       difficulty: 'Medium',
-      prepTimeMinutes: 15,
-      imageUrl: 'https://via.placeholder.com/300x200/9C27B0/FFFFFF?text=Halo-Halo',
-      ingredients: [
-        MealIngredient(ingredientName: 'Shaved ice', quantity: 1, unit: 'cup'),
-        MealIngredient(ingredientName: 'Sweet beans', quantity: 2, unit: 'tbsp'),
-        MealIngredient(ingredientName: 'Jellies', quantity: 2, unit: 'tbsp'),
-        MealIngredient(ingredientName: 'Sago pearls', quantity: 1, unit: 'tbsp'),
-        MealIngredient(ingredientName: 'Ube ice cream', quantity: 1, unit: 'scoop'),
-        MealIngredient(ingredientName: 'Leche flan', quantity: 1, unit: 'slice'),
-        MealIngredient(ingredientName: 'Evaporated milk', quantity: 3, unit: 'tbsp'),
-      ],
+      prepTimeMinutes: 50,
     ),
 
     PredefinedMeal(
-      id: 'snack_002',
-      recipeName: 'Fresh Fruit Smoothie',
-      description: 'Refreshing blend of tropical fruits with yogurt',
-      kcal: 180,
-      servings: 1,
-      cookingInstructions: '1. Combine mango, banana, and pineapple in a blender.\n2. Add Greek yogurt and a splash of coconut milk.\n3. Add honey to taste.\n4. Blend until smooth and creamy.\n5. Add ice if desired consistency.\n6. Serve immediately in a chilled glass.',
-      tags: ['Healthy', 'Snack', 'Smoothie', 'Low-calorie', 'Refreshing'],
+      id: 'fnri_006',
+      recipeName: 'Ground pork picadillo soup with vegetable tempura',
+      description: 'For picky eaters, make vegetables more interesting by dipping in batter and frying to achieve that crispy texture.',
+      baseServings: 20,
+      kcal: 586,
+      funFact: 'For picky eaters, make vegetables more interesting by dipping in batter and frying to achieve that crispy texture.',
+      ingredients: [
+        MealIngredient(ingredientName: 'Pork liempo', quantity: 3, unit: 'cups'),
+        MealIngredient(ingredientName: 'Carrots', quantity: 0.5, unit: 'cup'),
+        MealIngredient(ingredientName: 'Sayote', quantity: 1.33, unit: 'cups'),
+        MealIngredient(ingredientName: 'Malunggay leaves', quantity: 3, unit: 'cups'),
+      ],
+      cookingInstructions: 'Step 1: Saute garlic, onion, and ground pork; Step 2: Add water, salt, and pepper then boil; Step 3: Add carrots, sayote, and malunggay then simmer until cooked.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 0, hypertension: 1, obesity: 1, underweight: 0,
+        heartDisease: 0, anemia: 1, osteoporosis: 0, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 0),
+      tags: ['Filipino', 'pork', 'soup', 'vegetables'],
+      difficulty: 'Medium',
+      prepTimeMinutes: 45,
+    ),
+
+    PredefinedMeal(
+      id: 'fnri_007',
+      recipeName: 'Veggie patties with liver',
+      description: 'Incorporate ground liver in patties. Liver is loaded with iron and vitamin A.',
+      baseServings: 20,
+      kcal: 589,
+      funFact: 'Incorporate ground liver in patties. Liver is loaded with iron and vitamin A.',
+      ingredients: [
+        MealIngredient(ingredientName: 'Egg', quantity: 4, unit: 'pcs'),
+        MealIngredient(ingredientName: 'Chicken breast', quantity: 4, unit: 'cups'),
+        MealIngredient(ingredientName: 'Chicken liver', quantity: 0.25, unit: 'cup'),
+        MealIngredient(ingredientName: 'Garlic', quantity: 2, unit: 'Tbsp'),
+        MealIngredient(ingredientName: 'Kalabasa', quantity: 2, unit: 'cups'),
+        MealIngredient(ingredientName: 'Kulitis/Spinach', quantity: 5, unit: 'cups'),
+      ],
+      cookingInstructions: 'Step 1: Mix eggs, chicken, liver, garlic, kalabasa, and kulitis; Step 2: Shape into patties; Step 3: Fry until browned and serve with catsup.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 0, hypertension: 1, obesity: 1, underweight: 0,
+        heartDisease: 0, anemia: 1, osteoporosis: 1, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 1),
+      tags: ['Filipino', 'vegetables', 'liver', 'healthy'],
+      difficulty: 'Medium',
+      prepTimeMinutes: 35,
+    ),
+
+    PredefinedMeal(
+      id: 'fnri_008',
+      recipeName: 'Ginataang munggo and kalabasa with dilis',
+      description: 'Add gata to your classic ginisang munggo to enhance its flavor and provide more energy to children.',
+      baseServings: 20,
+      kcal: 565,
+      funFact: 'Add gata to your classic ginisang munggo to enhance its flavor and provide more energy to children.',
+      ingredients: [
+        MealIngredient(ingredientName: 'Munggo', quantity: 1.5, unit: 'cups'),
+        MealIngredient(ingredientName: 'Dilis', quantity: 2, unit: 'cups'),
+        MealIngredient(ingredientName: 'Garlic', quantity: 0.33, unit: 'cup'),
+        MealIngredient(ingredientName: 'Ginger', quantity: 2, unit: 'Tbsp'),
+        MealIngredient(ingredientName: 'Tomato', quantity: 0.25, unit: 'cup'),
+        MealIngredient(ingredientName: 'Kalabasa', quantity: 2, unit: 'cups'),
+        MealIngredient(ingredientName: 'Coconut cream', quantity: 2, unit: 'cups'),
+        MealIngredient(ingredientName: 'Malunggay', quantity: 4, unit: 'cups'),
+      ],
+      cookingInstructions: 'Step 1: Boil munggo until soft; Step 2: Fry dilis until crisp and set aside; Step 3: Sauté garlic, ginger, and tomato, then add munggo, kalabasa, coconut cream, and malunggay, simmer, and serve with dilis on top.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 0, hypertension: 1, obesity: 1, underweight: 0,
+        heartDisease: 0, anemia: 1, osteoporosis: 0, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 0),
+      tags: ['Filipino', 'munggo', 'ginataang', 'kalabasa'],
+      difficulty: 'Medium',
+      prepTimeMinutes: 40,
+    ),
+
+    PredefinedMeal(
+      id: 'fnri_009',
+      recipeName: 'Pork ginisang sinigang',
+      description: 'Gabi is a good source of fiber and minerals which is essential for digestive health.',
+      baseServings: 20,
+      kcal: 546,
+      funFact: 'Gabi is a good source of fiber and minerals which is essential for digestive health.',
+      ingredients: [
+        MealIngredient(ingredientName: 'Pork liempo', quantity: 4, unit: 'cups'),
+        MealIngredient(ingredientName: 'Gabi', quantity: 2, unit: 'cups'),
+        MealIngredient(ingredientName: 'Sitaw', quantity: 3, unit: 'cups'),
+        MealIngredient(ingredientName: 'Sinigang mix', quantity: 1, unit: 'pack'),
+        MealIngredient(ingredientName: 'Kangkong', quantity: 0.5, unit: 'cups'),
+      ],
+      cookingInstructions: 'Step 1: Sauté tomato and pork; Step 2: Add water and simmer until pork is tender; Step 3: Add gabi, sitaw, sinigang mix, and kangkong then simmer until cooked.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 0, hypertension: 1, obesity: 1, underweight: 0,
+        heartDisease: 0, anemia: 1, osteoporosis: 0, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 0),
+      tags: ['Filipino', 'pork', 'sinigang', 'soup'],
+      difficulty: 'Easy',
+      prepTimeMinutes: 60,
+    ),
+
+    PredefinedMeal(
+      id: 'fnri_010',
+      recipeName: 'Sweet and sour meatballs',
+      description: 'Upgrade children\'s meal by adding carrots and kamote tops which are good sources of vitamin A for healthy eyes and skin.',
+      baseServings: 20,
+      kcal: 589,
+      funFact: 'Upgrade children\'s meal by adding carrots and kamote tops which are good sources of vitamin A for healthy eyes and skin.',
+      ingredients: [
+        MealIngredient(ingredientName: 'Eggs', quantity: 4, unit: 'pcs'),
+        MealIngredient(ingredientName: 'Chicken breast', quantity: 3, unit: 'cups'),
+        MealIngredient(ingredientName: 'Kamote tops', quantity: 4, unit: 'cups'),
+        MealIngredient(ingredientName: 'Carrots', quantity: 1.5, unit: 'cups'),
+        MealIngredient(ingredientName: 'Pineapple', quantity: 1, unit: 'can'),
+      ],
+      cookingInstructions: 'Step 1: Mix chicken, kamote tops, and eggs into balls then fry; Step 2: Saute garlic, onion, and carrots then add catsup, pineapple syrup, vinegar, and slurry; Step 3: Add meatballs with pineapple, simmer, and serve with spring onions.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 0, hypertension: 1, obesity: 1, underweight: 0,
+        heartDisease: 0, anemia: 1, osteoporosis: 1, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 1),
+      tags: ['Filipino', 'chicken', 'sweet and sour', 'meatballs'],
+      difficulty: 'Medium',
+      prepTimeMinutes: 45,
+    ),
+
+    // Adding more key FNRI recipes from the CSV
+    PredefinedMeal(
+      id: 'fnri_013',
+      recipeName: 'Cabbage and beef rolls',
+      description: 'Steaming is a heart-healthy cooking method that helps retain the natural flavors and nutrients of the food.',
+      baseServings: 5,
+      kcal: 179,
+      funFact: 'Steaming is a heart-healthy cooking method that helps retain the natural flavors and nutrients of the food.',
+      ingredients: [
+        MealIngredient(ingredientName: 'Ground beef', quantity: 1.25, unit: 'cups'),
+        MealIngredient(ingredientName: 'Tokwa', quantity: 1, unit: 'cup'),
+        MealIngredient(ingredientName: 'Red onion', quantity: 0.25, unit: 'cup'),
+        MealIngredient(ingredientName: 'Garlic', quantity: 0.25, unit: 'cup'),
+        MealIngredient(ingredientName: 'Carrot', quantity: 1, unit: 'cup'),
+        MealIngredient(ingredientName: 'Kinchay', quantity: 0.33, unit: 'cup'),
+        MealIngredient(ingredientName: 'Chicken egg', quantity: 1, unit: 'pc, medium'),
+        MealIngredient(ingredientName: 'Chinese cabbage leaves, blanched', quantity: 15, unit: 'pcs'),
+      ],
+      cookingInstructions: 'Step 1: Mix ground beef, mashed tokwa, onion, garlic, carrot, kinchay, and beaten egg; Step 2: Wrap mixture in blanched Chinese cabbage leaves; Step 3: Steam until cooked and serve.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 0, hypertension: 1, obesity: 1, underweight: 0,
+        heartDisease: 0, anemia: 1, osteoporosis: 1, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 1),
+      tags: ['Filipino', 'beef', 'vegetables', 'steamed', 'healthy'],
+      difficulty: 'Medium',
+      prepTimeMinutes: 40,
+    ),
+
+    PredefinedMeal(
+      id: 'fnri_015',
+      recipeName: 'Pan-fried tokwa curry',
+      description: 'Curry contains a blend of various spices such as ginger, turmeric, coriander, and cayenne which help in lowering the blood pressure.',
+      baseServings: 5,
+      kcal: 276,
+      funFact: 'Curry contains a blend of various spices such as ginger, turmeric, coriander, and cayenne which help in lowering the blood pressure.',
+      ingredients: [
+        MealIngredient(ingredientName: 'Cornstarch', quantity: 0.25, unit: 'cup'),
+        MealIngredient(ingredientName: 'Salt, iodized', quantity: 0.75, unit: 'tsp'),
+        MealIngredient(ingredientName: 'Tokwa, sliced', quantity: 15, unit: 'slices / 35g each'),
+        MealIngredient(ingredientName: 'Cooking oil', quantity: 2, unit: 'Tbsps'),
+        MealIngredient(ingredientName: 'Water', quantity: 2, unit: 'cups'),
+        MealIngredient(ingredientName: 'Red onion, sliced', quantity: 0.25, unit: 'cup'),
+        MealIngredient(ingredientName: 'Curry powder', quantity: 1, unit: 'Tbsp'),
+        MealIngredient(ingredientName: 'Carrot, cubed', quantity: 1.5, unit: 'cups'),
+        MealIngredient(ingredientName: 'Yellow kamote, cubed', quantity: 1.5, unit: 'cups'),
+        MealIngredient(ingredientName: 'Black pepper, ground', quantity: 0.25, unit: 'tsp'),
+        MealIngredient(ingredientName: 'Cabbage, shredded', quantity: 3, unit: 'cups'),
+      ],
+      cookingInstructions: 'Step 1: Coat tokwa in cornstarch and salt, then pan-fry until golden; Step 2: Boil water with onion, curry powder, carrot, kamote, salt, and pepper for 7 minutes; Step 3: Serve tokwa with shredded cabbage on the side.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 0, hypertension: 1, obesity: 1, underweight: 0,
+        heartDisease: 0, anemia: 1, osteoporosis: 0, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 0),
+      tags: ['Filipino', 'tokwa', 'curry', 'vegetarian', 'healthy'],
+      difficulty: 'Easy',
+      prepTimeMinutes: 25,
+    ),
+
+    PredefinedMeal(
+      id: 'fnri_024',
+      recipeName: 'Tuna kinilaw with seaweed',
+      description: 'Seaweeds are rich in potassium salts, giving a natural salty flavor that can replace table salt without raising blood pressure.',
+      baseServings: 5,
+      kcal: 153,
+      funFact: 'Seaweeds are rich in potassium salts, giving a natural salty flavor that can replace table salt without raising blood pressure.',
+      ingredients: [
+        MealIngredient(ingredientName: 'Tuna, cubed', quantity: 1.5, unit: 'cups'),
+        MealIngredient(ingredientName: 'White vinegar', quantity: 1, unit: 'cup'),
+        MealIngredient(ingredientName: 'Water', quantity: 2, unit: 'cups'),
+        MealIngredient(ingredientName: 'Guso, fresh, trimmed', quantity: 6, unit: 'cups'),
+        MealIngredient(ingredientName: 'Red onion, sliced', quantity: 0.33, unit: 'cup'),
+        MealIngredient(ingredientName: 'Tomato, chopped', quantity: 0.5, unit: 'cup'),
+        MealIngredient(ingredientName: 'Ginger, chopped', quantity: 0.33, unit: 'cup'),
+        MealIngredient(ingredientName: 'Calamansi juice, freshly squeezed', quantity: 0.25, unit: 'cup'),
+        MealIngredient(ingredientName: 'Salt, iodized', quantity: 0.75, unit: 'tsp'),
+        MealIngredient(ingredientName: 'Black pepper, ground', quantity: 0.5, unit: 'tsp'),
+      ],
+      cookingInstructions: 'Step 1: Soak tuna in vinegar for 30 minutes, drain, and set aside; Step 2: Boil water and blanch guso, then rinse; Step 3: Mix onion, tomato, ginger, calamansi juice, vinegar, salt, and pepper; Step 4: Add tuna and guso, mix well, cover, and marinate 30 minutes.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 0, hypertension: 1, obesity: 1, underweight: 0,
+        heartDisease: 0, anemia: 1, osteoporosis: 1, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 1),
+      tags: ['Filipino', 'tuna', 'kinilaw', 'seaweed', 'healthy'],
+      difficulty: 'Easy',
+      prepTimeMinutes: 20,
+    ),
+
+    PredefinedMeal(
+      id: 'fnri_028',
+      recipeName: 'Go!-Conut',
+      description: 'This beverage contains nutrients and electrolytes that are essential rehydration during prolonged physical activity',
+      baseServings: 1,
+      kcal: 31,
+      funFact: 'This beverage contains nutrients and electrolytes that are essential rehydration during prolonged physical activity',
+      ingredients: [
+        MealIngredient(ingredientName: 'Coconut water', quantity: 2.5, unit: 'cups'),
+        MealIngredient(ingredientName: 'Calamansi juice, freshly squeezed', quantity: 1, unit: 'Tbsp'),
+        MealIngredient(ingredientName: 'Honey', quantity: 1, unit: 'tsp'),
+        MealIngredient(ingredientName: 'Salt, iodized', quantity: 0.25, unit: 'tsp'),
+        MealIngredient(ingredientName: 'Cold water', quantity: 2.5, unit: 'cups'),
+      ],
+      cookingInstructions: 'Step 1: In a pitcher, combine all the ingredients.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 1, hypertension: 0, obesity: 0, underweight: 1,
+        heartDisease: 0, anemia: 0, osteoporosis: 0, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 0, dinner: 0, snack: 1),
+      tags: ['Filipino', 'beverage', 'coconut', 'healthy', 'drink'],
       difficulty: 'Easy',
       prepTimeMinutes: 5,
-      imageUrl: 'https://via.placeholder.com/300x200/FF9800/FFFFFF?text=Fruit+Smoothie',
+    ),
+
+    PredefinedMeal(
+      id: 'fnri_032',
+      recipeName: 'No fry empanada',
+      description: 'This Ilocos-inspired empanada is high in protein from eggs and longganisa, with less oil thanks to pan-grilled rice paper.',
+      baseServings: 1,
+      kcal: 233,
+      funFact: 'This Ilocos-inspired empanada is high in protein from eggs and longganisa, with less oil thanks to pan-grilled rice paper.',
       ingredients: [
-        MealIngredient(ingredientName: 'Mango', quantity: 0.5, unit: 'cup'),
-        MealIngredient(ingredientName: 'Banana', quantity: 0.5, unit: 'piece'),
-        MealIngredient(ingredientName: 'Pineapple', quantity: 0.25, unit: 'cup'),
-        MealIngredient(ingredientName: 'Greek yogurt', quantity: 0.5, unit: 'cup'),
-        MealIngredient(ingredientName: 'Coconut milk', quantity: 0.25, unit: 'cup'),
-        MealIngredient(ingredientName: 'Honey', quantity: 1, unit: 'tbsp'),
+        MealIngredient(ingredientName: 'Cooking oil', quantity: 1, unit: 'Tbsp'),
+        MealIngredient(ingredientName: 'Atsuete seeds', quantity: 2, unit: 'tsps'),
+        MealIngredient(ingredientName: 'Garlic, chopped', quantity: 1, unit: 'Tbsp'),
+        MealIngredient(ingredientName: 'Onion, chopped', quantity: 1, unit: 'Tbsp'),
+        MealIngredient(ingredientName: 'Vigan or Lucban longganisa, mashed', quantity: 0.5, unit: 'cup'),
+        MealIngredient(ingredientName: 'Green papaya, strips', quantity: 1.5, unit: 'cups'),
+        MealIngredient(ingredientName: 'Black pepper', quantity: 0.125, unit: 'tsp'),
+        MealIngredient(ingredientName: 'Rice paper, big', quantity: 5, unit: 'pcs'),
+        MealIngredient(ingredientName: 'Quail eggs', quantity: 10, unit: 'pcs'),
       ],
+      cookingInstructions: 'Step 1: Heat oil, add atsuete, extract oil for 1 minute then remove seeds; Step 2: Sauté garlic, onion, and longganisa for 5 minutes; Step 3: Add papaya and pepper, cook for 7 minutes then set aside; Step 4: Divide mixture into 5 portions, dip rice paper in water, add filling, make a well, crack in 2 quail eggs, fold and seal; Step 5: Pan grill empanada for 3 minutes per side.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 1, hypertension: 1, obesity: 0, underweight: 0,
+        heartDisease: 1, anemia: 0, osteoporosis: 0, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 0, snack: 1),
+      tags: ['Filipino', 'empanada', 'longganisa', 'healthy'],
+      difficulty: 'Medium',
+      prepTimeMinutes: 30,
     ),
   ];
 
+  // Recent searches for UI
+  static const List<String> recentSearches = [
+    'chicken',
+    'vegetables',
+    'healthy',
+    'tokwa',
+    'soup',
+    'pork',
+    'fish'
+  ];
+
+  // Nutrition tips for UI
+  static const List<String> nutritionTips = [
+    'Malunggay leaves are rich in Vitamin A and C, boosting immunity',
+    'Sardines provide calcium for strong bones and healthy teeth',
+    'Kalabasa (squash) is high in beta-carotene for better vision',
+    'Tokwa is a protein-rich, affordable meat substitute',
+    'Steaming vegetables helps retain more nutrients than frying',
+    'Adding liver to meals provides iron and Vitamin A',
+    'Gabi root is rich in fiber for better digestive health',
+    'Coconut water contains natural electrolytes for hydration'
+  ];
+
   // Helper methods for filtering meals
-  static List<PredefinedMeal> searchMeals(String query) {
-    if (query.isEmpty) return meals;
+  // Enhanced search with health filtering
+  static List<PredefinedMeal> searchMealsWithHealthFilter(
+    String query, 
+    List<String>? userHealthConditions
+  ) {
+    if (query.isEmpty) {
+      if (userHealthConditions == null || userHealthConditions.isEmpty) {
+        return meals;
+      } else {
+        return getPersonalizedMeals(userHealthConditions, '');
+      }
+    }
     
     final lowercaseQuery = query.toLowerCase();
-    return meals.where((meal) {
+    List<PredefinedMeal> queryResults = meals.where((meal) {
       return meal.recipeName.toLowerCase().contains(lowercaseQuery) ||
              meal.description.toLowerCase().contains(lowercaseQuery) ||
              meal.tags.any((tag) => tag.toLowerCase().contains(lowercaseQuery)) ||
              meal.ingredients.any((ingredient) => 
                ingredient.ingredientName.toLowerCase().contains(lowercaseQuery));
     }).toList();
+
+    // Apply health filtering if user has health conditions
+    if (userHealthConditions != null && userHealthConditions.isNotEmpty) {
+      queryResults = queryResults.where((meal) {
+        bool healthMatch = true;
+        for (String condition in userHealthConditions) {
+          switch (condition.toLowerCase()) {
+            case 'diabetes':
+              if (!meal.healthConditions.diabetes) healthMatch = false;
+              break;
+            case 'hypertension':
+              if (!meal.healthConditions.hypertension) healthMatch = false;
+              break;
+            case 'obesity':
+              if (!meal.healthConditions.obesityOverweight) healthMatch = false;
+              break;
+            case 'underweight':
+              if (!meal.healthConditions.underweightMalnutrition) healthMatch = false;
+              break;
+            case 'heart_disease':
+              if (!meal.healthConditions.heartDiseaseChol) healthMatch = false;
+              break;
+            case 'anemia':
+              if (!meal.healthConditions.anemia) healthMatch = false;
+              break;
+            case 'osteoporosis':
+              if (!meal.healthConditions.osteoporosis) healthMatch = false;
+              break;
+          }
+        }
+        return healthMatch;
+      }).toList();
+    }
+
+    return queryResults;
+  }
+
+  // Backward compatibility - original search method
+  static List<PredefinedMeal> searchMeals(String query) {
+    return searchMealsWithHealthFilter(query, null);
   }
 
   static List<PredefinedMeal> getMealsByTag(String tag) {
@@ -398,43 +672,135 @@ class PredefinedMealsData {
     }
   }
 
-  // Get meals suitable for specific health conditions
-  static List<PredefinedMeal> getHealthyMeals() {
-    return meals.where((meal) => 
-      meal.tags.contains('Healthy') || 
-      meal.tags.contains('Low-calorie') ||
-      meal.tags.contains('Vegetables')).toList();
+  // New health-based filtering methods for FNRI recipes
+  static List<PredefinedMeal> getMealsForHealthCondition(String condition) {
+    return meals.where((meal) {
+      switch (condition.toLowerCase()) {
+        case 'diabetes':
+          return meal.healthConditions.diabetes;
+        case 'hypertension':
+          return meal.healthConditions.hypertension;
+        case 'obesity':
+          return meal.healthConditions.obesityOverweight;
+        case 'underweight':
+          return meal.healthConditions.underweightMalnutrition;
+        case 'heart_disease':
+          return meal.healthConditions.heartDiseaseChol;
+        case 'anemia':
+          return meal.healthConditions.anemia;
+        case 'osteoporosis':
+          return meal.healthConditions.osteoporosis;
+        case 'none':
+          return meal.healthConditions.none;
+        default:
+          return true;
+      }
+    }).toList();
   }
 
-  static List<PredefinedMeal> getLowCalorieMeals(int maxKcal) {
-    return meals.where((meal) => meal.kcal <= maxKcal).toList();
+  static List<PredefinedMeal> getMealsForMealTime(String mealTime) {
+    return meals.where((meal) {
+      switch (mealTime.toLowerCase()) {
+        case 'breakfast':
+          return meal.mealTiming.breakfast;
+        case 'lunch':
+          return meal.mealTiming.lunch;
+        case 'dinner':
+          return meal.mealTiming.dinner;
+        case 'snack':
+          return meal.mealTiming.snack;
+        default:
+          return true;
+      }
+    }).toList();
   }
 
-  static List<PredefinedMeal> getHighProteinMeals() {
-    return meals.where((meal) => meal.tags.contains('High-protein')).toList();
+  // Get personalized meal recommendations based on multiple health conditions
+  static List<PredefinedMeal> getPersonalizedMeals(List<String> healthConditions, String mealTime) {
+    if (healthConditions.isEmpty) {
+      return getMealsForMealTime(mealTime);
+    }
+
+    return meals.where((meal) {
+      // Check meal timing suitability
+      bool mealTimeMatch = false;
+      switch (mealTime.toLowerCase()) {
+        case 'breakfast':
+          mealTimeMatch = meal.mealTiming.breakfast;
+          break;
+        case 'lunch':
+          mealTimeMatch = meal.mealTiming.lunch;
+          break;
+        case 'dinner':
+          mealTimeMatch = meal.mealTiming.dinner;
+          break;
+        case 'snack':
+          mealTimeMatch = meal.mealTiming.snack;
+          break;
+        default:
+          mealTimeMatch = true;
+      }
+
+      if (!mealTimeMatch) return false;
+
+      // Check health condition suitability - meal must be safe for ALL conditions
+      bool healthMatch = true;
+      for (String condition in healthConditions) {
+        switch (condition.toLowerCase()) {
+          case 'diabetes':
+            if (!meal.healthConditions.diabetes) healthMatch = false;
+            break;
+          case 'hypertension':
+            if (!meal.healthConditions.hypertension) healthMatch = false;
+            break;
+          case 'obesity':
+            if (!meal.healthConditions.obesityOverweight) healthMatch = false;
+            break;
+          case 'underweight':
+            if (!meal.healthConditions.underweightMalnutrition) healthMatch = false;
+            break;
+          case 'heart_disease':
+            if (!meal.healthConditions.heartDiseaseChol) healthMatch = false;
+            break;
+          case 'anemia':
+            if (!meal.healthConditions.anemia) healthMatch = false;
+            break;
+          case 'osteoporosis':
+            if (!meal.healthConditions.osteoporosis) healthMatch = false;
+            break;
+        }
+      }
+      
+      return healthMatch;
+    }).toList();
   }
 
-  // Recent searches mock data
-  static const List<String> recentSearches = [
-    'chicken',
-    'adobo',
-    'healthy',
-    'breakfast',
-    'vegetarian',
-    'low-calorie',
-    'filipino',
-    'pasta',
-  ];
+  // Scale recipe for different number of people (PAX)
+  static PredefinedMeal scaleRecipeForPax(PredefinedMeal meal, int targetPax) {
+    final scaleFactor = targetPax / meal.baseServings;
+    
+    final scaledIngredients = meal.ingredients.map((ingredient) => 
+      MealIngredient(
+        ingredientName: ingredient.ingredientName,
+        quantity: ingredient.quantity * scaleFactor,
+        unit: ingredient.unit,
+      )
+    ).toList();
 
-  // Nutrition tips
-  static const List<String> nutritionTips = [
-    'Malunggay leaves contain 7× more Vitamin C than oranges!',
-    'Sweet potatoes are rich in beta-carotene for healthy vision',
-    'Kangkong is high in iron and helps prevent anemia',
-    'Fish like bangus provides omega-3 for heart health',
-    'Ampalaya helps regulate blood sugar levels naturally',
-    'Brown rice has more fiber than white rice for better digestion',
-    'Coconut water is a natural electrolyte drink',
-    'Guava has more Vitamin C than citrus fruits',
-  ];
+    return PredefinedMeal(
+      id: meal.id,
+      recipeName: meal.recipeName,
+      description: meal.description,
+      baseServings: targetPax,
+      kcal: (meal.kcal * scaleFactor).round(),
+      funFact: meal.funFact,
+      ingredients: scaledIngredients,
+      cookingInstructions: meal.cookingInstructions,
+      healthConditions: meal.healthConditions,
+      mealTiming: meal.mealTiming,
+      tags: meal.tags,
+      difficulty: meal.difficulty,
+      prepTimeMinutes: meal.prepTimeMinutes,
+    );
+  }
 }

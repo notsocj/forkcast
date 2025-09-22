@@ -409,12 +409,23 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
   }
 
   Widget _buildCookingInstructions() {
-    final List<String> instructions = [
-      'Combine chicken, soy sauce, vinegar, garlic, and bay leaf in a pot.',
-      'Boil then simmer for 30 minutes.',
-      'Fry chicken until golden brown.',
-      'Return to sauce and simmer 5 more minutes.',
-    ];
+    // Parse cooking instructions from the actual meal data
+    String rawInstructions = widget.meal.cookingInstructions;
+    List<String> instructions = [];
+    
+    // Split by 'Step' markers and clean up
+    List<String> steps = rawInstructions.split(RegExp(r'Step \d+:'));
+    for (String step in steps) {
+      String cleanStep = step.trim();
+      if (cleanStep.isNotEmpty) {
+        instructions.add(cleanStep);
+      }
+    }
+    
+    // If no steps found, split by periods as fallback
+    if (instructions.isEmpty) {
+      instructions = rawInstructions.split('.').where((s) => s.trim().isNotEmpty).toList();
+    }
 
     return Container(
       margin: const EdgeInsets.fromLTRB(24, 24, 24, 0),

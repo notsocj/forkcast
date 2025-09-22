@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/predefined_meals.dart';
 import '../../services/meal_logging_service.dart';
+import '../../services/personalized_meal_service.dart';
 import 'meal_search_results_page.dart';
 import 'recipe_detail_page.dart';
 
@@ -15,6 +17,7 @@ class MealPlanPage extends StatefulWidget {
 class _MealPlanPageState extends State<MealPlanPage> {
   final TextEditingController _searchController = TextEditingController();
   final MealLoggingService _mealLoggingService = MealLoggingService();
+  final PersonalizedMealService _personalizedMealService = PersonalizedMealService();
   
   // Recent searches from predefined data
   final List<String> _recentSearches = PredefinedMealsData.recentSearches;
@@ -22,6 +25,7 @@ class _MealPlanPageState extends State<MealPlanPage> {
   // Today's meals data loaded from Firebase
   List<Map<String, dynamic>> _todaysMeals = [];
   bool _isLoadingMeals = true;
+  bool _isGeneratingAISuggestions = false;
 
   @override
   void initState() {
@@ -387,17 +391,29 @@ class _MealPlanPageState extends State<MealPlanPage> {
               ),
             ),
             GestureDetector(
-              onTap: _isLoadingMeals ? null : _loadTodaysMeals,
-              child: Text(
-                'REFRESH ALL',
-                style: TextStyle(
-                  fontFamily: 'OpenSans',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: _isLoadingMeals 
-                      ? AppColors.grayText 
-                      : AppColors.successGreen,
-                ),
+              onTap: _isGeneratingAISuggestions ? null : _generateAIMealPlan,
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.auto_awesome,
+                    size: 14,
+                    color: _isGeneratingAISuggestions 
+                        ? AppColors.grayText 
+                        : AppColors.successGreen,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    _isGeneratingAISuggestions ? 'GENERATING...' : 'AI SUGGESTIONS',
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: _isGeneratingAISuggestions 
+                          ? AppColors.grayText 
+                          : AppColors.successGreen,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -520,16 +536,19 @@ class _MealPlanPageState extends State<MealPlanPage> {
               if (!meal['isEmpty']) ...[
                 const SizedBox(width: 8),
                 GestureDetector(
-                  onTap: () => _navigateToMealSearch(meal['type']),
+                  onTap: () => _generateMealTypeSuggestions(meal['type']),
                   child: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppColors.primaryBackground,
+                      color: AppColors.successGreen.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.successGreen.withOpacity(0.3),
+                      ),
                     ),
                     child: Icon(
-                      Icons.refresh,
-                      color: AppColors.grayText,
+                      Icons.auto_awesome,
+                      color: AppColors.successGreen,
                       size: 16,
                     ),
                   ),
@@ -765,6 +784,373 @@ class _MealPlanPageState extends State<MealPlanPage> {
             ),
           );
         }
+      }
+    }
+  }
+
+  /// Generate AI meal plan suggestions for entire day and log them directly
+  Future<void> _generateAIMealPlan() async {
+    setState(() {
+      _isGeneratingAISuggestions = true;
+    });
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Get AI meal plan suggestions
+      Map<String, List<PredefinedMeal>> dailyPlan = 
+          await _personalizedMealService.generateDailyMealPlan(user.uid);
+
+      // Automatically log all AI suggestions to today's meals
+      await _logDailyMealPlan(dailyPlan);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('AI meal plan generated and logged successfully!'),
+            backgroundColor: AppColors.successGreen,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+
+      // Refresh today's meals to show the new suggestions
+      await _loadTodaysMeals();
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to generate AI meal plan: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGeneratingAISuggestions = false;
+        });
+      }
+    }
+  }
+
+  /// Generate AI meal suggestions for specific meal type and log directly
+  Future<void> _generateMealTypeSuggestions(String mealType) async {
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) {
+        throw Exception('User not authenticated');
+      }
+
+      // Show loading indicator
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: AppColors.white,
+                  strokeWidth: 2,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text('Generating AI suggestions for ${mealType.toLowerCase()}...'),
+            ],
+          ),
+          backgroundColor: AppColors.successGreen,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+
+      // Get AI meal type suggestions (get multiple for variety)
+      List<PredefinedMeal> suggestions = await _personalizedMealService
+          .generateMealTypeSuggestions(user.uid, mealType.toLowerCase());
+
+      if (suggestions.isNotEmpty) {
+        // Select first suggestion to log automatically
+        PredefinedMeal selectedMeal = suggestions.first;
+        
+        // Log the meal directly with default PAX (1)
+        await _mealLoggingService.logMeal(
+          meal: selectedMeal,
+          mealType: mealType,
+          amount: 1.0,
+          measurement: 'serving',
+          pax: 1,
+        );
+
+        // Refresh today's meals to show the new suggestion
+        await _loadTodaysMeals();
+
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${selectedMeal.recipeName} added to your ${mealType.toLowerCase()}!'),
+              backgroundColor: AppColors.successGreen,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to generate suggestions: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  /// Show AI meal plan dialog for entire day
+  // ignore: unused_element
+  void _showAIMealPlanDialog(Map<String, List<PredefinedMeal>> dailyPlan) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+              maxWidth: MediaQuery.of(context).size.width * 0.9,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.successGreen,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.auto_awesome, color: AppColors.white, size: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'AI Daily Meal Plan',
+                          style: TextStyle(
+                            fontFamily: 'Lato',
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.white,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Icon(Icons.close, color: AppColors.white, size: 24),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: dailyPlan.entries.map((entry) {
+                        return _buildMealPlanSection(entry.key, entry.value);
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Show meal type suggestions dialog
+  // ignore: unused_element
+  void _showMealTypeSuggestionsDialog(String mealType, List<PredefinedMeal> suggestions) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.7,
+              maxWidth: MediaQuery.of(context).size.width * 0.9,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Column(
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.successGreen,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.auto_awesome, color: AppColors.white, size: 24),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'AI $mealType Suggestions',
+                          style: TextStyle(
+                            fontFamily: 'Lato',
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.white,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Icon(Icons.close, color: AppColors.white, size: 24),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: suggestions.map((meal) {
+                        return _buildSuggestionMealCard(meal);
+                      }).toList(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Build meal plan section for daily plan dialog
+  Widget _buildMealPlanSection(String mealType, List<PredefinedMeal> meals) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            mealType.toUpperCase(),
+            style: TextStyle(
+              fontFamily: 'Lato',
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.blackText,
+            ),
+          ),
+          const SizedBox(height: 12),
+          ...meals.map((meal) => _buildSuggestionMealCard(meal)),
+        ],
+      ),
+    );
+  }
+
+  /// Build individual meal suggestion card
+  Widget _buildSuggestionMealCard(PredefinedMeal meal) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pop(context); // Close dialog
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RecipeDetailPage(meal: meal),
+          ),
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.primaryBackground,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.successGreen.withOpacity(0.2),
+          ),
+        ),
+        child: Row(
+          children: [
+            // Meal info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    meal.recipeName,
+                    style: TextStyle(
+                      fontFamily: 'Lato',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.blackText,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '${meal.kcal} kcal • ${meal.prepTimeMinutes} min',
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      fontSize: 12,
+                      color: AppColors.grayText,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Arrow
+            Icon(
+              Icons.arrow_forward_ios,
+              color: AppColors.grayText,
+              size: 16,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Log daily meal plan suggestions automatically
+  Future<void> _logDailyMealPlan(Map<String, List<PredefinedMeal>> dailyPlan) async {
+    for (String mealType in dailyPlan.keys) {
+      final meals = dailyPlan[mealType];
+      if (meals != null && meals.isNotEmpty) {
+        // Select the first meal suggestion for each meal type
+        final selectedMeal = meals.first;
+        
+        // Log the meal with default settings
+        await _mealLoggingService.logMeal(
+          meal: selectedMeal,
+          mealType: mealType,
+          amount: 1.0,
+          measurement: 'serving',
+          pax: 1,
+        );
       }
     }
   }

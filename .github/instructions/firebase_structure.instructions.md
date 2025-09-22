@@ -39,6 +39,27 @@ collections:
           kcal_min: number (int)
           kcal_max: number (int)
           recipe_id: reference (→ recipes.recipeId)
+          # FNRI Integration Fields
+          pax: number (int, 1-10, number of people meal is prepared for)
+          scaled_kcal: number (int, calories adjusted for PAX)
+          original_kcal: number (int, base recipe calories)
+          scaling_factor: number (double, PAX scaling multiplier)
+          original_servings: number (int, base recipe servings)
+          scaled_servings: number (int, servings adjusted for PAX)
+          # Health Condition Safety Metadata (boolean flags from FNRI data)
+          is_diabetes_safe: boolean
+          is_hypertension_safe: boolean
+          is_obesity_safe: boolean
+          is_underweight_safe: boolean
+          is_heart_disease_safe: boolean
+          is_anemia_safe: boolean
+          is_osteoporosis_safe: boolean
+          is_none_safe: boolean
+          # Additional Meal Metadata
+          recipe_name: string (meal name for easy identification)
+          amount: number (double, serving amount)
+          measurement: string (serving unit)
+          logged_at: timestamp (when meal was logged)
       teleconsultations:
         documentId: teleconsultationId (string)
         fields:
@@ -105,3 +126,11 @@ collections:
 - Use subcollections where defined (e.g., meal_plans under users). 
 - Foreign key–like relations use Firestore document references. 
 - Never invent new fields, collections, or relationships unless explicitly instructed.
+
+## FNRI Integration Notes:
+- The meal_plans subcollection has been enhanced with FNRI (Food and Nutrition Research Institute) integration
+- PAX scaling allows meals to be prepared for 1-10 people with dynamic nutrition adjustment
+- Health condition safety flags are based on FNRI research data and binary classification (0=not recommended, 1=safe)
+- All logged meals include health condition metadata for medical suitability tracking
+- The PersonalizedMealService uses these fields for AI-powered health-aware meal recommendations
+- PAX scaling affects: scaled_kcal, scaled_servings, ingredient quantities, and nutrition calculations

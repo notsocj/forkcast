@@ -21,6 +21,7 @@ class NutritionFactsPage extends StatefulWidget {
 
 class _NutritionFactsPageState extends State<NutritionFactsPage> {
   late double _currentAmount;
+  int _selectedPax = 1; // Number of people eating
   final MealLoggingService _mealLoggingService = MealLoggingService();
 
   @override
@@ -29,14 +30,16 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
     _currentAmount = widget.amount;
   }
 
-  // Calculate nutrition values based on current amount and meal data
+  // Calculate nutrition values based on current amount, meal data, and PAX
   Map<String, double> get _calculatedNutrition {
     final meal = widget.meal;
-    final multiplier = _currentAmount / meal.servings; // Adjust for current amount vs servings
+    // Scale based on current amount vs base servings, then by PAX
+    final scaledMeal = PredefinedMealsData.scaleRecipeForPax(meal, _selectedPax);
+    final multiplier = _currentAmount / scaledMeal.baseServings;
     
     // Since PredefinedMeal only has kcal, we'll estimate other nutrients
     // In a real app, these would come from a nutrition database
-    final baseCalories = meal.kcal.toDouble();
+    final baseCalories = scaledMeal.kcal.toDouble();
     
     return {
       'calories': baseCalories * multiplier,
@@ -72,8 +75,14 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
                 },
                 color: AppColors.successGreen,
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(bottom: 220), // leave room for bottom keypad
-                  child: _buildNutritionContent(),
+                  padding: const EdgeInsets.only(bottom: 280), // increased to leave room for PAX selector
+                  child: Column(
+                    children: [
+                      _buildNutritionContent(),
+                      const SizedBox(height: 20),
+                      _buildPaxSelector(),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -300,6 +309,139 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaxSelector() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Number of People (PAX)',
+            style: TextStyle(
+              fontFamily: 'Lato',
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.blackText,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'How many people will eat this meal?',
+            style: TextStyle(
+              fontFamily: 'OpenSans',
+              fontSize: 14,
+              color: AppColors.grayText,
+            ),
+          ),
+          const SizedBox(height: 16),
+          
+          // PAX Selection Row
+          Row(
+            children: [
+              // Decrease Button
+              GestureDetector(
+                onTap: () {
+                  if (_selectedPax > 1) {
+                    setState(() {
+                      _selectedPax--;
+                    });
+                  }
+                },
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _selectedPax > 1 ? AppColors.successGreen : AppColors.grayText.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.remove,
+                    color: _selectedPax > 1 ? AppColors.white : AppColors.grayText,
+                    size: 20,
+                  ),
+                ),
+              ),
+              
+              // PAX Display
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBackground,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.successGreen.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Text(
+                    '$_selectedPax person${_selectedPax > 1 ? 's' : ''}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontFamily: 'Lato',
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.blackText,
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Increase Button
+              GestureDetector(
+                onTap: () {
+                  if (_selectedPax < 10) { // Reasonable max limit
+                    setState(() {
+                      _selectedPax++;
+                    });
+                  }
+                },
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _selectedPax < 10 ? AppColors.successGreen : AppColors.grayText.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.add,
+                    color: _selectedPax < 10 ? AppColors.white : AppColors.grayText,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          
+          const SizedBox(height: 12),
+          
+          // Info text
+          Text(
+            'Nutrition values will be calculated based on the selected number of people.',
+            style: TextStyle(
+              fontFamily: 'OpenSans',
+              fontSize: 12,
+              color: AppColors.grayText,
+              fontStyle: FontStyle.italic,
+            ),
+          ),
         ],
       ),
     );
@@ -580,13 +722,14 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
         mealType: mealType,
         amount: _currentAmount,
         measurement: widget.measurement,
+        pax: _selectedPax,
       );
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '${widget.meal.recipeName} logged for $mealType!',
+              '${widget.meal.recipeName} (for $_selectedPax person${_selectedPax > 1 ? 's' : ''}) logged for $mealType!',
               style: TextStyle(
                 fontFamily: 'OpenSans',
                 color: AppColors.white,

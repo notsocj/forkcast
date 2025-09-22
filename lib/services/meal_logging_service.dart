@@ -18,14 +18,16 @@ class MealLoggingService {
     required String mealType,
     required double amount,
     required String measurement,
+    int pax = 1, // Number of people eating
   }) async {
     final user = _auth.currentUser;
     if (user == null) {
       throw Exception('User not authenticated');
     }
 
-    // Calculate adjusted calories based on amount and measurement
-    double adjustedKcal = _calculateAdjustedCalories(meal, amount, measurement);
+    // Scale meal for PAX first, then calculate adjusted calories
+    final scaledMeal = PredefinedMealsData.scaleRecipeForPax(meal, pax);
+    double adjustedKcal = _calculateAdjustedCalories(scaledMeal, amount, measurement);
     
     // Get today's date (date only, no time)
     final now = DateTime.now();
@@ -44,6 +46,8 @@ class MealLoggingService {
       'amount': amount,
       'measurement': measurement,
       'original_kcal': meal.kcal,
+      'pax': pax, // Number of people
+      'scaled_kcal': scaledMeal.kcal, // Calories for PAX people
     };
 
     try {
@@ -251,15 +255,36 @@ class MealLoggingService {
 
     for (var meal in todaysMeals) {
       final mealType = meal['meal_type'] as String?;
-      if (mealType != null && mealStatus.containsKey(mealType)) {
-        mealStatus[mealType] = {
-          'logged': true,
-          'data': meal,
-        };
+      if (mealType != null) {
+        // Handle case-insensitive matching
+        String capitalizedMealType = _capitalizeMealType(mealType);
+        if (mealStatus.containsKey(capitalizedMealType)) {
+          mealStatus[capitalizedMealType] = {
+            'logged': true,
+            'data': meal,
+          };
+        }
       }
     }
 
     return mealStatus;
+  }
+
+  /// Helper method to capitalize meal type for consistent matching
+  String _capitalizeMealType(String mealType) {
+    switch (mealType.toLowerCase()) {
+      case 'breakfast':
+        return 'Breakfast';
+      case 'lunch':
+        return 'Lunch';
+      case 'dinner':
+        return 'Dinner';
+      case 'snack':
+        return 'Snack';
+      default:
+        // Fallback: capitalize first letter
+        return mealType[0].toUpperCase() + mealType.substring(1).toLowerCase();
+    }
   }
 
   /// Replace or add a meal for a specific type today
