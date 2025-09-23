@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
 import 'forgot_password/forgot_password_page.dart';
+import 'sign_up_page.dart';
 import '../../services/auth_service.dart';
+import '../../services/user_service.dart';
 import '../../services/persistent_auth_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../core_features/main_navigation_wrapper.dart';
+import '../professional/professional_navigation_wrapper.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -21,6 +24,7 @@ class _SignInPageState extends State<SignInPage> {
   bool _isPasswordVisible = false;
   bool _rememberMe = false;
   bool _isLoading = false;
+  bool _isProfessionalLogin = false;
 
   @override
   void initState() {
@@ -78,7 +82,7 @@ class _SignInPageState extends State<SignInPage> {
                   Row(
                     children: [
                       Text(
-                        "Welcome Back!",
+                        _isProfessionalLogin ? "Professional Login" : "Welcome Back!",
                         style: const TextStyle(
                           fontFamily: AppConstants.headingFont,
                           fontWeight: FontWeight.bold,
@@ -87,9 +91,9 @@ class _SignInPageState extends State<SignInPage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        "👋",
-                        style: TextStyle(fontSize: 24),
+                      Text(
+                        _isProfessionalLogin ? "🩺" : "👋",
+                        style: const TextStyle(fontSize: 24),
                       ),
                     ],
                   ),
@@ -98,12 +102,85 @@ class _SignInPageState extends State<SignInPage> {
                   
                   // Subtitle
                   Text(
-                    "Sign in to continue your journey towards a healthier you",
+                    _isProfessionalLogin 
+                        ? "Sign in to access your professional dashboard"
+                        : "Sign in to continue your journey towards a healthier you",
                     style: const TextStyle(
                       fontFamily: AppConstants.primaryFont,
                       fontSize: 14,
                       color: AppColors.grayText,
                       height: 1.4,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Professional/User Toggle
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.successGreen.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isProfessionalLogin = false;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: !_isProfessionalLogin ? AppColors.successGreen : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'User',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: AppConstants.primaryFont,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: !_isProfessionalLogin ? AppColors.white : AppColors.grayText,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isProfessionalLogin = true;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: _isProfessionalLogin ? AppColors.successGreen : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Professional',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: AppConstants.primaryFont,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: _isProfessionalLogin ? AppColors.white : AppColors.grayText,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   
@@ -294,7 +371,10 @@ class _SignInPageState extends State<SignInPage> {
                       ),
                       GestureDetector(
                         onTap: () {
-                          Navigator.pop(context); // Go back to get started, then user can tap sign up
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (context) => const SignUpPage()),
+                          );
                         },
                         child: const Text(
                           "Sign up",
@@ -438,24 +518,76 @@ class _SignInPageState extends State<SignInPage> {
         final userCredential = await authService.signIn(email, password);
 
         if (userCredential.user != null) {
-          // Save remember me state and credentials
-          await PersistentAuthService.saveRememberMeState(
-            rememberMe: _rememberMe,
-            email: email,
-          );
+          // Get user data from Firestore to check role
+          final userService = UserService();
+          final userData = await userService.getUser(userCredential.user!.uid);
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Sign in successful!'),
-              backgroundColor: AppColors.successGreen,
-            ),
-          );
+          if (userData != null) {
+            // Save remember me state and credentials
+            await PersistentAuthService.saveRememberMeState(
+              rememberMe: _rememberMe,
+              email: email,
+            );
 
-          // Directly navigate to main app wrapper (bottom navigation)
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(builder: (context) => const MainNavigationWrapper()),
-            (route) => false,
-          );
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Sign in successful!'),
+                backgroundColor: AppColors.successGreen,
+              ),
+            );
+
+            // Check if the user's role matches the selected login type
+            final isUserProfessional = userData.role == 'professional';
+            
+            if (_isProfessionalLogin && !isUserProfessional) {
+              // User selected professional login but account is not professional
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('This account is not registered as a professional. Please use regular login.'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+              setState(() {
+                _isLoading = false;
+              });
+              return;
+            }
+            
+            if (!_isProfessionalLogin && isUserProfessional) {
+              // User selected regular login but account is professional
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('This is a professional account. Please use professional login.'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+              setState(() {
+                _isLoading = false;
+              });
+              return;
+            }
+
+            // Navigate to appropriate navigation wrapper based on user role
+            Widget navigationWrapper;
+            if (isUserProfessional) {
+              navigationWrapper = const ProfessionalNavigationWrapper();
+            } else {
+              navigationWrapper = const MainNavigationWrapper();
+            }
+
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(builder: (context) => navigationWrapper),
+              (route) => false,
+            );
+          } else {
+            // User data not found in Firestore
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('User profile not found. Please contact support.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
         }
       } on FirebaseAuthException catch (e) {
         String message = 'Sign in failed';

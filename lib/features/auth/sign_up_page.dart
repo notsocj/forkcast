@@ -5,7 +5,8 @@ import 'sign_in_page.dart';
 import '../../services/auth_service.dart';
 import '../../services/user_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../profile_setup/name_entry_page.dart'; 
+import '../profile_setup/name_entry_page.dart';
+import '../professional/setup/professional_name_entry_page.dart'; 
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -20,6 +21,7 @@ class _SignUpPageState extends State<SignUpPage> {
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _agreeToTerms = false;
+  bool _isProfessionalSignup = false;
 
   @override
   void dispose() {
@@ -58,7 +60,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   Row(
                     children: [
                       Text(
-                        "Join Forkcast Today!",
+                        _isProfessionalSignup ? "Join as Professional!" : "Join Forkcast Today!",
                         style: const TextStyle(
                           fontFamily: AppConstants.headingFont,
                           fontWeight: FontWeight.bold,
@@ -67,9 +69,9 @@ class _SignUpPageState extends State<SignUpPage> {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      const Text(
-                        "⭐",
-                        style: TextStyle(fontSize: 24),
+                      Text(
+                        _isProfessionalSignup ? "🩺" : "⭐",
+                        style: const TextStyle(fontSize: 24),
                       ),
                     ],
                   ),
@@ -78,12 +80,85 @@ class _SignUpPageState extends State<SignUpPage> {
                   
                   // Subtitle
                   Text(
-                    "Create a forkcast account to receive personalized meal plans, prevent malnutrition, unhealthy food choices and achieve your health goals.",
+                    _isProfessionalSignup 
+                        ? "Create a professional account to provide nutrition consultations and help users achieve their health goals."
+                        : "Create a forkcast account to receive personalized meal plans, prevent malnutrition, unhealthy food choices and achieve your health goals.",
                     style: const TextStyle(
                       fontFamily: AppConstants.primaryFont,
                       fontSize: 14,
                       color: AppColors.grayText,
                       height: 1.4,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 24),
+                  
+                  // Professional/User Toggle
+                  Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(
+                      color: AppColors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.successGreen.withOpacity(0.3),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isProfessionalSignup = false;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: !_isProfessionalSignup ? AppColors.successGreen : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'User',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: AppConstants.primaryFont,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: !_isProfessionalSignup ? AppColors.white : AppColors.grayText,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isProfessionalSignup = true;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: _isProfessionalSignup ? AppColors.successGreen : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Professional',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: AppConstants.primaryFont,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: _isProfessionalSignup ? AppColors.white : AppColors.grayText,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   
@@ -409,7 +484,7 @@ class _SignUpPageState extends State<SignUpPage> {
         final userId = userCredential.user?.uid;
 
         if (userId != null) {
-          // Create user document in Firestore (minimal fields for now)
+          // Create user document in Firestore with role based on signup type
           final userService = UserService();
           await userService.createUser(
             userId: userId,
@@ -423,24 +498,35 @@ class _SignUpPageState extends State<SignUpPage> {
             householdSize: 1,
             weeklyBudgetMin: 0,
             weeklyBudgetMax: 0,
-            role: 'user',
-            specialization: null,
+            role: _isProfessionalSignup ? 'professional' : 'user',
+            specialization: _isProfessionalSignup ? 'Nutritionist' : null, // Default specialization for professionals
             createdAt: DateTime.now(),
             phoneNumber: null,
           );
 
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Account created!'),
+            SnackBar(
+              content: Text(_isProfessionalSignup 
+                ? 'Professional account created!' 
+                : 'Account created!'),
               backgroundColor: AppColors.successGreen,
             ),
           );
 
-          // Navigate to profile setup (e.g., NameEntryPage)
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const NameEntryPage()),
-          );
+          // Navigate to appropriate setup flow based on user type
+          if (_isProfessionalSignup) {
+            // Navigate to professional setup flow
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const ProfessionalNameEntryPage()),
+            );
+          } else {
+            // Navigate to regular user profile setup
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const NameEntryPage()),
+            );
+          }
         }
       } on FirebaseAuthException catch (e) {
         String message = 'Sign up failed';

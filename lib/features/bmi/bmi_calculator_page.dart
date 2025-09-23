@@ -5,6 +5,7 @@ import '../../core/constants.dart';
 import '../../services/auth_service.dart';
 import '../../services/user_service.dart';
 import '../core_features/main_navigation_wrapper.dart';
+import '../professional/professional_navigation_wrapper.dart';
 
 class BMICalculatorPage extends StatefulWidget {
   const BMICalculatorPage({super.key});
@@ -683,13 +684,38 @@ class _BMICalculatorPageState extends State<BMICalculatorPage> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MainNavigationWrapper(),
-            ),
-          );
+        onPressed: () async {
+          // Get current user data to check role
+          final authService = AuthService();
+          final currentUser = authService.currentUser;
+          
+          if (currentUser != null) {
+            final userService = UserService();
+            final userData = await userService.getUser(currentUser.uid);
+            
+            // Navigate based on user role
+            Widget navigationWrapper;
+            if (userData?.role == 'professional') {
+              navigationWrapper = const ProfessionalNavigationWrapper();
+            } else {
+              navigationWrapper = const MainNavigationWrapper();
+            }
+            
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => navigationWrapper,
+              ),
+            );
+          } else {
+            // Fallback to main navigation if no user found
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const MainNavigationWrapper(),
+              ),
+            );
+          }
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
