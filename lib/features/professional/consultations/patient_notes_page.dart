@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../services/professional_service.dart';
+
+// Add blackText color extension
+extension AppColorsExtension on AppColors {
+  static const Color blackText = Color(0xFF2D2D2D);
+}
 
 class PatientNotesPage extends StatefulWidget {
   const PatientNotesPage({super.key});
@@ -9,58 +15,36 @@ class PatientNotesPage extends StatefulWidget {
 }
 
 class _PatientNotesPageState extends State<PatientNotesPage> {
+  final ProfessionalService _professionalService = ProfessionalService();
   final TextEditingController _searchController = TextEditingController();
   
-  // Sample data for demonstration
-  final List<Map<String, dynamic>> _patientNotes = [
-    {
-      'id': '1',
-      'patientName': 'Maria Santos',
-      'avatar': 'MS',
-      'lastConsultation': 'Sep 20, 2025',
-      'consultationCount': 3,
-      'latestNote': 'Patient showing good progress with weight management. Recommended increasing protein intake.',
-      'tags': ['Weight Management', 'Protein'],
-      'healthConditions': ['Obesity'],
-    },
-    {
-      'id': '2',
-      'patientName': 'John Doe',
-      'avatar': 'JD',
-      'lastConsultation': 'Sep 18, 2025',
-      'consultationCount': 5,
-      'latestNote': 'Diabetes management going well. Blood sugar levels stable with current meal plan.',
-      'tags': ['Diabetes', 'Meal Planning'],
-      'healthConditions': ['Diabetes'],
-    },
-    {
-      'id': '3',
-      'patientName': 'Anna Garcia',
-      'avatar': 'AG',
-      'lastConsultation': 'Sep 15, 2025',
-      'consultationCount': 2,
-      'latestNote': 'Started low-sodium diet for hypertension. Patient needs more guidance on food preparation.',
-      'tags': ['Hypertension', 'Low Sodium'],
-      'healthConditions': ['Hypertension'],
-    },
-    {
-      'id': '4',
-      'patientName': 'Robert Chen',
-      'avatar': 'RC',
-      'lastConsultation': 'Sep 12, 2025',
-      'consultationCount': 1,
-      'latestNote': 'Initial consultation completed. Recommended balanced nutrition plan for general wellness.',
-      'tags': ['General Wellness', 'Nutrition'],
-      'healthConditions': ['None'],
-    },
-  ];
-
-  List<Map<String, dynamic>> _filteredNotes = [];
+  List<Map<String, dynamic>> _patientNotes = [];
+  bool _isLoading = true;
+  String _searchQuery = '';
 
   @override
   void initState() {
     super.initState();
-    _filteredNotes = _patientNotes;
+    _loadPatientNotes();
+  }
+
+  Future<void> _loadPatientNotes() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      _patientNotes = await _professionalService.getPatientNotes(
+        searchQuery: _searchQuery.isEmpty ? null : _searchQuery,
+      );
+    } catch (e) {
+      print('Error loading patient notes: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() => _searchQuery = query);
+    _loadPatientNotes();
   }
 
   @override
@@ -69,22 +53,19 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
     super.dispose();
   }
 
-  void _filterNotes(String query) {
-    setState(() {
-      if (query.isEmpty) {
-        _filteredNotes = _patientNotes;
-      } else {
-        _filteredNotes = _patientNotes.where((note) {
-          return note['patientName'].toLowerCase().contains(query.toLowerCase()) ||
-                 note['latestNote'].toLowerCase().contains(query.toLowerCase()) ||
-                 note['tags'].any((tag) => tag.toLowerCase().contains(query.toLowerCase()));
-        }).toList();
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.primaryBackground,
+        body: const Center(
+          child: CircularProgressIndicator(
+            color: AppColors.successGreen,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
       body: SafeArea(
@@ -180,7 +161,7 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
       ),
       child: TextField(
         controller: _searchController,
-        onChanged: _filterNotes,
+        onChanged: _onSearchChanged,
         decoration: InputDecoration(
           hintText: 'Search patients or notes...',
           hintStyle: TextStyle(
@@ -314,10 +295,10 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
           ),
         ),
         const SizedBox(height: 16),
-        if (_filteredNotes.isEmpty)
+        if (_patientNotes.isEmpty)
           _buildEmptyNotes()
         else
-          ..._filteredNotes.map((note) => 
+          ..._patientNotes.map((note) => 
             _buildPatientNoteCard(note)
           ).toList(),
       ],

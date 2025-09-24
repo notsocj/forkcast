@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../services/professional_service.dart';
+import '../../../models/user.dart';
 import '../../auth/sign_in_page.dart';
+
+// Add blackText color extension
+extension AppColorsExtension on AppColors {
+  static const Color blackText = Color(0xFF2D2D2D);
+}
 
 class UpdateProfilePage extends StatefulWidget {
   const UpdateProfilePage({super.key});
@@ -10,6 +17,7 @@ class UpdateProfilePage extends StatefulWidget {
 }
 
 class _UpdateProfilePageState extends State<UpdateProfilePage> {
+  final ProfessionalService _professionalService = ProfessionalService();
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
@@ -21,6 +29,8 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
   
   String _selectedSpecialization = 'Nutritionist';
   bool _isLoading = false;
+  bool _isSaving = false;
+  User? _currentProfessional;
   
   final List<String> _specializations = [
     'Nutritionist',
@@ -59,23 +69,83 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
     super.dispose();
   }
 
-  void _loadProfessionalData() {
-    // Sample data - in a real app, this would come from Firebase
-    _nameController.text = 'Dr. Sarah Johnson';
-    _emailController.text = 'sarah.johnson@example.com';
-    _phoneController.text = '+63 912 345 6789';
-    _licenseController.text = 'RND-2021-001234';
-    _experienceController.text = '8';
-    _consultationFeeController.text = '1500';
-    _bioController.text = 'Experienced clinical nutritionist specializing in diabetes management and weight loss programs. Passionate about helping patients achieve their health goals through personalized nutrition plans.';
-    _selectedCertifications.addAll([
-      'Registered Nutritionist-Dietitian (RND)',
-      'Certified Diabetes Educator (CDE)',
-    ]);
+  Future<void> _loadProfessionalData() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      _currentProfessional = await _professionalService.getCurrentProfessional();
+      
+      if (_currentProfessional != null) {
+        _nameController.text = _currentProfessional!.fullName;
+        _emailController.text = _currentProfessional!.email;
+        _phoneController.text = _currentProfessional!.phoneNumber ?? '';
+        _licenseController.text = _currentProfessional!.licenseNumber ?? '';
+        _experienceController.text = _currentProfessional!.yearsExperience?.toString() ?? '';
+        _consultationFeeController.text = _currentProfessional!.consultationFee?.toString() ?? '';
+        _bioController.text = _currentProfessional!.bio ?? '';
+        _selectedSpecialization = _currentProfessional!.specialization ?? 'Nutritionist';
+        _selectedCertifications.clear();
+        _selectedCertifications.addAll(_currentProfessional!.certifications ?? []);
+      }
+    } catch (e) {
+      print('Error loading professional data: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _saveProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+    
+    setState(() => _isSaving = true);
+    
+    try {
+      await _professionalService.updateProfessionalProfile(
+        fullName: _nameController.text,
+        phoneNumber: _phoneController.text,
+        specialization: _selectedSpecialization,
+        licenseNumber: _licenseController.text,
+        yearsExperience: int.tryParse(_experienceController.text) ?? 0,
+        consultationFee: double.tryParse(_consultationFeeController.text) ?? 0.0,
+        bio: _bioController.text,
+        certifications: _selectedCertifications,
+      );
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile updated successfully'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error updating profile: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isSaving = false);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.primaryBackground,
+        body: const Center(
+          child: CircularProgressIndicator(
+            color: AppColors.successGreen,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
       body: SafeArea(
@@ -676,7 +746,7 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: _isLoading ? null : _saveProfile,
+        onPressed: _isSaving ? null : _saveProfile,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.successGreen,
           shape: RoundedRectangleBorder(
@@ -756,33 +826,6 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
         ],
       ),
     );
-  }
-
-  void _saveProfile() async {
-    if (_formKey.currentState?.validate() ?? false) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      // Simulate saving to Firebase
-      await Future.delayed(const Duration(seconds: 2));
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'Profile updated successfully!',
-              style: TextStyle(color: AppColors.white),
-            ),
-            backgroundColor: AppColors.successGreen,
-          ),
-        );
-      }
-    }
   }
 
   Widget _buildLogoutButton() {

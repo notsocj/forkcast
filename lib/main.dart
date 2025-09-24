@@ -7,6 +7,7 @@ import 'features/auth/splash_screen.dart';
 import 'debug/debug_config.dart';
 import 'debug/debug_screen_switcher.dart';
 import 'providers/profile_setup_provider.dart';
+import 'providers/professional_setup_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,6 +25,7 @@ class ForkCastApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ProfileSetupProvider()),
+        ChangeNotifierProvider(create: (_) => ProfessionalSetupProvider()),
         // Add more providers here as needed
       ],
       child: MaterialApp(

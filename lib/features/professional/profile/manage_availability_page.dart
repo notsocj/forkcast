@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../services/professional_service.dart';
+
+// Add blackText color extension
+extension AppColorsExtension on AppColors {
+  static const Color blackText = Color(0xFF2D2D2D);
+}
 
 class ManageAvailabilityPage extends StatefulWidget {
   const ManageAvailabilityPage({super.key});
@@ -9,6 +15,8 @@ class ManageAvailabilityPage extends StatefulWidget {
 }
 
 class _ManageAvailabilityPageState extends State<ManageAvailabilityPage> {
+  final ProfessionalService _professionalService = ProfessionalService();
+  
   final List<String> _weekDays = [
     'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
   ];
@@ -18,38 +26,108 @@ class _ManageAvailabilityPageState extends State<ManageAvailabilityPage> {
     '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM'
   ];
   
-  // Track availability for each day and time slot
-  final Map<String, List<bool>> _availability = {};
-  
-  // Track special dates (blocked/available)
-  final Map<DateTime, bool> _specialDates = {};
+  Map<String, List<bool>> _availability = {};
+  Map<DateTime, bool> _specialDates = {};
+  bool _isLoading = true;
+  bool _isSaving = false;
   
   @override
   void initState() {
     super.initState();
-    _initializeAvailability();
+    _loadAvailabilityData();
   }
   
-  void _initializeAvailability() {
-    // Initialize with sample availability data
-    for (String day in _weekDays) {
-      _availability[day] = List.generate(_timeSlots.length, (index) {
-        // Sample: Available Monday-Friday 9AM-5PM, weekends partial
-        if (day == 'Saturday' || day == 'Sunday') {
-          return index >= 2 && index <= 6; // 10AM-4PM weekends
-        } else {
-          return index >= 1 && index <= 9; // 9AM-5PM weekdays
-        }
-      });
-    }
+  Future<void> _loadAvailabilityData() async {
+    setState(() => _isLoading = true);
     
-    // Sample special dates
-    _specialDates[DateTime.now().add(const Duration(days: 5))] = false; // Blocked
-    _specialDates[DateTime.now().add(const Duration(days: 12))] = false; // Blocked
+    try {
+      _availability = await _professionalService.getProfessionalAvailability();
+      _specialDates = await _professionalService.getSpecialDates();
+      
+      // Initialize availability for days that don't exist in Firebase
+      for (String day in _weekDays) {
+        _availability.putIfAbsent(day, () => List.generate(_timeSlots.length, (index) => false));
+      }
+    } catch (e) {
+      print('Error loading availability data: $e');
+      _initializeDefaultAvailability();
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+  
+  void _initializeDefaultAvailability() {
+    for (String day in _weekDays) {
+      _availability[day] = List.generate(_timeSlots.length, (index) => false);
+    }
+  }
+
+  Future<void> _saveAvailability() async {
+    setState(() => _isSaving = true);
+    
+    try {
+      await _professionalService.saveProfessionalAvailability(_availability);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Availability saved successfully'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error saving availability: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isSaving = false);
+    }
+  }
+
+  Future<void> _addSpecialDate(DateTime date, bool isAvailable, String reason) async {
+    try {
+      await _professionalService.addSpecialDate(date, isAvailable, reason);
+      setState(() => _specialDates[date] = isAvailable);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Special date added successfully'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error adding special date: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.primaryBackground,
+        body: const Center(
+          child: CircularProgressIndicator(
+            color: AppColors.successGreen,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
       body: SafeArea(
@@ -513,7 +591,7 @@ class _ManageAvailabilityPageState extends State<ManageAvailabilityPage> {
               ),
               const Spacer(),
               IconButton(
-                onPressed: _addSpecialDate,
+                onPressed: _showAddSpecialDateDialog,
                 icon: Icon(
                   Icons.add,
                   color: AppColors.primaryAccent,
@@ -772,7 +850,7 @@ class _ManageAvailabilityPageState extends State<ManageAvailabilityPage> {
     });
   }
 
-  void _addSpecialDate() {
+  void _showAddSpecialDateDialog() {
     showDatePicker(
       context: context,
       initialDate: DateTime.now().add(const Duration(days: 1)),
@@ -986,8 +1064,9 @@ class _ManageAvailabilityPageState extends State<ManageAvailabilityPage> {
           ),
           ElevatedButton(
             onPressed: () {
+              // Reset to default availability
               setState(() {
-                _initializeAvailability();
+                _initializeDefaultAvailability();
               });
               Navigator.pop(context);
             },
@@ -1049,26 +1128,6 @@ class _ManageAvailabilityPageState extends State<ManageAvailabilityPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  void _saveAvailability() {
-    // Simulate saving to Firebase
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Availability schedule saved successfully!',
-          style: TextStyle(color: AppColors.white),
-        ),
-        backgroundColor: AppColors.successGreen,
-        action: SnackBarAction(
-          label: 'View',
-          textColor: AppColors.white,
-          onPressed: () {
-            // Navigate to schedule view or dashboard
-          },
-        ),
       ),
     );
   }

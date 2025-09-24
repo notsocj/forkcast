@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants.dart';
 import '../../../core/widgets/progress_pill.dart';
+import '../../../providers/professional_setup_provider.dart';
 import 'professional_completion_page.dart';
 
 class ProfessionalBioPage extends StatefulWidget {
@@ -211,6 +213,10 @@ class _ProfessionalBioPageState extends State<ProfessionalBioPage> {
                 child: ElevatedButton(
                   onPressed: _bioController.text.isNotEmpty 
                     ? () {
+                        // Save bio to provider
+                        final provider = Provider.of<ProfessionalSetupProvider>(context, listen: false);
+                        provider.setBio(_bioController.text);
+                        
                         Navigator.push(
                           context,
                           MaterialPageRoute(

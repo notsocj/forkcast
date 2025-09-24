@@ -17,6 +17,12 @@ class User {
   final DateTime? createdAt;
   final String role;
   final String? specialization;
+  final String? licenseNumber;
+  final int? yearsExperience;
+  final double? consultationFee;
+  final String? bio;
+  final List<String>? certifications;
+  final bool? isVerified;
   final List<String>? healthConditions;
   final List<String>? foodAllergies;
 
@@ -37,6 +43,12 @@ class User {
     this.createdAt,
     this.role = 'user',
     this.specialization,
+    this.licenseNumber,
+    this.yearsExperience,
+    this.consultationFee,
+    this.bio,
+    this.certifications,
+    this.isVerified,
     this.healthConditions,
     this.foodAllergies,
   });
@@ -63,6 +75,14 @@ class User {
           : null,
       role: data['role'] ?? 'user',
       specialization: data['specialization'],
+      licenseNumber: data['license_number'],
+      yearsExperience: data['years_experience'],
+      consultationFee: data['consultation_fee']?.toDouble(),
+      bio: data['bio'],
+      certifications: data['certifications'] != null
+          ? List<String>.from(data['certifications'])
+          : null,
+      isVerified: data['is_verified'] ?? false,
       healthConditions: data['health_conditions'] != null
           ? List<String>.from(data['health_conditions'])
           : null,
@@ -92,6 +112,12 @@ class User {
           : Timestamp.fromDate(DateTime.now()),
       'role': role,
       if (specialization != null) 'specialization': specialization,
+      if (licenseNumber != null) 'license_number': licenseNumber,
+      if (yearsExperience != null) 'years_experience': yearsExperience,
+      if (consultationFee != null) 'consultation_fee': consultationFee,
+      if (bio != null) 'bio': bio,
+      if (certifications != null) 'certifications': certifications,
+      if (isVerified != null) 'is_verified': isVerified,
       if (healthConditions != null) 'health_conditions': healthConditions,
       if (foodAllergies != null) 'food_allergies': foodAllergies,
     };
@@ -115,6 +141,12 @@ class User {
     DateTime? createdAt,
     String? role,
     String? specialization,
+    String? licenseNumber,
+    int? yearsExperience,
+    double? consultationFee,
+    String? bio,
+    List<String>? certifications,
+    bool? isVerified,
     List<String>? healthConditions,
     List<String>? foodAllergies,
   }) {
@@ -135,6 +167,12 @@ class User {
       createdAt: createdAt ?? this.createdAt,
       role: role ?? this.role,
       specialization: specialization ?? this.specialization,
+      licenseNumber: licenseNumber ?? this.licenseNumber,
+      yearsExperience: yearsExperience ?? this.yearsExperience,
+      consultationFee: consultationFee ?? this.consultationFee,
+      bio: bio ?? this.bio,
+      certifications: certifications ?? this.certifications,
+      isVerified: isVerified ?? this.isVerified,
       healthConditions: healthConditions ?? this.healthConditions,
       foodAllergies: foodAllergies ?? this.foodAllergies,
     );

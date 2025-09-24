@@ -161,4 +161,14 @@ class UserService {
       throw Exception('Failed to get users by role: $e');
     }
   }
+
+  // Get current user's role
+  Future<String?> getCurrentUserRole(String userId) async {
+    try {
+      final user = await getUser(userId);
+      return user?.role;
+    } catch (e) {
+      throw Exception('Failed to get current user role: $e');
+    }
+  }
 }

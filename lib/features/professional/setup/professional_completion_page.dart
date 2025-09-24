@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants.dart';
 import '../../../core/widgets/progress_pill.dart';
+import '../../../providers/professional_setup_provider.dart';
+import '../../../services/persistent_auth_service.dart';
 import '../professional_navigation_wrapper.dart';
+import '../../auth/sign_in_page.dart';
 
 class ProfessionalCompletionPage extends StatefulWidget {
   final String fullName;
@@ -29,34 +33,97 @@ class ProfessionalCompletionPage extends StatefulWidget {
 }
 
 class _ProfessionalCompletionPageState extends State<ProfessionalCompletionPage> {
+  bool _isLoading = false;
   
-  void _completeProfessionalSetup() {
-    // TODO: Save professional data to Firebase
-    // For now, navigate to professional dashboard
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const ProfessionalNavigationWrapper(),
-      ),
-      (route) => false,
-    );
+  Future<void> _completeProfessionalSetup() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      final provider = Provider.of<ProfessionalSetupProvider>(context, listen: false);
+      
+      // Complete professional setup and save to Firebase
+      final success = await provider.completeProfessionalSetup();
+      
+      if (success) {
+        // Enable persistent auth since setup is complete
+        await PersistentAuthService.saveRememberMeState(
+          rememberMe: true,
+          email: '', // Email is already stored from signup
+        );
+
+        // Clear provider data
+        provider.clearData();
+
+        // Show success message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Professional profile created successfully!'),
+              backgroundColor: AppColors.successGreen,
+            ),
+          );
+        }
+
+        // Navigate to professional dashboard
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const ProfessionalNavigationWrapper(),
+            ),
+            (route) => false,
+          );
+        }
+      } else {
+        // Show error message
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(provider.errorMessage ?? 'Failed to create professional profile'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.primaryBackground,
-      appBar: AppBar(
-        backgroundColor: AppColors.primaryBackground,
-        elevation: 0,
-        leading: IconButton(
-          icon: Icon(
-            Icons.arrow_back,
-            color: AppColors.blackText,
+    return Consumer<ProfessionalSetupProvider>(
+      builder: (context, provider, child) {
+        final isProviderLoading = provider.isLoading;
+        final isAnyLoading = _isLoading || isProviderLoading;
+        
+        return Scaffold(
+          backgroundColor: AppColors.primaryBackground,
+          appBar: AppBar(
+            backgroundColor: AppColors.primaryBackground,
+            elevation: 0,
+            leading: isAnyLoading 
+                ? null // Disable back button when loading
+                : IconButton(
+                    icon: Icon(
+                      Icons.arrow_back,
+                      color: AppColors.blackText,
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                  ),
           ),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
@@ -215,22 +282,32 @@ class _ProfessionalCompletionPageState extends State<ProfessionalCompletionPage>
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: _completeProfessionalSetup,
+                    onPressed: isAnyLoading ? null : _completeProfessionalSetup,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.successGreen,
                       foregroundColor: AppColors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(25),
                       ),
+                      disabledBackgroundColor: AppColors.grayText.withOpacity(0.3),
                     ),
-                    child: Text(
-                      "Continue to Dashboard",
-                      style: TextStyle(
-                        fontFamily: AppConstants.primaryFont,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                    child: isAnyLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(AppColors.white),
+                            ),
+                          )
+                        : Text(
+                            "Continue to Dashboard",
+                            style: TextStyle(
+                              fontFamily: AppConstants.primaryFont,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
                   ),
                 ),
                 
@@ -240,7 +317,9 @@ class _ProfessionalCompletionPageState extends State<ProfessionalCompletionPage>
           ),
         ),
       ),
-    );
+        ); // Close Consumer
+      }
+    ); // Close Consumer builder
   }
   
   Widget _buildSummaryRow(String label, String value) {

@@ -4,7 +4,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
 import '../../services/persistent_auth_service.dart';
+import '../../services/user_service.dart';
 import '../core_features/main_navigation_wrapper.dart';
+import '../professional/professional_navigation_wrapper.dart';
 import 'get_started_page.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -25,25 +27,56 @@ class _SplashScreenState extends State<SplashScreen> {
   void _navigateToHome() async {
     await Future.delayed(AppConstants.splashScreenDuration);
     
-    if (mounted) {
-      // Check if user should stay logged in
-      final shouldStayLoggedIn = await PersistentAuthService.shouldStayLoggedIn();
-      final currentUser = FirebaseAuth.instance.currentUser;
+    if (!mounted) return;
       
-      // If remember me is enabled and user is authenticated, go directly to main app
-      if (shouldStayLoggedIn && currentUser != null) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const MainNavigationWrapper()),
-        );
-      } else {
-        // Clear any stale auth data and go to get started page
+    // Check if user should stay logged in
+    final shouldStayLoggedIn = await PersistentAuthService.shouldStayLoggedIn();
+    final currentUser = FirebaseAuth.instance.currentUser;
+    
+    // If remember me is enabled and user is authenticated, check role and navigate
+    if (shouldStayLoggedIn && currentUser != null) {
+      try {
+        // Get user role from Firebase
+        final userService = UserService();
+        final userRole = await userService.getCurrentUserRole(currentUser.uid);
+        
+        if (!mounted) return;
+        
+        // Navigate based on role
+        if (userRole == 'professional') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const ProfessionalNavigationWrapper()),
+          );
+        } else {
+          // Default to user navigation (role = 'user' or null)
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const MainNavigationWrapper()),
+          );
+        }
+      } catch (e) {
+        // If there's an error getting user role, clear auth and go to get started
+        print('Error getting user role during auto-login: $e');
         await PersistentAuthService.clearAuthData();
+        
+        if (!mounted) return;
+        
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => const GetStartedPage()),
         );
       }
+    } else {
+      // Clear any stale auth data and go to get started page
+      await PersistentAuthService.clearAuthData();
+      
+      if (!mounted) return;
+      
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const GetStartedPage()),
+      );
     }
   }
 

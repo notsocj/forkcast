@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../services/professional_service.dart';
+
+// Add blackText color extension
+extension AppColorsExtension on AppColors {
+  static const Color blackText = Color(0xFF2D2D2D);
+}
 
 class UpcomingSchedulesPage extends StatefulWidget {
   const UpcomingSchedulesPage({super.key});
@@ -9,60 +15,41 @@ class UpcomingSchedulesPage extends StatefulWidget {
 }
 
 class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
-  // Sample data for demonstration
-  final List<Map<String, dynamic>> _upcomingAppointments = [
-    {
-      'id': '1',
-      'patientName': 'Maria Santos',
-      'date': 'Sep 23, 2025',
-      'time': '10:00 AM',
-      'duration': '30 min',
-      'topic': 'Weight management consultation',
-      'avatar': 'MS',
-      'status': 'Confirmed',
-      'patientAge': 28,
-      'contactInfo': 'maria.santos@email.com',
-    },
-    {
-      'id': '2',
-      'patientName': 'John Doe',
-      'date': 'Sep 23, 2025',
-      'time': '2:00 PM',
-      'duration': '45 min', 
-      'topic': 'Diabetes meal planning',
-      'avatar': 'JD',
-      'status': 'Confirmed',
-      'patientAge': 45,
-      'contactInfo': 'john.doe@email.com',
-    },
-    {
-      'id': '3',
-      'patientName': 'Anna Garcia',
-      'date': 'Sep 24, 2025',
-      'time': '9:00 AM',
-      'duration': '30 min',
-      'topic': 'Hypertension diet guidance',
-      'avatar': 'AG',
-      'status': 'Pending',
-      'patientAge': 52,
-      'contactInfo': 'anna.garcia@email.com',
-    },
-    {
-      'id': '4',
-      'patientName': 'Robert Chen',
-      'date': 'Sep 24, 2025',
-      'time': '11:00 AM',
-      'duration': '30 min',
-      'topic': 'General nutrition consultation',
-      'avatar': 'RC',
-      'status': 'Confirmed',
-      'patientAge': 34,
-      'contactInfo': 'robert.chen@email.com',
-    },
-  ];
+  final ProfessionalService _professionalService = ProfessionalService();
+  List<Map<String, dynamic>> _upcomingAppointments = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUpcomingSchedules();
+  }
+
+  Future<void> _loadUpcomingSchedules() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      _upcomingAppointments = await _professionalService.getUpcomingConsultations();
+    } catch (e) {
+      print('Error loading upcoming schedules: $e');
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.primaryBackground,
+        body: const Center(
+          child: CircularProgressIndicator(
+            color: AppColors.successGreen,
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.primaryBackground,
       body: SafeArea(

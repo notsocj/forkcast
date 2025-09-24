@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants.dart';
 import '../../../core/widgets/progress_pill.dart';
+import '../../../providers/professional_setup_provider.dart';
 import 'professional_bio_page.dart';
 
 class ProfessionalCredentialsPage extends StatefulWidget {
@@ -342,6 +344,15 @@ class _ProfessionalCredentialsPageState extends State<ProfessionalCredentialsPag
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isFormValid() ? () {
+                    // Save credentials to provider
+                    final provider = Provider.of<ProfessionalSetupProvider>(context, listen: false);
+                    provider.setCredentials(
+                      _selectedSpecialization,
+                      _licenseController.text,
+                      _experienceController.text,
+                      _consultationFeeController.text,
+                    );
+                    
                     Navigator.push(
                       context,
                       MaterialPageRoute(

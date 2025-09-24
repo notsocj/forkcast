@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants.dart';
 import '../../../core/widgets/progress_pill.dart';
+import '../../../providers/professional_setup_provider.dart';
 import 'professional_credentials_page.dart';
 
 class ProfessionalNameEntryPage extends StatefulWidget {
@@ -234,6 +236,10 @@ class _ProfessionalNameEntryPageState extends State<ProfessionalNameEntryPage> {
                 child: ElevatedButton(
                   onPressed: _fullNameController.text.isNotEmpty && _phoneNumberController.text.isNotEmpty
                     ? () {
+                        // Save basic info to provider
+                        final provider = Provider.of<ProfessionalSetupProvider>(context, listen: false);
+                        provider.setBasicInfo(_fullNameController.text, _phoneNumberController.text);
+                        
                         Navigator.push(
                           context,
                           MaterialPageRoute(

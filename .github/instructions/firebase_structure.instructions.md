@@ -25,7 +25,14 @@ collections:
       weekly_budget_max: number (int)
       created_at: timestamp
       role: string (enum: ["user", "admin", "professional"])
+      # Professional-specific fields (only for role="professional")
       specialization: string (optional, for professionals)
+      license_number: string (optional, for professionals)
+      years_experience: number (optional, for professionals)
+      consultation_fee: number (optional, for professionals, in PHP)
+      bio: string (optional, for professionals)
+      certifications: array (optional, array of certification strings)
+      is_verified: boolean (optional, default false, for professionals)
     subcollections:
       health_conditions:
         documentId: conditionId (string)
@@ -130,6 +137,56 @@ collections:
       expert_specialization: string (optional, for professionals)
       answer_text: string
       answered_at: timestamp
+
+  # Professional-specific collections
+  consultations:
+    documentId: consultationId (string)
+    fields:
+      patient_id: reference (→ users.userId)
+      professional_id: reference (→ users.userId)
+      consultation_date: timestamp (date only)
+      consultation_time: string (time slot, e.g., "10:00 AM")
+      duration: number (int, duration in minutes)
+      topic: string (consultation topic/reason)
+      status: string (enum: ["Scheduled", "Confirmed", "In Progress", "Completed", "Cancelled"])
+      reference_no: string (unique reference number)
+      notes: string (optional, consultation notes)
+      patient_name: string (denormalized for quick access)
+      patient_age: number (optional, int)
+      patient_contact: string (optional, email/phone)
+      created_at: timestamp
+      updated_at: timestamp
+
+  professional_availability:
+    documentId: availabilityId (string)
+    fields:
+      professional_id: reference (→ users.userId)
+      day_of_week: string (enum: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
+      time_slot: string (e.g., "9:00 AM")
+      is_available: boolean (true if available, false if blocked)
+      updated_at: timestamp
+
+  patient_notes:
+    documentId: noteId (string)
+    fields:
+      professional_id: reference (→ users.userId)
+      patient_id: reference (→ users.userId)
+      patient_name: string (denormalized for quick access)
+      consultation_id: reference (→ consultations.consultationId, optional)
+      note_text: string
+      tags: array (array of tag strings, e.g., ["Weight Management", "Diabetes"])
+      health_conditions: array (array of health condition strings)
+      created_at: timestamp
+      updated_at: timestamp
+
+  special_dates:
+    documentId: specialDateId (string)
+    fields:
+      professional_id: reference (→ users.userId)
+      date: timestamp (date only)
+      is_available: boolean (true for extra availability, false for blocked)
+      reason: string (optional, reason for blocking/adding availability)
+      created_at: timestamp
 
 ## Rules for ForkCast AI: 
 - Only use the collections and fields defined above. 
