@@ -22,11 +22,13 @@ class ProfessionalCredentialsPage extends StatefulWidget {
 
 class _ProfessionalCredentialsPageState extends State<ProfessionalCredentialsPage> {
   final _specializationController = TextEditingController();
+  final _customSpecializationController = TextEditingController();
   final _licenseController = TextEditingController();
   final _experienceController = TextEditingController();
   final _consultationFeeController = TextEditingController();
   
   String _selectedSpecialization = 'Registered Nutritionist-Dietitian';
+  bool _isCustomSpecialization = false;
   
   final List<String> _specializations = [
     'Registered Nutritionist-Dietitian',
@@ -35,6 +37,7 @@ class _ProfessionalCredentialsPageState extends State<ProfessionalCredentialsPag
     'Pediatric Nutritionist',
     'Geriatric Nutritionist',
     'Community Nutritionist',
+    'Other (Specify)',
   ];
 
   @override
@@ -46,6 +49,7 @@ class _ProfessionalCredentialsPageState extends State<ProfessionalCredentialsPag
   @override
   void dispose() {
     _specializationController.dispose();
+    _customSpecializationController.dispose();
     _licenseController.dispose();
     _experienceController.dispose();
     _consultationFeeController.dispose();
@@ -164,11 +168,69 @@ class _ProfessionalCredentialsPageState extends State<ProfessionalCredentialsPag
                           onChanged: (String? newValue) {
                             setState(() {
                               _selectedSpecialization = newValue!;
-                              _specializationController.text = newValue;
+                              _isCustomSpecialization = newValue == 'Other (Specify)';
+                              if (!_isCustomSpecialization) {
+                                _specializationController.text = newValue;
+                                _customSpecializationController.clear();
+                              }
                             });
                           },
                         ),
                       ),
+                      
+                      // Custom Specialization Input Field (shown when "Other" is selected)
+                      if (_isCustomSpecialization) ...[
+                        const SizedBox(height: 16),
+                        Text(
+                          "Specify Your Specialization",
+                          style: TextStyle(
+                            fontFamily: AppConstants.primaryFont,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.grayText,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _customSpecializationController,
+                            decoration: InputDecoration(
+                              hintText: "e.g., Oncology Nutrition, Eating Disorders Specialist",
+                              hintStyle: TextStyle(
+                                color: AppColors.grayText,
+                                fontFamily: AppConstants.primaryFont,
+                                fontSize: 14,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                borderSide: BorderSide.none,
+                              ),
+                              filled: true,
+                              fillColor: AppColors.white,
+                              contentPadding: const EdgeInsets.all(16),
+                            ),
+                            style: TextStyle(
+                              fontFamily: AppConstants.primaryFont,
+                              fontSize: 14,
+                              color: AppColors.blackText,
+                            ),
+                            onChanged: (value) {
+                              // Update the main specialization controller with custom value
+                              _specializationController.text = value.trim();
+                            },
+                          ),
+                        ),
+                      ],
                       
                       const SizedBox(height: 24),
                       
@@ -344,10 +406,15 @@ class _ProfessionalCredentialsPageState extends State<ProfessionalCredentialsPag
                 height: 50,
                 child: ElevatedButton(
                   onPressed: _isFormValid() ? () {
+                    // Determine the final specialization value
+                    String finalSpecialization = _isCustomSpecialization 
+                        ? _customSpecializationController.text.trim()
+                        : _selectedSpecialization;
+                    
                     // Save credentials to provider
                     final provider = Provider.of<ProfessionalSetupProvider>(context, listen: false);
                     provider.setCredentials(
-                      _selectedSpecialization,
+                      finalSpecialization,
                       _licenseController.text,
                       _experienceController.text,
                       _consultationFeeController.text,
@@ -359,7 +426,7 @@ class _ProfessionalCredentialsPageState extends State<ProfessionalCredentialsPag
                         builder: (context) => ProfessionalBioPage(
                           fullName: widget.fullName,
                           phoneNumber: widget.phoneNumber,
-                          specialization: _selectedSpecialization,
+                          specialization: finalSpecialization,
                           licenseNumber: _licenseController.text,
                           experience: _experienceController.text,
                           consultationFee: _consultationFeeController.text,
@@ -395,7 +462,12 @@ class _ProfessionalCredentialsPageState extends State<ProfessionalCredentialsPag
   }
 
   bool _isFormValid() {
-    return _licenseController.text.isNotEmpty &&
+    bool hasValidSpecialization = _isCustomSpecialization 
+        ? _customSpecializationController.text.trim().isNotEmpty
+        : _selectedSpecialization.isNotEmpty;
+        
+    return hasValidSpecialization &&
+           _licenseController.text.isNotEmpty &&
            _experienceController.text.isNotEmpty &&
            _consultationFeeController.text.isNotEmpty;
   }

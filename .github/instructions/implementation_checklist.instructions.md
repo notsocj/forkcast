@@ -24,6 +24,11 @@ applyTo: '**'
       - [x] Specialization dropdown, license number, experience, consultation fee inputs
       - [x] Form validation and navigation to bio page
       - [x] Professional specialization options (RND, Clinical, Sports, etc.)
+      - [x] **Custom Specialization Input** - Added "Other (Specify)" option with text field
+        - [x] Dropdown includes "Other (Specify)" option for flexibility
+        - [x] Conditional text input field appears when "Other" is selected
+        - [x] Custom specialization validation and form handling
+        - [x] Professional can input specialized fields like "Oncology Nutrition", "Eating Disorders Specialist"
     - [x] `professional_bio_page.dart` - Step 3/4: Professional bio and expertise description
       - [x] Multi-line text area for professional bio with guidelines and examples
       - [x] Bio validation and navigation to completion page
@@ -363,10 +368,16 @@ applyTo: '**'
       - [x] Profile picture management with avatar display and change photo functionality
       - [x] Basic information section (name, email, phone) with form validation
       - [x] Professional information (specialization, license, experience, consultation fee)
-      - [x] Certifications management with add/remove functionality and dialog selection
+      - [x] **Custom Specialization Support** - Added "Other (Specify)" option with text field
+        - [x] Dropdown validation fix for custom specializations saved in Firebase
+        - [x] Conditional text input field for custom specialization entry
+        - [x] Smart handling of predefined vs custom specializations on load
+        - [x] Form validation for custom specialization input when "Other" is selected
+      - [x] Certifications management with text input system for flexible credential entry
       - [x] Professional bio section with multi-line text area for expertise description
       - [x] Save functionality with loading states and user feedback
       - [x] Form validation and error handling throughout
+      - [x] Logout functionality with confirmation dialog and navigation to SignInPage
     - [x] `manage_availability_page.dart` - Professional schedule and availability management
       - [x] Quick stats showing available slots, availability percentage, and blocked days
       - [x] Interactive weekly schedule grid with tap-to-toggle availability slots

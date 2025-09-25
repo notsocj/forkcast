@@ -26,8 +26,11 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
   final TextEditingController _experienceController = TextEditingController();
   final TextEditingController _consultationFeeController = TextEditingController();
   final TextEditingController _bioController = TextEditingController();
+  final TextEditingController _certificationController = TextEditingController();
+  final TextEditingController _customSpecializationController = TextEditingController();
   
   String _selectedSpecialization = 'Nutritionist';
+  bool _isCustomSpecialization = false;
   bool _isLoading = false;
   bool _isSaving = false;
   User? _currentProfessional;
@@ -39,17 +42,10 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
     'Sports Nutritionist',
     'Pediatric Nutritionist',
     'Geriatric Nutritionist',
+    'Other (Specify)',
   ];
 
   final List<String> _selectedCertifications = [];
-  final List<String> _availableCertifications = [
-    'Registered Nutritionist-Dietitian (RND)',
-    'Certified Nutrition Specialist (CNS)',
-    'Certified Diabetes Educator (CDE)',
-    'Board Certified in Clinical Nutrition',
-    'Sports Nutrition Certification',
-    'Pediatric Nutrition Certification',
-  ];
 
   @override
   void initState() {
@@ -66,6 +62,8 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
     _experienceController.dispose();
     _consultationFeeController.dispose();
     _bioController.dispose();
+    _certificationController.dispose();
+    _customSpecializationController.dispose();
     super.dispose();
   }
 
@@ -83,7 +81,18 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
         _experienceController.text = _currentProfessional!.yearsExperience?.toString() ?? '';
         _consultationFeeController.text = _currentProfessional!.consultationFee?.toString() ?? '';
         _bioController.text = _currentProfessional!.bio ?? '';
-        _selectedSpecialization = _currentProfessional!.specialization ?? 'Nutritionist';
+        
+        // Handle specialization - check if it's a predefined option or custom
+        String userSpecialization = _currentProfessional!.specialization ?? 'Nutritionist';
+        if (_specializations.contains(userSpecialization) && userSpecialization != 'Other (Specify)') {
+          _selectedSpecialization = userSpecialization;
+          _isCustomSpecialization = false;
+        } else {
+          _selectedSpecialization = 'Other (Specify)';
+          _isCustomSpecialization = true;
+          _customSpecializationController.text = userSpecialization;
+        }
+        
         _selectedCertifications.clear();
         _selectedCertifications.addAll(_currentProfessional!.certifications ?? []);
       }
@@ -100,10 +109,15 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
     setState(() => _isSaving = true);
     
     try {
+      // Determine the final specialization value
+      String finalSpecialization = _isCustomSpecialization 
+          ? _customSpecializationController.text.trim()
+          : _selectedSpecialization;
+          
       await _professionalService.updateProfessionalProfile(
         fullName: _nameController.text,
         phoneNumber: _phoneController.text,
-        specialization: _selectedSpecialization,
+        specialization: finalSpecialization,
         licenseNumber: _licenseController.text,
         yearsExperience: int.tryParse(_experienceController.text) ?? 0,
         consultationFee: double.tryParse(_consultationFeeController.text) ?? 0.0,
@@ -216,16 +230,7 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
                         title: 'Professional Information',
                         icon: Icons.work,
                         children: [
-                          _buildDropdownField(
-                            label: 'Specialization',
-                            value: _selectedSpecialization,
-                            items: _specializations,
-                            onChanged: (value) {
-                              setState(() {
-                                _selectedSpecialization = value!;
-                              });
-                            },
-                          ),
+                          _buildSpecializationField(),
                           const SizedBox(height: 16),
                           _buildTextField(
                             controller: _licenseController,
@@ -517,54 +522,108 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
     );
   }
 
-  Widget _buildDropdownField({
-    required String label,
-    required String value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return DropdownButtonFormField<String>(
-      value: value,
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: TextStyle(
-          fontFamily: 'OpenSans',
-          color: AppColors.grayText,
+  Widget _buildSpecializationField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<String>(
+          value: _selectedSpecialization,
+          onChanged: (String? newValue) {
+            setState(() {
+              _selectedSpecialization = newValue!;
+              _isCustomSpecialization = newValue == 'Other (Specify)';
+              if (!_isCustomSpecialization) {
+                _customSpecializationController.clear();
+              }
+            });
+          },
+          decoration: InputDecoration(
+            labelText: 'Specialization',
+            labelStyle: TextStyle(
+              fontFamily: 'OpenSans',
+              color: AppColors.grayText,
+            ),
+            prefixIcon: Icon(
+              Icons.work_outline,
+              color: AppColors.grayText,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.lightGray),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.lightGray),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.successGreen),
+            ),
+          ),
+          items: _specializations.map((String item) {
+            return DropdownMenuItem<String>(
+              value: item,
+              child: Text(
+                item,
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  color: AppColors.blackText,
+                ),
+              ),
+            );
+          }).toList(),
+          style: TextStyle(
+            fontFamily: 'OpenSans',
+            color: AppColors.blackText,
+          ),
         ),
-        prefixIcon: Icon(
-          Icons.work_outline,
-          color: AppColors.grayText,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.lightGray),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.lightGray),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: AppColors.successGreen),
-        ),
-      ),
-      items: items.map((String item) {
-        return DropdownMenuItem<String>(
-          value: item,
-          child: Text(
-            item,
+        
+        // Custom Specialization Input Field (shown when "Other" is selected)
+        if (_isCustomSpecialization) ...[
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _customSpecializationController,
+            decoration: InputDecoration(
+              labelText: 'Specify Your Specialization',
+              hintText: 'e.g., Oncology Nutrition, Eating Disorders Specialist',
+              labelStyle: TextStyle(
+                fontFamily: 'OpenSans',
+                color: AppColors.grayText,
+              ),
+              hintStyle: TextStyle(
+                fontFamily: 'OpenSans',
+                color: AppColors.grayText.withOpacity(0.7),
+              ),
+              prefixIcon: Icon(
+                Icons.edit_outlined,
+                color: AppColors.grayText,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.lightGray),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.lightGray),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide(color: AppColors.successGreen),
+              ),
+            ),
             style: TextStyle(
               fontFamily: 'OpenSans',
               color: AppColors.blackText,
             ),
+            validator: (value) {
+              if (_isCustomSpecialization && (value?.isEmpty ?? true)) {
+                return 'Please specify your specialization';
+              }
+              return null;
+            },
           ),
-        );
-      }).toList(),
-      style: TextStyle(
-        fontFamily: 'OpenSans',
-        color: AppColors.blackText,
-      ),
+        ],
+      ],
     );
   }
 
@@ -656,7 +715,65 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
           ),
           const SizedBox(height: 16),
           
-          // Selected Certifications
+          // Certification Input Field
+          Row(
+            children: [
+              Expanded(
+                child: TextFormField(
+                  controller: _certificationController,
+                  decoration: InputDecoration(
+                    hintText: 'Enter a certification (e.g., RDN, CDN, etc.)',
+                    hintStyle: TextStyle(
+                      fontFamily: 'OpenSans',
+                      color: AppColors.grayText,
+                      fontSize: 14,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.grayText.withOpacity(0.3)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.primaryAccent),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide(color: AppColors.grayText.withOpacity(0.3)),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  style: TextStyle(
+                    fontFamily: 'OpenSans',
+                    fontSize: 14,
+                    color: AppColors.blackText,
+                  ),
+                  onFieldSubmitted: (_) => _addCertification(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: _addCertification,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryAccent,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                  ),
+                  child: Icon(
+                    Icons.add,
+                    color: AppColors.white,
+                    size: 20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Current Certifications
           if (_selectedCertifications.isNotEmpty) ...[
             Text(
               'Current Certifications:',
@@ -711,29 +828,17 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
                 )
               ).toList(),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
           ],
           
-          // Add Certification Button
-          OutlinedButton.icon(
-            onPressed: _showCertificationDialog,
-            icon: Icon(
-              Icons.add,
-              color: AppColors.primaryAccent,
-            ),
-            label: Text(
-              'Add Certification',
-              style: TextStyle(
-                fontFamily: 'OpenSans',
-                fontWeight: FontWeight.w600,
-                color: AppColors.primaryAccent,
-              ),
-            ),
-            style: OutlinedButton.styleFrom(
-              side: BorderSide(color: AppColors.primaryAccent),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
+          // Helper Text
+          Text(
+            'Add your professional certifications, licenses, or qualifications. Press Enter or tap the + button to add.',
+            style: TextStyle(
+              fontFamily: 'OpenSans',
+              fontSize: 12,
+              color: AppColors.grayText,
+              fontStyle: FontStyle.italic,
             ),
           ),
         ],
@@ -775,57 +880,32 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
     );
   }
 
-  void _showCertificationDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+  void _addCertification() {
+    String certification = _certificationController.text.trim();
+    if (certification.isNotEmpty && !_selectedCertifications.contains(certification)) {
+      setState(() {
+        _selectedCertifications.add(certification);
+        _certificationController.clear();
+      });
+      
+      // Show success feedback
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Certification added: $certification'),
+          backgroundColor: AppColors.successGreen,
+          duration: const Duration(seconds: 2),
         ),
-        title: Text(
-          'Add Certification',
-          style: TextStyle(
-            fontFamily: 'Lato',
-            fontWeight: FontWeight.bold,
-            color: AppColors.blackText,
-          ),
+      );
+    } else if (_selectedCertifications.contains(certification)) {
+      // Show error for duplicate
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This certification is already added'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 2),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: _availableCertifications
-            .where((cert) => !_selectedCertifications.contains(cert))
-            .map((cert) => ListTile(
-              title: Text(
-                cert,
-                style: TextStyle(
-                  fontFamily: 'OpenSans',
-                  fontSize: 14,
-                  color: AppColors.blackText,
-                ),
-              ),
-              onTap: () {
-                setState(() {
-                  _selectedCertifications.add(cert);
-                });
-                Navigator.pop(context);
-              },
-            ))
-            .toList(),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(
-                fontFamily: 'OpenSans',
-                color: AppColors.grayText,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+      );
+    }
   }
 
   Widget _buildLogoutButton() {
