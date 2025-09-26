@@ -811,7 +811,7 @@ class _MealPlanPageState extends State<MealPlanPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('AI meal plan generated and logged successfully!'),
+            content: Text('Meal plan generated and logged successfully!'),
             backgroundColor: AppColors.successGreen,
             duration: const Duration(seconds: 2),
           ),
@@ -862,7 +862,7 @@ class _MealPlanPageState extends State<MealPlanPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              Text('Generating AI suggestions for ${mealType.toLowerCase()}...'),
+              Text('Generating Meal Suggestions for ${mealType.toLowerCase()}...'),
             ],
           ),
           backgroundColor: AppColors.successGreen,

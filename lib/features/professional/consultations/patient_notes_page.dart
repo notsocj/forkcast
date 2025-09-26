@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/professional_service.dart';
 
@@ -47,6 +48,23 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
     _loadPatientNotes();
   }
 
+  String _getPatientInitial(String? patientName) {
+    if (patientName == null || patientName.isEmpty) return 'P';
+    return patientName[0].toUpperCase();
+  }
+
+  String _formatNoteDate(Map<String, dynamic> note) {
+    if (note['created_at'] == null) return 'Recently';
+    
+    try {
+      final timestamp = note['created_at'] as Timestamp;
+      final date = timestamp.toDate();
+      return '${date.month}/${date.day}/${date.year}';
+    } catch (e) {
+      return 'Recently';
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
@@ -71,26 +89,42 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
-            _buildHeader(),
+            // Page Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: Text(
+                'Patient Notes',
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColorsExtension.blackText,
+                ),
+              ),
+            ),
             // Content
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Search Bar
-                    _buildSearchBar(),
-                    const SizedBox(height: 24),
-                    
-                    // Quick Stats
-                    _buildQuickStats(),
-                    const SizedBox(height: 24),
-                    
-                    // Patient Notes List
-                    _buildPatientNotesList(),
-                  ],
+              child: RefreshIndicator(
+                color: AppColors.successGreen,
+                onRefresh: _loadPatientNotes,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Search Bar
+                      _buildSearchBar(),
+                      const SizedBox(height: 24),
+                      
+                      // Quick Stats
+                      _buildQuickStats(),
+                      const SizedBox(height: 24),
+                      
+                      // Patient Notes List
+                      _buildPatientNotesList(),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -107,41 +141,6 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
           Icons.add,
           color: AppColors.white,
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-      decoration: BoxDecoration(
-        color: AppColors.successGreen,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(20),
-          bottomRight: Radius.circular(20),
-        ),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: Icon(
-              Icons.arrow_back,
-              color: AppColors.white,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'Patient Notes',
-            style: TextStyle(
-              fontFamily: 'Lato',
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AppColors.white,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -335,7 +334,7 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
                 ),
                 child: Center(
                   child: Text(
-                    note['avatar'],
+                    _getPatientInitial(note['patient_name']),
                     style: TextStyle(
                       fontFamily: 'Lato',
                       fontSize: 16,
@@ -355,7 +354,7 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          note['patientName'],
+                          note['patient_name'] ?? 'Unknown Patient',
                           style: TextStyle(
                             fontFamily: 'Lato',
                             fontSize: 16,
@@ -364,7 +363,7 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
                           ),
                         ),
                         Text(
-                          '${note['consultationCount']} sessions',
+                          'Notes available',
                           style: TextStyle(
                             fontFamily: 'OpenSans',
                             fontSize: 12,
@@ -375,7 +374,7 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Last: ${note['lastConsultation']}',
+                      'Created: ${_formatNoteDate(note)}',
                       style: TextStyle(
                         fontFamily: 'OpenSans',
                         fontSize: 12,
@@ -390,13 +389,13 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
           const SizedBox(height: 16),
           
           // Health Conditions
-          if (note['healthConditions'].isNotEmpty && note['healthConditions'][0] != 'None') ...[
+          if (note['health_conditions'] != null && (note['health_conditions'] as List).isNotEmpty) ...[
             Align(
               alignment: Alignment.centerLeft,
               child: Wrap(
                 spacing: 8,
                 runSpacing: 4,
-                children: (note['healthConditions'] as List<String>).map((condition) => 
+                children: (note['health_conditions'] as List).map((condition) => 
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
@@ -441,7 +440,7 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  note['latestNote'],
+                  note['note_text'] ?? 'No notes available',
                   style: TextStyle(
                     fontFamily: 'OpenSans',
                     fontSize: 13,
@@ -454,13 +453,13 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
           const SizedBox(height: 12),
           
           // Tags
-          if (note['tags'].isNotEmpty) ...[
+          if (note['tags'] != null && (note['tags'] as List).isNotEmpty) ...[
             Align(
               alignment: Alignment.centerLeft,
               child: Wrap(
                 spacing: 6,
                 runSpacing: 4,
-                children: (note['tags'] as List<String>).map((tag) => 
+                children: (note['tags'] as List).map((tag) => 
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(

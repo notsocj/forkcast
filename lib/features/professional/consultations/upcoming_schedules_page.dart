@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/professional_service.dart';
 
@@ -17,7 +18,9 @@ class UpcomingSchedulesPage extends StatefulWidget {
 class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
   final ProfessionalService _professionalService = ProfessionalService();
   List<Map<String, dynamic>> _upcomingAppointments = [];
+  List<Map<String, dynamic>> _filteredAppointments = [];
   bool _isLoading = true;
+  int _selectedFilterIndex = 0; // 0: All, 1: Today, 2: Week
 
   @override
   void initState() {
@@ -30,11 +33,87 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
     
     try {
       _upcomingAppointments = await _professionalService.getUpcomingConsultations();
+      _applyFilter();
     } catch (e) {
       print('Error loading upcoming schedules: $e');
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  void _applyFilter() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final weekStart = today.subtract(Duration(days: now.weekday - 1));
+    final weekEnd = weekStart.add(const Duration(days: 7));
+
+    switch (_selectedFilterIndex) {
+      case 0: // All
+        _filteredAppointments = _upcomingAppointments;
+        break;
+      case 1: // Today
+        _filteredAppointments = _upcomingAppointments.where((appointment) {
+          if (appointment['consultation_date'] == null) return false;
+          try {
+            final timestamp = appointment['consultation_date'] as Timestamp;
+            final appointmentDate = timestamp.toDate();
+            final appointmentDay = DateTime(appointmentDate.year, appointmentDate.month, appointmentDate.day);
+            return appointmentDay == today;
+          } catch (e) {
+            return false;
+          }
+        }).toList();
+        break;
+      case 2: // Week
+        _filteredAppointments = _upcomingAppointments.where((appointment) {
+          if (appointment['consultation_date'] == null) return false;
+          try {
+            final timestamp = appointment['consultation_date'] as Timestamp;
+            final appointmentDate = timestamp.toDate();
+            return appointmentDate.isAfter(weekStart.subtract(const Duration(days: 1))) && 
+                   appointmentDate.isBefore(weekEnd);
+          } catch (e) {
+            return false;
+          }
+        }).toList();
+        break;
+    }
+  }
+
+  void _onFilterChanged(int index) {
+    setState(() {
+      _selectedFilterIndex = index;
+      _applyFilter();
+    });
+  }
+
+  String _formatDateTime(Map<String, dynamic> appointment) {
+    if (appointment['consultation_date'] == null) return 'N/A';
+    
+    try {
+      final timestamp = appointment['consultation_date'] as Timestamp;
+      final date = timestamp.toDate();
+      
+      // Format: "Jun 27, 2025"
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      ];
+      
+      return '${months[date.month - 1]} ${date.day}, ${date.year}';
+    } catch (e) {
+      return 'N/A';
+    }
+  }
+
+  String _formatTime(Map<String, dynamic> appointment) {
+    // consultation_time is stored as string in Firebase (e.g., "11:00 AM")
+    return appointment['consultation_time'] ?? 'N/A';
+  }
+
+  String _getPatientInitial(String? patientName) {
+    if (patientName == null || patientName.isEmpty) return 'P';
+    return patientName[0].toUpperCase();
   }
 
   @override
@@ -55,26 +134,42 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
-            _buildHeader(),
+            // Page Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: Text(
+                'Upcoming Schedules',
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColorsExtension.blackText,
+                ),
+              ),
+            ),
             // Content
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Summary Stats
-                    _buildSummaryStats(),
-                    const SizedBox(height: 24),
-                    
-                    // Filter Tabs
-                    _buildFilterTabs(),
-                    const SizedBox(height: 24),
-                    
-                    // Appointments List
-                    _buildAppointmentsList(),
-                  ],
+              child: RefreshIndicator(
+                color: AppColors.successGreen,
+                onRefresh: _loadUpcomingSchedules,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Summary Stats
+                      _buildSummaryStats(),
+                      const SizedBox(height: 24),
+                      
+                      // Filter Tabs
+                      _buildFilterTabs(),
+                      const SizedBox(height: 24),
+                      
+                      // Appointments List
+                      _buildAppointmentsList(),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -84,42 +179,43 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-      decoration: BoxDecoration(
-        color: AppColors.successGreen,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(20),
-          bottomRight: Radius.circular(20),
-        ),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: Icon(
-              Icons.arrow_back,
-              color: AppColors.white,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'Upcoming Schedules',
-            style: TextStyle(
-              fontFamily: 'Lato',
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AppColors.white,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSummaryStats() {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final weekStart = today.subtract(Duration(days: now.weekday - 1));
+    final weekEnd = weekStart.add(const Duration(days: 7));
+
+    // Calculate today's appointments
+    final todayAppointments = _upcomingAppointments.where((appointment) {
+      if (appointment['consultation_date'] == null) return false;
+      try {
+        final timestamp = appointment['consultation_date'] as Timestamp;
+        final appointmentDate = timestamp.toDate();
+        final appointmentDay = DateTime(appointmentDate.year, appointmentDate.month, appointmentDate.day);
+        return appointmentDay == today;
+      } catch (e) {
+        return false;
+      }
+    }).length;
+
+    // Calculate this week's appointments
+    final weekAppointments = _upcomingAppointments.where((appointment) {
+      if (appointment['consultation_date'] == null) return false;
+      try {
+        final timestamp = appointment['consultation_date'] as Timestamp;
+        final appointmentDate = timestamp.toDate();
+        return appointmentDate.isAfter(weekStart.subtract(const Duration(days: 1))) && 
+               appointmentDate.isBefore(weekEnd);
+      } catch (e) {
+        return false;
+      }
+    }).length;
+
+    // Calculate pending appointments (scheduled status)
+    final pendingAppointments = _upcomingAppointments.where((appointment) {
+      return appointment['status'] == 'Scheduled';
+    }).length;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -139,7 +235,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
             child: _buildStatItem(
               icon: Icons.schedule,
               title: 'Today',
-              value: '2',
+              value: todayAppointments.toString(),
               subtitle: 'Appointments',
               color: AppColors.primaryAccent,
             ),
@@ -153,7 +249,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
             child: _buildStatItem(
               icon: Icons.calendar_month,
               title: 'This Week',
-              value: '4',
+              value: weekAppointments.toString(),
               subtitle: 'Appointments',
               color: AppColors.successGreen,
             ),
@@ -167,7 +263,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
             child: _buildStatItem(
               icon: Icons.pending_actions,
               title: 'Pending',
-              value: '1',
+              value: pendingAppointments.toString(),
               subtitle: 'Confirmations',
               color: Colors.amber,
             ),
@@ -243,50 +339,67 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
       child: Row(
         children: [
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.successGreen,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'All',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Lato',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.white,
+            child: GestureDetector(
+              onTap: () => _onFilterChanged(0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: _selectedFilterIndex == 0 ? AppColors.successGreen : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'All',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: _selectedFilterIndex == 0 ? AppColors.white : AppColors.grayText,
+                  ),
                 ),
               ),
             ),
           ),
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                'Today',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Lato',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.grayText,
+            child: GestureDetector(
+              onTap: () => _onFilterChanged(1),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'Today',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: _selectedFilterIndex == 1 ? AppColors.white : AppColors.grayText,
+                  ),
+                ),
+                decoration: BoxDecoration(
+                  color: _selectedFilterIndex == 1 ? AppColors.successGreen : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
             ),
           ),
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                'Week',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: 'Lato',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.grayText,
+            child: GestureDetector(
+              onTap: () => _onFilterChanged(2),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Text(
+                  'Week',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: _selectedFilterIndex == 2 ? AppColors.white : AppColors.grayText,
+                  ),
+                ),
+                decoration: BoxDecoration(
+                  color: _selectedFilterIndex == 2 ? AppColors.successGreen : Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
             ),
@@ -310,10 +423,10 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
           ),
         ),
         const SizedBox(height: 16),
-        if (_upcomingAppointments.isEmpty)
+        if (_filteredAppointments.isEmpty)
           _buildEmptySchedule()
         else
-          ..._upcomingAppointments.map((appointment) => 
+          ..._filteredAppointments.map((appointment) => 
             _buildAppointmentCard(appointment)
           ).toList(),
       ],
@@ -350,7 +463,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
                 ),
                 child: Center(
                   child: Text(
-                    appointment['avatar'],
+                    _getPatientInitial(appointment['patient_name']),
                     style: TextStyle(
                       fontFamily: 'Lato',
                       fontSize: 16,
@@ -370,7 +483,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          appointment['patientName'],
+                          appointment['patient_name'] ?? 'Unknown Patient',
                           style: TextStyle(
                             fontFamily: 'Lato',
                             fontSize: 16,
@@ -402,7 +515,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Age: ${appointment['patientAge']}',
+                      'Age: ${appointment['patient_age'] ?? 'N/A'}',
                       style: TextStyle(
                         fontFamily: 'OpenSans',
                         fontSize: 12,
@@ -434,7 +547,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${appointment['date']} • ${appointment['time']}',
+                      '${_formatDateTime(appointment)} • ${_formatTime(appointment)}',
                       style: TextStyle(
                         fontFamily: 'OpenSans',
                         fontSize: 14,
@@ -444,7 +557,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
                     ),
                     const Spacer(),
                     Text(
-                      appointment['duration'],
+                      '${appointment['duration'] ?? 60} mins',
                       style: TextStyle(
                         fontFamily: 'OpenSans',
                         fontSize: 12,
@@ -464,7 +577,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        appointment['topic'],
+                        appointment['topic'] ?? 'General consultation',
                         style: TextStyle(
                           fontFamily: 'OpenSans',
                           fontSize: 13,
@@ -537,6 +650,24 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
   }
 
   Widget _buildEmptySchedule() {
+    String title;
+    String subtitle;
+    
+    switch (_selectedFilterIndex) {
+      case 1: // Today
+        title = 'No Appointments Today';
+        subtitle = 'You have no consultations scheduled for today';
+        break;
+      case 2: // Week
+        title = 'No Appointments This Week';
+        subtitle = 'You have no consultations scheduled this week';
+        break;
+      default: // All
+        title = 'No Upcoming Appointments';
+        subtitle = 'Your schedule is currently clear';
+        break;
+    }
+    
     return Container(
       padding: const EdgeInsets.all(40),
       child: Column(
@@ -548,7 +679,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
           ),
           const SizedBox(height: 16),
           Text(
-            'No Upcoming Appointments',
+            title,
             style: TextStyle(
               fontFamily: 'Lato',
               fontSize: 18,
@@ -558,7 +689,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Your schedule is currently clear',
+            subtitle,
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'OpenSans',
@@ -594,7 +725,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Name: ${appointment['patientName']}',
+              'Name: ${appointment['patient_name'] ?? 'Unknown'}',
               style: TextStyle(
                 fontFamily: 'OpenSans',
                 fontSize: 14,
@@ -603,7 +734,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Age: ${appointment['patientAge']} years',
+              'Age: ${appointment['patient_age'] ?? 'N/A'} years',
               style: TextStyle(
                 fontFamily: 'OpenSans',
                 fontSize: 14,
@@ -671,7 +802,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
           ),
         ),
         content: Text(
-          'Starting consultation with ${appointment['patientName']}. You will be connected shortly.',
+          'Starting consultation with ${appointment['patient_name'] ?? 'patient'}. You will be connected shortly.',
           style: TextStyle(
             fontFamily: 'OpenSans',
             color: AppColors.grayText,

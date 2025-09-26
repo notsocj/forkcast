@@ -6,6 +6,7 @@ class BookingConfirmationPage extends StatelessWidget {
   final DateTime selectedDate;
   final String selectedTime;
   final String topic;
+  final String? consultationId;
 
   const BookingConfirmationPage({
     super.key,
@@ -13,6 +14,7 @@ class BookingConfirmationPage extends StatelessWidget {
     required this.selectedDate,
     required this.selectedTime,
     required this.topic,
+    this.consultationId,
   });
 
   @override

@@ -400,4 +400,144 @@ class ProfessionalService {
       throw Exception('Failed to update consultation status: $e');
     }
   }
+
+  /// Get all professionals with their availability for teleconsultation
+  Future<List<Map<String, dynamic>>> getAllProfessionalsWithAvailability() async {
+    try {
+      // Get all professional users
+      final professionalsSnapshot = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'professional')
+          .get();
+
+      List<Map<String, dynamic>> professionalsWithAvailability = [];
+
+      for (var doc in professionalsSnapshot.docs) {
+        final professionalData = doc.data();
+        final professionalId = doc.id;
+
+        // Get availability for this professional
+        final availabilitySnapshot = await _firestore
+            .collection('professional_availability')
+            .where('professional_id', isEqualTo: professionalId)
+            .where('is_available', isEqualTo: true)
+            .get();
+
+        // Process availability data
+        List<String> availableSlots = [];
+        Map<String, List<String>> availabilityByDay = {};
+
+        final timeSlots = [
+          '8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM',
+          '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM'
+        ];
+
+        for (var availDoc in availabilitySnapshot.docs) {
+          final availData = availDoc.data();
+          final dayOfWeek = availData['day_of_week'] as String;
+          final timeSlot = availData['time_slot'] as String;
+
+          if (!availabilityByDay.containsKey(dayOfWeek)) {
+            availabilityByDay[dayOfWeek] = [];
+          }
+          availabilityByDay[dayOfWeek]!.add(timeSlot);
+          
+          if (!availableSlots.contains(timeSlot)) {
+            availableSlots.add(timeSlot);
+          }
+        }
+
+        // Sort available slots - fix the IndexError by checking if slots exist
+        availableSlots.sort((a, b) {
+          int aIndex = timeSlots.indexOf(a);
+          int bIndex = timeSlots.indexOf(b);
+          if (aIndex == -1) aIndex = 999; // Put unknown slots at end
+          if (bIndex == -1) bIndex = 999;
+          return aIndex.compareTo(bIndex);
+        });
+
+        // Only add professionals that have valid data
+        final fullName = professionalData['full_name'] as String?;
+        final specialization = professionalData['specialization'] as String?;
+        
+        if (fullName != null && fullName.isNotEmpty && 
+            specialization != null && specialization.isNotEmpty) {
+          // Add sample availability if none exists in Firebase
+          if (availableSlots.isEmpty) {
+            availableSlots = ['9:00 AM', '10:00 AM', '2:00 PM', '3:00 PM'];
+            availabilityByDay = {
+              'Monday': ['9:00 AM', '10:00 AM'],
+              'Tuesday': ['2:00 PM', '3:00 PM'],
+              'Wednesday': ['9:00 AM', '10:00 AM'],
+              'Thursday': ['2:00 PM', '3:00 PM'],
+              'Friday': ['9:00 AM', '10:00 AM'],
+            };
+          }
+
+          // Create professional data with availability
+          professionalsWithAvailability.add({
+            'id': professionalId,
+            'name': fullName,
+            'specialization': specialization,
+            'phoneNumber': professionalData['phone_number'] ?? '',
+            'consultationFee': professionalData['consultation_fee'] ?? 0,
+            'rating': 4.8, // Default rating for now
+            'avatar': _getInitials(fullName),
+            'isAvailable': availableSlots.isNotEmpty,
+            'availableSlots': availableSlots,
+            'availabilityByDay': availabilityByDay,
+            'bio': professionalData['bio'] ?? '',
+            'yearsExperience': professionalData['years_experience'] ?? 0,
+            'licenseNumber': professionalData['license_number'] ?? '',
+            'isVerified': professionalData['is_verified'] ?? false,
+          });
+        }
+      }
+
+      print('Found ${professionalsWithAvailability.length} professionals with availability');
+      return professionalsWithAvailability;
+    } catch (e) {
+      print('Error getting professionals with availability: $e');
+      return [];
+    }
+  }
+
+  /// Helper method to get initials from full name
+  String _getInitials(String fullName) {
+    List<String> nameParts = fullName.trim().split(' ');
+    if (nameParts.length >= 2) {
+      return '${nameParts[0][0]}${nameParts[1][0]}'.toUpperCase();
+    } else if (nameParts.isNotEmpty) {
+      return nameParts[0][0].toUpperCase();
+    }
+    return 'P';
+  }
+
+  /// Create sample availability for professionals (for testing)
+  Future<void> createSampleAvailability(String professionalId) async {
+    try {
+      final batch = _firestore.batch();
+      final timeSlots = ['9:00 AM', '10:00 AM', '11:00 AM', '2:00 PM', '3:00 PM', '4:00 PM'];
+      final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+      
+      for (String day in days) {
+        for (String time in timeSlots) {
+          // Create availability document
+          final docRef = _firestore.collection('professional_availability').doc();
+          batch.set(docRef, {
+            'professional_id': professionalId,
+            'day_of_week': day,
+            'time_slot': time,
+            'is_available': true,
+            'updated_at': FieldValue.serverTimestamp(),
+          });
+        }
+      }
+      
+      await batch.commit();
+      print('Sample availability created for professional: $professionalId');
+    } catch (e) {
+      print('Error creating sample availability: $e');
+    }
+  }
 }

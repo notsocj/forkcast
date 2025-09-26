@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/theme/app_colors.dart';
+import '../../services/consultation_service.dart';
 import 'booking_confirmation_page.dart';
 
 class BookConsultationSchedulePage extends StatefulWidget {
@@ -18,6 +20,10 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
   DateTime selectedDate = DateTime.now();
   String? selectedTime;
   final TextEditingController _topicController = TextEditingController();
+  final ConsultationService _consultationService = ConsultationService();
+  
+  bool _isLoading = false;
+  List<String> _availableTimeSlots = [];
 
   // Available time slots
   final List<String> availableTimes = [
@@ -33,7 +39,37 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
   @override
   void initState() {
     super.initState();
-    selectedTime = availableTimes.first;
+    _loadAvailableTimeSlots();
+  }
+
+  Future<void> _loadAvailableTimeSlots() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      final professionalId = widget.professional['id'] ?? widget.professional['professionalId'];
+      if (professionalId != null) {
+        final slots = await _consultationService.getAvailableTimeSlots(professionalId, selectedDate);
+        setState(() {
+          _availableTimeSlots = slots;
+          selectedTime = slots.isNotEmpty ? slots.first : null;
+          _isLoading = false;
+        });
+      } else {
+        // Fallback to default time slots if no professional ID
+        setState(() {
+          _availableTimeSlots = availableTimes;
+          selectedTime = availableTimes.first;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading available time slots: $e');
+      setState(() {
+        _availableTimeSlots = availableTimes;
+        selectedTime = availableTimes.first;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -342,6 +378,8 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
             setState(() {
               selectedDate = DateTime(2025, 6, day);
             });
+            // Reload available time slots for the new date
+            _loadAvailableTimeSlots();
           },
           child: Container(
             decoration: BoxDecoration(
@@ -416,7 +454,7 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
                 fontSize: 14,
                 color: AppColors.blackText,
               ),
-              items: availableTimes.map((String time) {
+              items: (_availableTimeSlots.isNotEmpty ? _availableTimeSlots : availableTimes).map((String time) {
                 return DropdownMenuItem<String>(
                   value: time,
                   child: Text(time),
@@ -496,9 +534,7 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
       width: double.infinity,
       height: 48,
       child: ElevatedButton(
-        onPressed: () {
-          _bookAppointment();
-        },
+        onPressed: _isLoading ? null : _bookAppointment,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.successGreen,
           shape: RoundedRectangleBorder(
@@ -506,56 +542,89 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
           ),
           elevation: 0,
         ),
-        child: Text(
-          'Book Appointment',
-          style: TextStyle(
-            fontFamily: 'Lato',
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: AppColors.white,
-          ),
-        ),
+        child: _isLoading
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  color: AppColors.white,
+                  strokeWidth: 2,
+                ),
+              )
+            : Text(
+                'Book Appointment',
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.white,
+                ),
+              ),
       ),
     );
   }
 
-  void _bookAppointment() {
-    // Create the booking data
-    final bookingData = {
-      'id': DateTime.now().millisecondsSinceEpoch.toString(),
-      'professionalName': widget.professional['name'],
-      'specialization': widget.professional['specialization'],
-      'date': '${_getMonthName(selectedDate.month)} ${selectedDate.day}, ${selectedDate.year}',
-      'time': selectedTime ?? availableTimes.first,
-      'status': 'Confirmed',
-      'referenceNo': (DateTime.now().millisecondsSinceEpoch % 1000000).toString(),
-      'topic': _topicController.text.trim(),
-    };
-    
-    // Navigate to confirmation page with booking details
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => BookingConfirmationPage(
-          professional: widget.professional,
-          selectedDate: selectedDate,
-          selectedTime: selectedTime ?? availableTimes.first,
-          topic: _topicController.text.trim(),
+  Future<void> _bookAppointment() async {
+    if (selectedTime == null || selectedTime!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Please select a time slot'),
+          backgroundColor: Colors.red,
         ),
-      ),
-    ).then((result) {
-      // If confirmed, pass the booking data back
-      if (result == 'confirmed') {
-        Navigator.pop(context, bookingData);
-      }
-    });
-  }
+      );
+      return;
+    }
 
-  String _getMonthName(int month) {
-    const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December'
-    ];
-    return months[month - 1];
+    setState(() => _isLoading = true);
+
+    try {
+      // Get professional ID
+      final professionalId = widget.professional['id'] ?? widget.professional['professionalId'];
+      if (professionalId == null) {
+        throw Exception('Professional ID not found');
+      }
+
+      // Book consultation through Firebase
+      final consultationId = await _consultationService.bookConsultation(
+        professionalId: professionalId,
+        consultationDate: selectedDate,
+        consultationTime: selectedTime!,
+        topic: _topicController.text.trim(),
+      );
+
+      setState(() => _isLoading = false);
+
+      // Navigate to confirmation page with booking details
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => BookingConfirmationPage(
+            professional: widget.professional,
+            selectedDate: selectedDate,
+            selectedTime: selectedTime!,
+            topic: _topicController.text.trim(),
+            consultationId: consultationId,
+          ),
+        ),
+      ).then((result) {
+        // If confirmed, go back to previous page
+        if (result == 'confirmed') {
+          Navigator.pop(context, {
+            'success': true,
+            'consultation_id': consultationId,
+          });
+        }
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+      print('Error booking appointment: $e');
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to book appointment. Please try again.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }

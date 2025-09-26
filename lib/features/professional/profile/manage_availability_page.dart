@@ -27,7 +27,6 @@ class _ManageAvailabilityPageState extends State<ManageAvailabilityPage> {
   ];
   
   Map<String, List<bool>> _availability = {};
-  Map<DateTime, bool> _specialDates = {};
   bool _isLoading = true;
   bool _isSaving = false;
   
@@ -42,7 +41,6 @@ class _ManageAvailabilityPageState extends State<ManageAvailabilityPage> {
     
     try {
       _availability = await _professionalService.getProfessionalAvailability();
-      _specialDates = await _professionalService.getSpecialDates();
       
       // Initialize availability for days that don't exist in Firebase
       for (String day in _weekDays) {
@@ -90,31 +88,6 @@ class _ManageAvailabilityPageState extends State<ManageAvailabilityPage> {
     }
   }
 
-  Future<void> _addSpecialDate(DateTime date, bool isAvailable, String reason) async {
-    try {
-      await _professionalService.addSpecialDate(date, isAvailable, reason);
-      setState(() => _specialDates[date] = isAvailable);
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Special date added successfully'),
-            backgroundColor: AppColors.successGreen,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error adding special date: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -133,31 +106,43 @@ class _ManageAvailabilityPageState extends State<ManageAvailabilityPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
-            _buildHeader(),
+            // Page Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: Text(
+                'Manage Hours',
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColorsExtension.blackText,
+                ),
+              ),
+            ),
             // Content
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Quick Stats
-                    _buildQuickStats(),
-                    const SizedBox(height: 24),
-                    
-                    // Weekly Schedule
-                    _buildWeeklySchedule(),
-                    const SizedBox(height: 24),
-                    
-                    // Special Dates
-                    _buildSpecialDates(),
-                    const SizedBox(height: 24),
-                    
-                    // Quick Actions
-                    _buildQuickActions(),
-                    const SizedBox(height: 20),
-                  ],
+              child: RefreshIndicator(
+                color: AppColors.successGreen,
+                onRefresh: _loadAvailabilityData,
+                child: SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Quick Stats
+                      _buildQuickStats(),
+                      const SizedBox(height: 24),
+                      
+                      // Weekly Schedule
+                      _buildWeeklySchedule(),
+                      const SizedBox(height: 24),
+                      
+                      // Quick Actions
+                      _buildQuickActions(),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -180,63 +165,6 @@ class _ManageAvailabilityPageState extends State<ManageAvailabilityPage> {
             color: AppColors.white,
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-      decoration: BoxDecoration(
-        color: AppColors.successGreen,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(20),
-          bottomRight: Radius.circular(20),
-        ),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: Icon(
-              Icons.arrow_back,
-              color: AppColors.white,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Manage Availability',
-                  style: TextStyle(
-                    fontFamily: 'Lato',
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.white,
-                  ),
-                ),
-                Text(
-                  'Set your consultation hours',
-                  style: TextStyle(
-                    fontFamily: 'OpenSans',
-                    fontSize: 14,
-                    color: AppColors.white.withOpacity(0.9),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          IconButton(
-            onPressed: _showHelpDialog,
-            icon: Icon(
-              Icons.help_outline,
-              color: AppColors.white,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -296,10 +224,10 @@ class _ManageAvailabilityPageState extends State<ManageAvailabilityPage> {
           ),
           Expanded(
             child: _buildStatItem(
-              icon: Icons.block,
-              title: 'Blocked Days',
-              value: '${_specialDates.values.where((blocked) => blocked == false).length}',
-              subtitle: 'special dates',
+              icon: Icons.schedule,
+              title: 'Time Slots',
+              value: '${_timeSlots.length}',
+              subtitle: 'available hours',
               color: AppColors.primaryAccent,
             ),
           ),
@@ -548,163 +476,6 @@ class _ManageAvailabilityPageState extends State<ManageAvailabilityPage> {
     );
   }
 
-  Widget _buildSpecialDates() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryAccent.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.event_busy,
-                  color: AppColors.primaryAccent,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Special Dates',
-                style: TextStyle(
-                  fontFamily: 'Lato',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.blackText,
-                ),
-              ),
-              const Spacer(),
-              IconButton(
-                onPressed: _showAddSpecialDateDialog,
-                icon: Icon(
-                  Icons.add,
-                  color: AppColors.primaryAccent,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          
-          if (_specialDates.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    size: 48,
-                    color: AppColors.grayText.withOpacity(0.5),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'No special dates set',
-                    style: TextStyle(
-                      fontFamily: 'Lato',
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.grayText,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Add blocked dates or special availability',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'OpenSans',
-                      fontSize: 12,
-                      color: AppColors.grayText,
-                    ),
-                  ),
-                ],
-              ),
-            )
-          else
-            ..._specialDates.entries.map((entry) => 
-              Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBackground,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: entry.value 
-                          ? AppColors.successGreen.withOpacity(0.1)
-                          : AppColors.primaryAccent.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Icon(
-                        entry.value ? Icons.check_circle : Icons.block,
-                        color: entry.value ? AppColors.successGreen : AppColors.primaryAccent,
-                        size: 16,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${entry.key.day}/${entry.key.month}/${entry.key.year}',
-                            style: TextStyle(
-                              fontFamily: 'Lato',
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.blackText,
-                            ),
-                          ),
-                          Text(
-                            entry.value ? 'Special availability' : 'Blocked day',
-                            style: TextStyle(
-                              fontFamily: 'OpenSans',
-                              fontSize: 12,
-                              color: AppColors.grayText,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _specialDates.remove(entry.key);
-                        });
-                      },
-                      icon: Icon(
-                        Icons.delete_outline,
-                        color: AppColors.grayText,
-                        size: 18,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            ).toList(),
-        ],
-      ),
-    );
-  }
-
   Widget _buildQuickActions() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -846,67 +617,6 @@ class _ManageAvailabilityPageState extends State<ManageAvailabilityPage> {
         for (int i = 0; i < _timeSlots.length; i++) {
           _availability[day]![i] = !hasAnyAvailable;
         }
-      }
-    });
-  }
-
-  void _showAddSpecialDateDialog() {
-    showDatePicker(
-      context: context,
-      initialDate: DateTime.now().add(const Duration(days: 1)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    ).then((date) {
-      if (date != null) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: Text(
-              'Set Special Date',
-              style: TextStyle(
-                fontFamily: 'Lato',
-                fontWeight: FontWeight.bold,
-                color: AppColors.blackText,
-              ),
-            ),
-            content: Text(
-              'What would you like to do on ${date.day}/${date.month}/${date.year}?',
-              style: TextStyle(
-                fontFamily: 'OpenSans',
-                color: AppColors.blackText,
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _specialDates[date] = false; // Blocked
-                  });
-                  Navigator.pop(context);
-                },
-                child: Text(
-                  'Block Day',
-                  style: TextStyle(color: AppColors.primaryAccent),
-                ),
-              ),
-              TextButton(
-                onPressed: () {
-                  setState(() {
-                    _specialDates[date] = true; // Available
-                  });
-                  Navigator.pop(context);
-                },
-                child: Text(
-                  'Add Availability',
-                  style: TextStyle(color: AppColors.successGreen),
-                ),
-              ),
-            ],
-          ),
-        );
       }
     });
   }

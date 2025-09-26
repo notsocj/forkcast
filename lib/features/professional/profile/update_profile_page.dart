@@ -165,8 +165,19 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
-            _buildHeader(),
+            // Page Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: Text(
+                'Update Profile',
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColorsExtension.blackText,
+                ),
+              ),
+            ),
             // Content
             Expanded(
               child: SingleChildScrollView(
@@ -312,41 +323,6 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-      decoration: BoxDecoration(
-        color: AppColors.successGreen,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(20),
-          bottomRight: Radius.circular(20),
-        ),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: Icon(
-              Icons.arrow_back,
-              color: AppColors.white,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'Update Profile',
-            style: TextStyle(
-              fontFamily: 'Lato',
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AppColors.white,
-            ),
-          ),
-        ],
       ),
     );
   }

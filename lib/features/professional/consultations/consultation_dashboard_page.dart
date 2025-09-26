@@ -73,8 +73,19 @@ class _ConsultationDashboardPageState extends State<ConsultationDashboardPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
-            _buildHeader(),
+            // Page Title
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: Text(
+                'Dashboard',
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColorsExtension.blackText,
+                ),
+              ),
+            ),
             // Content
             Expanded(
               child: SingleChildScrollView(
@@ -98,138 +109,6 @@ class _ConsultationDashboardPageState extends State<ConsultationDashboardPage> {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-      decoration: BoxDecoration(
-        color: AppColors.successGreen,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(20),
-          bottomRight: Radius.circular(20),
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Good Morning!',
-                    style: TextStyle(
-                      fontFamily: 'Lato',
-                      fontSize: 16,
-                      color: AppColors.white.withOpacity(0.9),
-                    ),
-                  ),
-                  Text(
-                    _currentProfessional?.fullName ?? 'Professional',
-                    style: TextStyle(
-                      fontFamily: 'Lato',
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.white,
-                    ),
-                  ),
-                ],
-              ),
-              // Profile Avatar
-              Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  color: AppColors.white.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(
-                    color: AppColors.white.withOpacity(0.3),
-                    width: 2,
-                  ),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.person,
-                    color: AppColors.white,
-                    size: 28,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          // Quick overview cards
-          Row(
-            children: [
-              Expanded(
-                child: _buildHeaderCard(
-                  'Today',
-                  _dashboardStats['todayConsultations'].toString(),
-                  Icons.today,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildHeaderCard(
-                  'This Week',
-                  _dashboardStats['weeklyConsultations'].toString(),
-                  Icons.calendar_month,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeaderCard(String title, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white.withOpacity(0.15),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.white.withOpacity(0.2),
-          width: 1,
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            color: AppColors.white,
-            size: 24,
-          ),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  fontFamily: 'Lato',
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.white,
-                ),
-              ),
-              Text(
-                title,
-                style: TextStyle(
-                  fontFamily: 'OpenSans',
-                  fontSize: 12,
-                  color: AppColors.white.withOpacity(0.8),
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

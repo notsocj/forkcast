@@ -305,16 +305,22 @@ applyTo: '**'
     - [x] All UI interactions functional (save, like, reply, report)
 - [x] **Teleconsultation**
   - [x] Consultation page implemented (`book_consultation_page.dart`)
+    - [x] **IMPROVED UI**: Enhanced tab segmentation control with better spacing, colors, and styling
     - [x] Green header with "Book Consultation" and "My Appointments" tabs
     - [x] Search bar for finding professionals
     - [x] Professional cards with profile info, specializations, schedules, and ratings
     - [x] Available/Busy status indicators for professionals
     - [x] Schedule time chips showing available appointment slots
     - [x] "Book now" buttons with navigation to schedule page
+    - [x] **FIXED My Appointments tab**: Proper data mapping from Firebase consultation service
+      - [x] **Fixed data display**: Professional names and specializations now display correctly
+      - [x] **Added phone button**: Call functionality for each appointment with professional contact
+      - [x] **Enhanced appointment cards**: Status badges, reference numbers, improved styling
     - [x] My Appointments tab showing booked consultations
     - [x] Appointment cards with professional details, date/time, and status
     - [x] Empty state for when no appointments are booked
-    - [x] Sample data implementation (ready for Firebase integration)
+    - [x] **Complete Firebase Integration**: Uses ConsultationService for real appointment data
+    - [x] **Phone Call Integration**: Added phone buttons for calling professionals
     - [x] Integrated into navigation wrapper at index 5 (Teleconsultation tab)
   - [x] **Book Consultation Schedule Page** (`book_consultation_schedule_page.dart`)
     - [x] Green header with back button and "Book Consultation" title
