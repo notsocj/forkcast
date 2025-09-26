@@ -449,22 +449,20 @@ class _MealPlanPageState extends State<MealPlanPage> {
       ),
       child: Row(
         children: [
-          // Meal image placeholder
+          // Meal image 
           Container(
             width: 60,
             height: 60,
             decoration: BoxDecoration(
-              color: meal['color'].withOpacity(0.1),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: meal['color'].withOpacity(0.3),
                 width: 1,
               ),
             ),
-            child: Icon(
-              _getMealIcon(meal['type']),
-              color: meal['color'],
-              size: 24,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(11), // Slightly smaller to account for border
+              child: _buildMealImage(meal),
             ),
           ),
           const SizedBox(width: 16),
@@ -574,6 +572,62 @@ class _MealPlanPageState extends State<MealPlanPage> {
       default:
         return Icons.restaurant;
     }
+  }
+
+  Widget _buildMealImage(Map<String, dynamic> meal) {
+    // If meal is empty, show icon placeholder
+    if (meal['isEmpty'] == true) {
+      return Container(
+        color: meal['color'].withOpacity(0.1),
+        child: Center(
+          child: Icon(
+            _getMealIcon(meal['type']),
+            color: meal['color'],
+            size: 24,
+          ),
+        ),
+      );
+    }
+
+    // If meal has data, try to get the image from predefined meals
+    if (meal['data'] != null && meal['data']['recipe_id'] != null) {
+      final mealId = meal['data']['recipe_id'];
+      final predefinedMeal = PredefinedMealsData.getMealById(mealId);
+      
+      if (predefinedMeal != null && predefinedMeal.imageUrl.isNotEmpty) {
+        return Image.asset(
+          'assets/images/${predefinedMeal.imageUrl}',
+          width: 60,
+          height: 60,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            // Fallback to icon if image fails to load
+            return Container(
+              color: meal['color'].withOpacity(0.1),
+              child: Center(
+                child: Icon(
+                  _getMealIcon(meal['type']),
+                  color: meal['color'],
+                  size: 24,
+                ),
+              ),
+            );
+          },
+        );
+      }
+    }
+
+    // Fallback to icon placeholder
+    return Container(
+      color: meal['color'].withOpacity(0.1),
+      child: Center(
+        child: Icon(
+          _getMealIcon(meal['type']),
+          color: meal['color'],
+          size: 24,
+        ),
+      ),
+    );
   }
 
   void _navigateToMealSearch(String mealType) {

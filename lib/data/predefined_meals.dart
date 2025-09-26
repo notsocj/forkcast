@@ -203,6 +203,7 @@ class PredefinedMealsData {
       tags: ['Filipino', 'chicken', 'vegetables'],
       difficulty: 'Medium',
       prepTimeMinutes: 45,
+      imageUrl: 'meals_pictures/chicken_lumpia_1.png',
     ),
 
     PredefinedMeal(
@@ -225,6 +226,7 @@ class PredefinedMealsData {
       tags: ['Filipino', 'pork', 'menudo'],
       difficulty: 'Easy',
       prepTimeMinutes: 30,
+      imageUrl: 'meals_pictures/ground_pork_menudo_2.png',
     ),
 
     PredefinedMeal(
@@ -247,6 +249,7 @@ class PredefinedMealsData {
       tags: ['Filipino', 'tokwa', 'tofu'],
       difficulty: 'Medium',
       prepTimeMinutes: 40,
+      imageUrl: 'meals_pictures/tokwa_balls_with_gravy_3.png',
     ),
 
     PredefinedMeal(
@@ -269,6 +272,7 @@ class PredefinedMealsData {
       tags: ['Filipino', 'sardines', 'kalabasa', 'healthy'],
       difficulty: 'Easy',
       prepTimeMinutes: 20,
+      imageUrl: 'meals_pictures/sardines_kalabas_patties_4.png',
     ),
 
     PredefinedMeal(
@@ -293,6 +297,7 @@ class PredefinedMealsData {
       tags: ['Filipino', 'chicken', 'soup', 'almondigas'],
       difficulty: 'Medium',
       prepTimeMinutes: 50,
+      imageUrl: 'meals_pictures/chicken_almondigas_5.png',
     ),
 
     PredefinedMeal(
@@ -317,6 +322,7 @@ class PredefinedMealsData {
       tags: ['Filipino', 'pork', 'soup', 'vegetables'],
       difficulty: 'Medium',
       prepTimeMinutes: 45,
+      imageUrl: 'meals_pictures/ground_pork_picadillo_6.png',
     ),
 
     PredefinedMeal(
@@ -343,6 +349,7 @@ class PredefinedMealsData {
       tags: ['Filipino', 'vegetables', 'liver', 'healthy'],
       difficulty: 'Medium',
       prepTimeMinutes: 35,
+      imageUrl: 'meals_pictures/veggie_patties_7.png',
     ),
 
     PredefinedMeal(
@@ -371,6 +378,7 @@ class PredefinedMealsData {
       tags: ['Filipino', 'munggo', 'ginataang', 'kalabasa'],
       difficulty: 'Medium',
       prepTimeMinutes: 40,
+      imageUrl: 'meals_pictures/ginataang_munggo_8.png',
     ),
 
     PredefinedMeal(
@@ -396,6 +404,7 @@ class PredefinedMealsData {
       tags: ['Filipino', 'pork', 'sinigang', 'soup'],
       difficulty: 'Easy',
       prepTimeMinutes: 60,
+      imageUrl: 'meals_pictures/pork_ginisang_sinigang_9.png',
     ),
 
     PredefinedMeal(
@@ -421,6 +430,7 @@ class PredefinedMealsData {
       tags: ['Filipino', 'chicken', 'sweet and sour', 'meatballs'],
       difficulty: 'Medium',
       prepTimeMinutes: 45,
+      imageUrl: 'meals_pictures/sweet_and_sour_meatballs_10.png',
     ),
 
     // Adding more key FNRI recipes from the CSV
@@ -450,6 +460,7 @@ class PredefinedMealsData {
       tags: ['Filipino', 'beef', 'vegetables', 'steamed', 'healthy'],
       difficulty: 'Medium',
       prepTimeMinutes: 40,
+      imageUrl: 'meals_pictures/cabbage_and_beef_rolls_13.png',
     ),
 
     PredefinedMeal(
@@ -481,6 +492,7 @@ class PredefinedMealsData {
       tags: ['Filipino', 'tokwa', 'curry', 'vegetarian', 'healthy'],
       difficulty: 'Easy',
       prepTimeMinutes: 25,
+      imageUrl: 'meals_pictures/pan_fried_tokwa_curry_15.png',
     ),
 
     PredefinedMeal(
@@ -511,6 +523,7 @@ class PredefinedMealsData {
       tags: ['Filipino', 'tuna', 'kinilaw', 'seaweed', 'healthy'],
       difficulty: 'Easy',
       prepTimeMinutes: 20,
+      imageUrl: 'meals_pictures/tuna_kinilaw_24.png',
     ),
 
     PredefinedMeal(
@@ -536,6 +549,7 @@ class PredefinedMealsData {
       tags: ['Filipino', 'beverage', 'coconut', 'healthy', 'drink'],
       difficulty: 'Easy',
       prepTimeMinutes: 5,
+      imageUrl: 'meals_pictures/go_conut_28.png',
     ),
 
     PredefinedMeal(
@@ -565,6 +579,113 @@ class PredefinedMealsData {
       tags: ['Filipino', 'empanada', 'longganisa', 'healthy'],
       difficulty: 'Medium',
       prepTimeMinutes: 30,
+      imageUrl: 'meals_pictures/no_fry_empanda_32.png',
+    ),
+
+    // Additional FNRI-inspired meals
+    PredefinedMeal(
+      id: 'fnri_011',
+      recipeName: 'Fish Fillet and Potato Soup',
+      description: 'A nutritious soup combining fish protein with potatoes for a filling, healthy meal.',
+      baseServings: 4,
+      kcal: 245,
+      funFact: 'Fish provides lean protein and omega-3 fatty acids for brain health.',
+      ingredients: [
+        MealIngredient(ingredientName: 'Fish fillet, cubed', quantity: 2, unit: 'cups'),
+        MealIngredient(ingredientName: 'Potatoes, cubed', quantity: 3, unit: 'cups'),
+        MealIngredient(ingredientName: 'Onion, chopped', quantity: 0.5, unit: 'cup'),
+        MealIngredient(ingredientName: 'Malunggay leaves', quantity: 1, unit: 'cup'),
+        MealIngredient(ingredientName: 'Ginger, sliced', quantity: 2, unit: 'Tbsp'),
+      ],
+      cookingInstructions: 'Step 1: Sauté onion and ginger until fragrant; Step 2: Add water and bring to boil, add potatoes; Step 3: Add fish fillet and simmer until cooked; Step 4: Add malunggay leaves and season to taste.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 1, hypertension: 1, obesity: 1, underweight: 0,
+        heartDisease: 1, anemia: 1, osteoporosis: 1, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 0),
+      tags: ['Filipino', 'fish', 'soup', 'healthy'],
+      difficulty: 'Easy',
+      prepTimeMinutes: 25,
+      imageUrl: 'meals_pictures/fish_fillet_and_potato_soup_11.png',
+    ),
+
+    PredefinedMeal(
+      id: 'fnri_012',
+      recipeName: 'Pork Veggie Embutido',
+      description: 'A Filipino-style meatloaf packed with vegetables for added nutrition.',
+      baseServings: 8,
+      kcal: 320,
+      funFact: 'Embutido gets its nutrients from a variety of colorful vegetables mixed with lean meat.',
+      ingredients: [
+        MealIngredient(ingredientName: 'Ground pork', quantity: 2, unit: 'cups'),
+        MealIngredient(ingredientName: 'Carrots, diced', quantity: 1, unit: 'cup'),
+        MealIngredient(ingredientName: 'Red bell pepper, diced', quantity: 0.5, unit: 'cup'),
+        MealIngredient(ingredientName: 'Green peas', quantity: 0.5, unit: 'cup'),
+        MealIngredient(ingredientName: 'Eggs, beaten', quantity: 2, unit: 'pcs'),
+        MealIngredient(ingredientName: 'Bread crumbs', quantity: 0.5, unit: 'cup'),
+      ],
+      cookingInstructions: 'Step 1: Mix all ingredients in a large bowl; Step 2: Shape into a loaf and wrap in aluminum foil; Step 3: Steam for 45 minutes or until cooked through; Step 4: Cool and slice to serve.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 0, hypertension: 1, obesity: 1, underweight: 0,
+        heartDisease: 0, anemia: 1, osteoporosis: 1, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 1),
+      tags: ['Filipino', 'pork', 'vegetables', 'embutido'],
+      difficulty: 'Medium',
+      prepTimeMinutes: 60,
+      imageUrl: 'meals_pictures/pork_veggie_embutido_12.png',
+    ),
+
+    PredefinedMeal(
+      id: 'fnri_018',
+      recipeName: 'Sautéed Kidney Beans',
+      description: 'A protein-rich plant-based dish perfect for those looking to increase fiber intake.',
+      baseServings: 4,
+      kcal: 190,
+      funFact: 'Kidney beans are excellent sources of protein, fiber, and folate for heart health.',
+      ingredients: [
+        MealIngredient(ingredientName: 'Kidney beans, cooked', quantity: 2, unit: 'cups'),
+        MealIngredient(ingredientName: 'Onion, sliced', quantity: 1, unit: 'medium'),
+        MealIngredient(ingredientName: 'Tomatoes, chopped', quantity: 2, unit: 'medium'),
+        MealIngredient(ingredientName: 'Garlic, minced', quantity: 3, unit: 'cloves'),
+        MealIngredient(ingredientName: 'Malunggay leaves', quantity: 1, unit: 'cup'),
+      ],
+      cookingInstructions: 'Step 1: Sauté garlic, onion, and tomatoes until soft; Step 2: Add cooked kidney beans and simmer for 10 minutes; Step 3: Add malunggay leaves and season with salt and pepper.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 1, hypertension: 1, obesity: 1, underweight: 0,
+        heartDisease: 1, anemia: 1, osteoporosis: 1, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 1, dinner: 1, snack: 0),
+      tags: ['Filipino', 'beans', 'vegetarian', 'healthy', 'fiber'],
+      difficulty: 'Easy',
+      prepTimeMinutes: 20,
+      imageUrl: 'meals_pictures/sauteed_kidney_beans_18.png',
+    ),
+
+    PredefinedMeal(
+      id: 'fnri_031',
+      recipeName: 'Watermelon Upo Juice',
+      description: 'A refreshing and hydrating drink that combines the sweetness of watermelon with the subtle taste of upo.',
+      baseServings: 2,
+      kcal: 45,
+      funFact: 'This unique combination provides natural electrolytes and helps with hydration.',
+      ingredients: [
+        MealIngredient(ingredientName: 'Watermelon, cubed', quantity: 2, unit: 'cups'),
+        MealIngredient(ingredientName: 'Upo (bottle gourd), peeled and cubed', quantity: 1, unit: 'cup'),
+        MealIngredient(ingredientName: 'Water', quantity: 1, unit: 'cup'),
+        MealIngredient(ingredientName: 'Honey', quantity: 1, unit: 'tsp'),
+        MealIngredient(ingredientName: 'Ice cubes', quantity: 6, unit: 'pcs'),
+      ],
+      cookingInstructions: 'Step 1: Blend watermelon and upo with water until smooth; Step 2: Add honey and blend again; Step 3: Strain if desired; Step 4: Serve over ice.',
+      healthConditions: HealthConditions.fromCsv(
+        diabetes: 1, hypertension: 1, obesity: 1, underweight: 1,
+        heartDisease: 1, anemia: 0, osteoporosis: 0, none: 1
+      ),
+      mealTiming: MealTiming.fromCsv(lunch: 0, dinner: 0, snack: 1),
+      tags: ['Filipino', 'beverage', 'watermelon', 'healthy', 'refreshing'],
+      difficulty: 'Easy',
+      prepTimeMinutes: 10,
+      imageUrl: 'meals_pictures/watermelon_upo_juice_31.png',
     ),
   ];
 
@@ -804,3 +925,4 @@ class PredefinedMealsData {
     );
   }
 }
+

@@ -78,6 +78,7 @@ flutter:
   assets:
     - assets/images/
     - assets/fonts/
+    - assets/images/meals_pictures/
 
   # Fonts
   fonts:

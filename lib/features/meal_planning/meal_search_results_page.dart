@@ -267,27 +267,80 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
               ),
               child: Stack(
                 children: [
-                  // Placeholder for image
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.restaurant,
-                          size: 48,
-                          color: AppColors.successGreen.withOpacity(0.5),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          meal.recipeName,
-                          style: TextStyle(
-                            fontFamily: 'OpenSans',
-                            fontSize: 12,
-                            color: AppColors.successGreen,
-                          ),
-                        ),
-                      ],
+                  // Recipe image
+                  ClipRRect(
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(20),
+                      topRight: Radius.circular(20),
                     ),
+                    child: meal.imageUrl.isNotEmpty
+                        ? Image.asset(
+                            'assets/images/${meal.imageUrl}',
+                            height: 200,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              // Fallback to placeholder if image fails to load
+                              return Container(
+                                height: 200,
+                                width: double.infinity,
+                                color: AppColors.successGreen.withOpacity(0.1),
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.restaurant,
+                                        size: 48,
+                                        color: AppColors.successGreen.withOpacity(0.5),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        meal.recipeName,
+                                        style: TextStyle(
+                                          fontFamily: 'OpenSans',
+                                          fontSize: 12,
+                                          color: AppColors.successGreen,
+                                        ),
+                                        textAlign: TextAlign.center,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          )
+                        : Container(
+                            height: 200,
+                            width: double.infinity,
+                            color: AppColors.successGreen.withOpacity(0.1),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.restaurant,
+                                    size: 48,
+                                    color: AppColors.successGreen.withOpacity(0.5),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    meal.recipeName,
+                                    style: TextStyle(
+                                      fontFamily: 'OpenSans',
+                                      fontSize: 12,
+                                      color: AppColors.successGreen,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
                   ),
                   // Favorite button
                   Positioned(
