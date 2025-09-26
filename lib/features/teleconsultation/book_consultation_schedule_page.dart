@@ -23,7 +23,10 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
   final ConsultationService _consultationService = ConsultationService();
   
   bool _isLoading = false;
+  bool _isLoadingCalendar = false;
   List<String> _availableTimeSlots = [];
+  DateTime _currentMonth = DateTime.now();
+  List<DateTime> _availableDates = [];
 
   // Available time slots
   final List<String> availableTimes = [
@@ -39,7 +42,70 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
   @override
   void initState() {
     super.initState();
+    _loadAvailableDates();
     _loadAvailableTimeSlots();
+  }
+
+  Future<void> _loadAvailableDates() async {
+    setState(() => _isLoadingCalendar = true);
+    
+    try {
+      final professionalId = widget.professional['id'] ?? widget.professional['professionalId'];
+      if (professionalId != null) {
+        // For now, we'll generate available dates and later integrate with professional availability
+        // This can be enhanced when professional availability system is implemented
+        setState(() {
+          _availableDates = _generateFutureDates(60); // 60 days into the future
+          _isLoadingCalendar = false;
+        });
+      } else {
+        // Fallback: all future dates are available
+        setState(() {
+          _availableDates = _generateFutureDates(60);
+          _isLoadingCalendar = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading available dates: $e');
+      setState(() {
+        _availableDates = _generateFutureDates(60);
+        _isLoadingCalendar = false;
+      });
+    }
+  }
+
+  void _changeMonth(int direction) {
+    setState(() {
+      _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + direction, 1);
+    });
+    _loadAvailableDates();
+  }
+
+  bool _isDateAvailable(DateTime date) {
+    final today = DateTime.now();
+    final dateOnly = DateTime(date.year, date.month, date.day);
+    final todayOnly = DateTime(today.year, today.month, today.day);
+    
+    // Date must be today or in the future
+    if (dateOnly.isBefore(todayOnly)) return false;
+    
+    // Check if date is in available dates
+    return _availableDates.any((availableDate) {
+      final availableOnly = DateTime(availableDate.year, availableDate.month, availableDate.day);
+      return availableOnly == dateOnly;
+    });
+  }
+
+  bool _isDateSelected(DateTime date) {
+    final dateOnly = DateTime(date.year, date.month, date.day);
+    final selectedOnly = DateTime(selectedDate.year, selectedDate.month, selectedDate.day);
+    return dateOnly == selectedOnly;
+  }
+
+  List<DateTime> _generateFutureDates(int days) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    return List.generate(days, (index) => today.add(Duration(days: index)));
   }
 
   Future<void> _loadAvailableTimeSlots() async {
@@ -285,29 +351,54 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
               ),
             ],
           ),
-          child: _buildCalendar(),
+          child: _isLoadingCalendar 
+              ? Container(
+                  height: 200,
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.successGreen,
+                    ),
+                  ),
+                )
+              : _buildCalendar(),
         ),
       ],
     );
   }
 
   Widget _buildCalendar() {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
     return Container(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Calendar header
+          // Calendar header with navigation
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
-              color: AppColors.blackText,
+              color: AppColors.successGreen,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                GestureDetector(
+                  onTap: () => _changeMonth(-1),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.chevron_left,
+                      color: AppColors.white,
+                      size: 20,
+                    ),
+                  ),
+                ),
                 Text(
-                  'JUNE',
+                  '${months[_currentMonth.month - 1].toUpperCase()} ${_currentMonth.year}',
                   style: TextStyle(
                     fontFamily: 'Lato',
                     fontSize: 14,
@@ -315,13 +406,15 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
                     color: AppColors.white,
                   ),
                 ),
-                Text(
-                  '2025',
-                  style: TextStyle(
-                    fontFamily: 'Lato',
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.white,
+                GestureDetector(
+                  onTap: () => _changeMonth(1),
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    child: Icon(
+                      Icons.chevron_right,
+                      color: AppColors.white,
+                      size: 20,
+                    ),
                   ),
                 ),
               ],
@@ -331,14 +424,18 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
           // Days of week
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: ['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day) {
-              return Text(
-                day,
-                style: TextStyle(
-                  fontFamily: 'OpenSans',
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.grayText,
+            children: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) {
+              return Expanded(
+                child: Center(
+                  child: Text(
+                    day,
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.grayText,
+                    ),
+                  ),
                 ),
               );
             }).toList(),
@@ -352,9 +449,12 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
   }
 
   Widget _buildCalendarGrid() {
-    const int daysInMonth = 30;
-    const int startDay = 0; // June 1st starts on Sunday (0)
-    
+    // Get first day of the month and number of days
+    final firstDayOfMonth = DateTime(_currentMonth.year, _currentMonth.month, 1);
+    final lastDayOfMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0);
+    final daysInMonth = lastDayOfMonth.day;
+    final firstWeekday = firstDayOfMonth.weekday % 7; // Sunday = 0, Monday = 1, etc.
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -362,45 +462,79 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
         crossAxisCount: 7,
         mainAxisSpacing: 8,
         crossAxisSpacing: 8,
+        childAspectRatio: 1,
       ),
       itemCount: 42, // 6 weeks
       itemBuilder: (context, index) {
-        if (index < startDay || index >= startDay + daysInMonth) {
+        // Calculate the day
+        final dayIndex = index - firstWeekday;
+        
+        if (dayIndex < 0 || dayIndex >= daysInMonth) {
           return const SizedBox(); // Empty cells
         }
         
-        final day = index - startDay + 1;
-        final isSelected = day == 26; // Default selected date (26th)
-        final isToday = day == DateTime.now().day;
+        final day = dayIndex + 1;
+        final currentDate = DateTime(_currentMonth.year, _currentMonth.month, day);
         
+        final isSelected = _isDateSelected(currentDate);
+        final isAvailable = _isDateAvailable(currentDate);
+        final isToday = _isToday(currentDate);
+
         return GestureDetector(
-          onTap: () {
+          onTap: isAvailable ? () {
             setState(() {
-              selectedDate = DateTime(2025, 6, day);
+              selectedDate = currentDate;
             });
             // Reload available time slots for the new date
             _loadAvailableTimeSlots();
-          },
+          } : null,
           child: Container(
             decoration: BoxDecoration(
               color: isSelected 
                   ? AppColors.successGreen 
-                  : isToday 
+                  : isToday && isAvailable
                       ? AppColors.successGreen.withOpacity(0.2)
-                      : Colors.transparent,
+                      : isAvailable
+                          ? Colors.transparent
+                          : AppColors.grayText.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
+              border: isSelected 
+                  ? Border.all(color: AppColors.successGreen, width: 2)
+                  : isToday
+                      ? Border.all(color: AppColors.successGreen, width: 1)
+                      : null,
             ),
             child: Center(
-              child: Text(
-                '$day',
-                style: TextStyle(
-                  fontFamily: 'OpenSans',
-                  fontSize: 14,
-                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                  color: isSelected 
-                      ? AppColors.white 
-                      : AppColors.blackText,
-                ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Text(
+                    '$day',
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      fontSize: 14,
+                      fontWeight: isSelected || isToday ? FontWeight.bold : FontWeight.normal,
+                      color: isSelected 
+                          ? AppColors.white
+                          : isAvailable
+                              ? AppColors.blackText
+                              : AppColors.grayText,
+                    ),
+                  ),
+                  // Add a small dot for available dates
+                  if (isAvailable && !isSelected && !isToday)
+                    Positioned(
+                      bottom: 4,
+                      child: Container(
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: AppColors.successGreen,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
           ),
@@ -409,67 +543,169 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
     );
   }
 
+  bool _isToday(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year && date.month == now.month && date.day == now.day;
+  }
+
   Widget _buildTimeSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Time',
-          style: TextStyle(
-            fontFamily: 'Lato',
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: AppColors.blackText,
-          ),
+        Row(
+          children: [
+            Text(
+              'Available Times',
+              style: TextStyle(
+                fontFamily: 'Lato',
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.blackText,
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (_isLoading)
+              SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  color: AppColors.successGreen,
+                  strokeWidth: 2,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 16),
+        
+        // Show selected date info
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.all(12),
+          margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: AppColors.white,
-            borderRadius: BorderRadius.circular(12),
+            color: AppColors.successGreen.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: AppColors.grayText.withOpacity(0.3),
+              color: AppColors.successGreen.withOpacity(0.3),
               width: 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.calendar_today,
+                size: 16,
+                color: AppColors.successGreen,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Selected: ${_formatSelectedDate()}',
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  fontSize: 12,
+                  color: AppColors.successGreen,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
-          child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: selectedTime,
-              isExpanded: true,
-              icon: Icon(
-                Icons.keyboard_arrow_down,
-                color: AppColors.grayText,
+        ),
+
+        // Time slots grid
+        if (_availableTimeSlots.isNotEmpty)
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _availableTimeSlots.map((time) {
+              final isSelected = selectedTime == time;
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    selectedTime = time;
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.successGreen : AppColors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: isSelected ? AppColors.successGreen : AppColors.grayText.withOpacity(0.3),
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    time,
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? AppColors.white : AppColors.blackText,
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          )
+        else
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColors.grayText.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: AppColors.grayText.withOpacity(0.2),
+                width: 1,
               ),
-              style: TextStyle(
-                fontFamily: 'OpenSans',
-                fontSize: 14,
-                color: AppColors.blackText,
-              ),
-              items: (_availableTimeSlots.isNotEmpty ? _availableTimeSlots : availableTimes).map((String time) {
-                return DropdownMenuItem<String>(
-                  value: time,
-                  child: Text(time),
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  selectedTime = newValue;
-                });
-              },
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  Icons.schedule_outlined,
+                  size: 32,
+                  color: AppColors.grayText.withOpacity(0.5),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'No available time slots',
+                  style: TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.grayText,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Please select another date',
+                  style: TextStyle(
+                    fontFamily: 'OpenSans',
+                    fontSize: 12,
+                    color: AppColors.grayText,
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
       ],
     );
+  }
+
+  String _formatSelectedDate() {
+    const months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    
+    return '${months[selectedDate.month - 1]} ${selectedDate.day}, ${selectedDate.year}';
   }
 
   Widget _buildTopicSection() {
