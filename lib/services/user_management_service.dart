@@ -201,6 +201,27 @@ class UserManagementService {
     }
   }
 
+  /// Update user profile information
+  static Future<bool> updateUser(String userId, Map<String, dynamic> userData) async {
+    try {
+      // Add metadata
+      userData['updated_at'] = FieldValue.serverTimestamp();
+      
+      await _firestore.collection('users').doc(userId).update(userData);
+
+      // Record admin activity
+      await _recordAdminActivity(
+        action: 'User profile updated',
+        targetUserId: userId,
+      );
+
+      return true;
+    } catch (e) {
+      print('Error updating user: $e');
+      return false;
+    }
+  }
+
   /// Update user role (user, professional, admin)
   static Future<bool> updateUserRole(String userId, String role) async {
     try {

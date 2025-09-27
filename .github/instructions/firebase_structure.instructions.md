@@ -24,6 +24,9 @@ collections:
       weekly_budget_min: number (int)
       weekly_budget_max: number (int)
       created_at: timestamp
+      updated_at: timestamp (automatically set by admin operations)
+      account_status: string (enum: ["active", "suspended", "deleted"], default: "active")
+      deleted_at: timestamp (set when account is deleted)
       role: string (enum: ["user", "admin", "professional"])
       # Professional-specific fields (only for role="professional")
       specialization: string (optional, for professionals)
