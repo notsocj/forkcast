@@ -99,6 +99,11 @@ collections:
       user_id: reference (→ users.userId)
       user_name: string (denormalized for quick access)
       user_specialization: string (optional, for professionals)
+      # Moderation fields
+      is_hidden: boolean (optional, default false, true if hidden by admin)
+      hidden_at: timestamp (optional, when content was hidden)
+      hidden_by: reference (optional, → users.userId of admin who hid content)
+      hidden_reason: string (optional, reason for hiding)
 
   recipes:
     documentId: recipeId (string)
@@ -140,6 +145,11 @@ collections:
       expert_specialization: string (optional, for professionals)
       answer_text: string
       answered_at: timestamp
+      # Moderation fields
+      is_hidden: boolean (optional, default false, true if hidden by admin)
+      hidden_at: timestamp (optional, when content was hidden)
+      hidden_by: reference (optional, → users.userId of admin who hid content)
+      hidden_reason: string (optional, reason for hiding)
 
   # Professional-specific collections
   consultations:
@@ -215,6 +225,63 @@ collections:
       usage_count: number (int, how many users have used this feature)
       total_users: number (int, total number of users for percentage calculation)
       last_updated: timestamp
+
+  # Forum Management and Moderation Collections
+  reported_content:
+    documentId: reportId (string, auto-generated)
+    fields:
+      content_type: string (enum: ["question", "answer"])
+      content_id: reference (→ qna_questions.questionId or qna_answers.answerId)
+      reported_by_id: reference (→ users.userId)
+      reported_by_name: string (denormalized for quick access)
+      reason: string (reason for reporting, e.g., "Spam", "Inappropriate", "Harassment")
+      description: string (optional, additional details about the report)
+      status: string (enum: ["pending", "reviewed", "dismissed", "action_taken"], default: "pending")
+      reported_at: timestamp (when the report was submitted)
+      original_author: string (denormalized author name of the reported content)
+      content_text: string (denormalized content text for quick review)
+      admin_notes: string (optional, notes added by admin during review)
+      reviewed_at: timestamp (optional, when admin reviewed the report)
+      reviewed_by: reference (optional, → users.userId of admin who reviewed)
+      action_taken: string (optional, action taken by admin: "hide", "delete", "warn_user")
+
+  moderation_logs:
+    documentId: logId (string, auto-generated)
+    fields:
+      admin_id: reference (→ users.userId)
+      content_type: string (type of content moderated: "question", "answer")
+      content_id: string (ID of the moderated content)
+      action: string (action taken: "hide", "delete", "warn_user")
+      reason: string (reason for the moderation action)
+      timestamp: timestamp (when the action was taken)
+
+  # Admin Consultation Management Collections
+  professional_management_logs:
+    documentId: logId (string, auto-generated)
+    fields:
+      admin_id: reference (→ users.userId)
+      admin_name: string (denormalized for quick access)
+      professional_id: reference (→ users.userId)
+      professional_name: string (denormalized for quick access)
+      action: string (action taken: "verify", "unverify", "suspend", "reactivate")
+      reason: string (optional, reason for the action)
+      timestamp: timestamp (when the action was taken)
+      previous_verification_status: boolean (professional's verification status before action)
+      new_verification_status: boolean (professional's verification status after action)
+
+  consultation_management_logs:
+    documentId: logId (string, auto-generated)
+    fields:
+      admin_id: reference (→ users.userId)
+      admin_name: string (denormalized for quick access)
+      consultation_id: reference (→ consultations.consultationId)
+      patient_name: string (denormalized for quick access)
+      professional_name: string (denormalized for quick access)
+      action: string (action taken: "approve", "reject", "cancel", "reschedule")
+      reason: string (optional, reason for the action)
+      timestamp: timestamp (when the action was taken)
+      previous_status: string (consultation status before action)
+      new_status: string (consultation status after action)
 
 ## Rules for ForkCast AI: 
 - Only use the collections and fields defined above. 
