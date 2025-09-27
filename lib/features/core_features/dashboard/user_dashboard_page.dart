@@ -297,47 +297,8 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       backgroundColor: AppColors.successGreen,
       body: Column(
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            color: AppColors.successGreen,
-            child: SafeArea(
-              bottom: false,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Welcome, ${_currentUser?.fullName.split(' ').first ?? 'User'}!',
-                    style: const TextStyle(
-                      fontFamily: 'Lato',
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.white,
-                    ),
-                  ),
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryAccent,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Center(
-                      child: Text(
-                        _getUserInitials(_currentUser?.fullName ?? 'User'),
-                        style: const TextStyle(
-                          fontFamily: 'Lato',
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
+          // Enhanced Header with Icon and Description
+          _buildEnhancedHeader(),
           Expanded(
             child: ClipRRect(
               borderRadius: const BorderRadius.only(
@@ -381,6 +342,99 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
         ],
       ),
       
+    );
+  }
+
+  Widget _buildEnhancedHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.successGreen,
+            AppColors.successGreen.withOpacity(0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.successGreen.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.dashboard_outlined,
+                color: AppColors.white,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Dashboard',
+                    style: TextStyle(
+                      fontFamily: 'Lato',
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Welcome back, ${_currentUser?.fullName.split(' ').first ?? 'User'}! Track your daily nutrition',
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      fontSize: 14,
+                      color: AppColors.white.withOpacity(0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // Profile Icon with User Initials
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: AppColors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: AppColors.white.withOpacity(0.3),
+                  width: 2,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  _getUserInitials(_currentUser?.fullName ?? 'User'),
+                  style: TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

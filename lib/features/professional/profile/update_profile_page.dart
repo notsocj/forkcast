@@ -147,45 +147,149 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
     }
   }
 
+  String _getUserInitials() {
+    String fullName = _nameController.text.trim();
+    
+    // If name is empty, return default initials
+    if (fullName.isEmpty) {
+      return 'DR'; // Default for "Doctor"
+    }
+    
+    // Split the name by spaces and get individual words
+    List<String> nameParts = fullName.split(' ').where((part) => part.isNotEmpty).toList();
+    
+    String initials = '';
+    
+    // Get first letter of each name part, limit to 2 letters
+    for (int i = 0; i < nameParts.length && initials.length < 2; i++) {
+      if (nameParts[i].isNotEmpty) {
+        initials += nameParts[i][0].toUpperCase();
+      }
+    }
+    
+    // If we only have 1 initial and the first name has more letters, add second letter
+    if (initials.length == 1 && nameParts.isNotEmpty && nameParts[0].length > 1) {
+      initials += nameParts[0][1].toUpperCase();
+    }
+    
+    // If still less than 2 characters and we have a name, pad with first letters
+    if (initials.length < 2 && fullName.isNotEmpty) {
+      String cleanName = fullName.replaceAll(' ', '');
+      for (int i = initials.length; i < 2 && i < cleanName.length; i++) {
+        initials += cleanName[i].toUpperCase();
+      }
+    }
+    
+    // Ensure we return exactly 2 characters, or fall back to default
+    return initials.length >= 2 ? initials.substring(0, 2) : (initials.isEmpty ? 'DR' : initials + 'R');
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.successGreen,
+            AppColors.successGreen.withOpacity(0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.successGreen.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.edit,
+              color: AppColors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Update Profile',
+                  style: TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Edit your professional information',
+                  style: TextStyle(
+                    fontFamily: 'OpenSans',
+                    fontSize: 14,
+                    color: AppColors.white.withOpacity(0.9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: AppColors.primaryBackground,
+        backgroundColor: AppColors.successGreen,
         body: const Center(
           child: CircularProgressIndicator(
-            color: AppColors.successGreen,
+            color: AppColors.white,
           ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: AppColors.primaryBackground,
+      backgroundColor: AppColors.successGreen,
       body: SafeArea(
         child: Column(
           children: [
-            // Page Title
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-              child: Text(
-                'Update Profile',
-                style: TextStyle(
-                  fontFamily: 'Lato',
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColorsExtension.blackText,
-                ),
-              ),
-            ),
-            // Content
+            // Green Header
+            _buildHeader(),
+            // White Content Container
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Profile Picture Section
                       _buildProfilePictureSection(),
@@ -318,6 +422,7 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
                       const SizedBox(height: 20),
                     ],
                   ),
+                  ),
                 ),
               ),
             ),
@@ -347,7 +452,7 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
             ),
             child: Center(
               child: Text(
-                'SJ',
+                _getUserInitials(),
                 style: TextStyle(
                   fontFamily: 'Lato',
                   fontSize: 36,

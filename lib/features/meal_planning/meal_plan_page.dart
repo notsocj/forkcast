@@ -178,22 +178,84 @@ class _MealPlanPageState extends State<MealPlanPage> {
   }
 
   Widget _buildHeader() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.successGreen,
+            AppColors.successGreen.withOpacity(0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.successGreen.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.restaurant_menu,
+                    color: AppColors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Meal Planner',
+                        style: TextStyle(
+                          fontFamily: 'Lato',
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Plan your daily meals and discover healthy recipes',
+                        style: TextStyle(
+                          fontFamily: 'OpenSans',
+                          fontSize: 14,
+                          color: AppColors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Enhanced Search Bar
+            Container(
+              height: 48,
               decoration: BoxDecoration(
                 color: AppColors.white,
-                borderRadius: BorderRadius.circular(25),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: AppColors.successGreen.withOpacity(0.3),
+                  width: 2,
+                ),
               ),
               child: TextField(
                 controller: _searchController,
@@ -208,38 +270,49 @@ class _MealPlanPageState extends State<MealPlanPage> {
                   }
                 },
                 decoration: InputDecoration(
-                  hintText: 'Search',
+                  hintText: 'Search for meals and recipes...',
                   hintStyle: TextStyle(
-                    color: AppColors.grayText,
+                    color: AppColors.grayText.withOpacity(0.7),
                     fontFamily: 'OpenSans',
+                    fontSize: 16,
                   ),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: AppColors.grayText,
+                  prefixIcon: Container(
+                    padding: const EdgeInsets.all(12),
+                    child: Icon(
+                      Icons.search,
+                      color: AppColors.successGreen,
+                      size: 24,
+                    ),
                   ),
+                  suffixIcon: _searchController.text.isNotEmpty
+                      ? GestureDetector(
+                          onTap: () {
+                            _searchController.clear();
+                            setState(() {});
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(12),
+                            child: Icon(
+                              Icons.clear,
+                              color: AppColors.grayText,
+                              size: 20,
+                            ),
+                          ),
+                        )
+                      : null,
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
-                  ),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.blackText,
                 ),
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.menu,
-              color: AppColors.white,
-              size: 24,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

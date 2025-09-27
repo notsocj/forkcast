@@ -80,6 +80,76 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
     }
   }
 
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.successGreen,
+            AppColors.successGreen.withOpacity(0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.successGreen.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.schedule,
+              color: AppColors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Upcoming Schedules',
+                  style: TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Manage your appointments',
+                  style: TextStyle(
+                    fontFamily: 'OpenSans',
+                    fontSize: 14,
+                    color: AppColors.white.withOpacity(0.9),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _onFilterChanged(int index) {
     setState(() {
       _selectedFilterIndex = index;
@@ -120,55 +190,53 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        backgroundColor: AppColors.primaryBackground,
+        backgroundColor: AppColors.successGreen,
         body: const Center(
           child: CircularProgressIndicator(
-            color: AppColors.successGreen,
+            color: AppColors.white,
           ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: AppColors.primaryBackground,
+      backgroundColor: AppColors.successGreen,
       body: SafeArea(
         child: Column(
           children: [
-            // Page Title
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-              child: Text(
-                'Upcoming Schedules',
-                style: TextStyle(
-                  fontFamily: 'Lato',
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColorsExtension.blackText,
-                ),
-              ),
-            ),
-            // Content
+            // Green Header
+            _buildHeader(),
+            // White Content Container
             Expanded(
-              child: RefreshIndicator(
-                color: AppColors.successGreen,
-                onRefresh: _loadUpcomingSchedules,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Summary Stats
-                      _buildSummaryStats(),
-                      const SizedBox(height: 24),
-                      
-                      // Filter Tabs
-                      _buildFilterTabs(),
-                      const SizedBox(height: 24),
-                      
-                      // Appointments List
-                      _buildAppointmentsList(),
-                    ],
+              child: Container(
+                decoration: const BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                ),
+                child: RefreshIndicator(
+                  color: AppColors.successGreen,
+                  onRefresh: _loadUpcomingSchedules,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Summary Stats
+                        _buildSummaryStats(),
+                        const SizedBox(height: 24),
+                        
+                        // Filter Tabs
+                        _buildFilterTabs(),
+                        const SizedBox(height: 24),
+                        
+                        // Appointments List
+                        _buildAppointmentsList(),
+                      ],
+                    ),
                   ),
                 ),
               ),

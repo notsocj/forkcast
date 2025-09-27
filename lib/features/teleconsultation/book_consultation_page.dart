@@ -159,59 +159,124 @@ class _BookConsultationPageState extends State<BookConsultationPage>
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 30, 20, 0),
-      child: Column(
-        children: [
-          // Improved tab segmentation control
-          Container(
-            height: 48,
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: AppColors.white.withOpacity(0.15),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                color: AppColors.white.withOpacity(0.2),
-                width: 1.5,
-              ),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              indicator: BoxDecoration(
-                color: AppColors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.successGreen,
+            AppColors.successGreen.withOpacity(0.8),
+          ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 20),
+          child: Column(
+            children: [
+              // Header with icon and title
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.medical_services_outlined,
+                      color: AppColors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Teleconsultation',
+                          style: TextStyle(
+                            fontFamily: 'Lato',
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Book appointments and manage consultations with professionals',
+                          style: TextStyle(
+                            fontFamily: 'OpenSans',
+                            fontSize: 14,
+                            color: AppColors.white.withOpacity(0.9),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              indicatorPadding: EdgeInsets.zero,
-              labelPadding: EdgeInsets.zero,
-              labelColor: AppColors.successGreen,
-              unselectedLabelColor: AppColors.white,
-              labelStyle: const TextStyle(
-                fontFamily: 'Lato',
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
+              const SizedBox(height: 20),
+              // Tab segmentation control
+              Container(
+                height: 48,
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppColors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: AppColors.white.withOpacity(0.2),
+                    width: 1.5,
+                  ),
+                ),
+                child: TabBar(
+                  controller: _tabController,
+                  indicator: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  indicatorPadding: EdgeInsets.zero,
+                  labelPadding: EdgeInsets.zero,
+                  labelColor: AppColors.successGreen,
+                  unselectedLabelColor: AppColors.white,
+                  labelStyle: const TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  unselectedLabelStyle: const TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  dividerColor: Colors.transparent,
+                  splashFactory: NoSplash.splashFactory,
+                  overlayColor: MaterialStateProperty.all(Colors.transparent),
+                  tabs: const [
+                    Tab(text: 'Book Consultation'),
+                    Tab(text: 'My Appointments'),
+                  ],
+                ),
               ),
-              unselectedLabelStyle: const TextStyle(
-                fontFamily: 'Lato',
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-              ),
-              dividerColor: Colors.transparent,
-              splashFactory: NoSplash.splashFactory,
-              overlayColor: MaterialStateProperty.all(Colors.transparent),
-              tabs: const [
-                Tab(text: 'Book Consultation'),
-                Tab(text: 'My Appointments'),
-              ],
-            ),
+            ],
           ),
-          const SizedBox(height: 20),
-        ],
+        ),
       ),
     );
   }

@@ -145,73 +145,188 @@ class _QnaForumPageState extends State<QnaForumPage> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-      child: Row(
-        children: [
-          // Search bar
-          Expanded(
-            child: Container(
-              height: 44,
-              decoration: BoxDecoration(
-                color: AppColors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: AppColors.white.withOpacity(0.3),
-                  width: 1,
-                ),
-              ),
-              child: TextField(
-                controller: _searchController,
-                style: TextStyle(
-                  fontFamily: 'OpenSans',
-                  fontSize: 14,
-                  color: AppColors.white,
-                ),
-                decoration: InputDecoration(
-                  hintText: 'Search',
-                  hintStyle: TextStyle(
-                    fontFamily: 'OpenSans',
-                    fontSize: 14,
-                    color: AppColors.white.withOpacity(0.7),
-                  ),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: AppColors.white.withOpacity(0.7),
-                    size: 20,
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-              ),
-            ),
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.successGreen,
+            AppColors.successGreen.withOpacity(0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.successGreen.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          const SizedBox(width: 12),
-          // Saved button
-          Container(
-            height: 44,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: AppColors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: AppColors.white.withOpacity(0.3),
-                width: 1,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                'Saved',
-                style: TextStyle(
-                  fontFamily: 'OpenSans',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.forum,
                   color: AppColors.white,
+                  size: 24,
                 ),
               ),
-            ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Q&A Forum',
+                      style: TextStyle(
+                        fontFamily: 'Lato',
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Ask questions and get expert advice from nutritionists',
+                      style: TextStyle(
+                        fontFamily: 'OpenSans',
+                        fontSize: 14,
+                        color: AppColors.white.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          // Enhanced Search Bar and Saved Button
+          Row(
+            children: [
+              // Search bar with improved visibility
+              Expanded(
+                child: Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: AppColors.white.withOpacity(0.8),
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                      BoxShadow(
+                        color: AppColors.white.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, -1),
+                      ),
+                    ],
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.blackText,
+                    ),
+                    decoration: InputDecoration(
+                      hintText: 'Search questions...',
+                      hintStyle: TextStyle(
+                        fontFamily: 'OpenSans',
+                        fontSize: 16,
+                        color: AppColors.grayText.withOpacity(0.7),
+                      ),
+                      prefixIcon: Container(
+                        padding: const EdgeInsets.all(12),
+                        child: Icon(
+                          Icons.search,
+                          color: AppColors.successGreen,
+                          size: 24,
+                        ),
+                      ),
+                      suffixIcon: _searchController.text.isNotEmpty
+                          ? GestureDetector(
+                              onTap: () {
+                                _searchController.clear();
+                                setState(() {});
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                child: Icon(
+                                  Icons.clear,
+                                  color: AppColors.grayText,
+                                  size: 20,
+                                ),
+                              ),
+                            )
+                          : null,
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Enhanced Saved button
+              Container(
+                height: 48,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                    color: AppColors.white.withOpacity(0.8),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.bookmark_outline,
+                      color: AppColors.successGreen,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Saved',
+                      style: TextStyle(
+                        fontFamily: 'Lato',
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.blackText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

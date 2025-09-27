@@ -22,6 +22,7 @@ class _SignUpPageState extends State<SignUpPage> {
   bool _isPasswordVisible = false;
   bool _agreeToTerms = false;
   bool _isProfessionalSignup = false;
+  bool _isAdminSignup = false;
 
   @override
   void dispose() {
@@ -60,7 +61,11 @@ class _SignUpPageState extends State<SignUpPage> {
                   Row(
                     children: [
                       Text(
-                        _isProfessionalSignup ? "Join as Professional!" : "Join Forkcast Today!",
+                        _isAdminSignup 
+                            ? "Admin Registration" 
+                            : _isProfessionalSignup 
+                                ? "Join as Professional!" 
+                                : "Join Forkcast Today!",
                         style: const TextStyle(
                           fontFamily: AppConstants.headingFont,
                           fontWeight: FontWeight.bold,
@@ -70,7 +75,11 @@ class _SignUpPageState extends State<SignUpPage> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        _isProfessionalSignup ? "🩺" : "⭐",
+                        _isAdminSignup 
+                            ? "⚙️" 
+                            : _isProfessionalSignup 
+                                ? "🩺" 
+                                : "⭐",
                         style: const TextStyle(fontSize: 24),
                       ),
                     ],
@@ -80,9 +89,11 @@ class _SignUpPageState extends State<SignUpPage> {
                   
                   // Subtitle
                   Text(
-                    _isProfessionalSignup 
-                        ? "Create a professional account to provide nutrition consultations and help users achieve their health goals."
-                        : "Create a forkcast account to receive personalized meal plans, prevent malnutrition, unhealthy food choices and achieve your health goals.",
+                    _isAdminSignup
+                        ? "Create an admin account to manage users, recipes, market data, and oversee system operations."
+                        : _isProfessionalSignup 
+                            ? "Create a professional account to provide nutrition consultations and help users achieve their health goals."
+                            : "Create a forkcast account to receive personalized meal plans, prevent malnutrition, unhealthy food choices and achieve your health goals.",
                     style: const TextStyle(
                       fontFamily: AppConstants.primaryFont,
                       fontSize: 14,
@@ -93,7 +104,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   
                   const SizedBox(height: 24),
                   
-                  // Professional/User Toggle
+                  // User/Professional/Admin Toggle
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
@@ -111,12 +122,13 @@ class _SignUpPageState extends State<SignUpPage> {
                             onTap: () {
                               setState(() {
                                 _isProfessionalSignup = false;
+                                _isAdminSignup = false;
                               });
                             },
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               decoration: BoxDecoration(
-                                color: !_isProfessionalSignup ? AppColors.successGreen : Colors.transparent,
+                                color: (!_isProfessionalSignup && !_isAdminSignup) ? AppColors.successGreen : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
@@ -124,9 +136,9 @@ class _SignUpPageState extends State<SignUpPage> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontFamily: AppConstants.primaryFont,
-                                  fontSize: 14,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: !_isProfessionalSignup ? AppColors.white : AppColors.grayText,
+                                  color: (!_isProfessionalSignup && !_isAdminSignup) ? AppColors.white : AppColors.grayText,
                                 ),
                               ),
                             ),
@@ -137,6 +149,7 @@ class _SignUpPageState extends State<SignUpPage> {
                             onTap: () {
                               setState(() {
                                 _isProfessionalSignup = true;
+                                _isAdminSignup = false;
                               });
                             },
                             child: Container(
@@ -150,9 +163,36 @@ class _SignUpPageState extends State<SignUpPage> {
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontFamily: AppConstants.primaryFont,
-                                  fontSize: 14,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: _isProfessionalSignup ? AppColors.white : AppColors.grayText,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isProfessionalSignup = false;
+                                _isAdminSignup = true;
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              decoration: BoxDecoration(
+                                color: _isAdminSignup ? AppColors.successGreen : Colors.transparent,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                'Admin',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: AppConstants.primaryFont,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: _isAdminSignup ? AppColors.white : AppColors.grayText,
                                 ),
                               ),
                             ),
@@ -498,7 +538,7 @@ class _SignUpPageState extends State<SignUpPage> {
             householdSize: 1,
             weeklyBudgetMin: 0,
             weeklyBudgetMax: 0,
-            role: _isProfessionalSignup ? 'professional' : 'user',
+            role: _isAdminSignup ? 'admin' : (_isProfessionalSignup ? 'professional' : 'user'),
             specialization: _isProfessionalSignup ? 'Nutritionist' : null, // Default specialization for professionals
             createdAt: DateTime.now(),
             phoneNumber: null,
@@ -506,15 +546,30 @@ class _SignUpPageState extends State<SignUpPage> {
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(_isProfessionalSignup 
-                ? 'Professional account created!' 
-                : 'Account created!'),
+              content: Text(_isAdminSignup 
+                ? 'Admin account created!' 
+                : _isProfessionalSignup 
+                  ? 'Professional account created!' 
+                  : 'Account created!'),
               backgroundColor: AppColors.successGreen,
             ),
           );
 
           // Navigate to appropriate setup flow based on user type
-          if (_isProfessionalSignup) {
+          if (_isAdminSignup) {
+            // For now, show a message and return to login
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Admin account created! Please contact system administrator for activation.'),
+                backgroundColor: AppColors.successGreen,
+                duration: Duration(seconds: 3),
+              ),
+            );
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const SignInPage()),
+            );
+          } else if (_isProfessionalSignup) {
             // Navigate to professional setup flow
             Navigator.pushReplacement(
               context,

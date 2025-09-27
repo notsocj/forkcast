@@ -127,29 +127,62 @@ class _MarketPriceDashboardPageState extends State<MarketPriceDashboardPage> {
   Widget _buildHeader() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        mainAxisSize: MainAxisSize.min,
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.successGreen,
+            AppColors.successGreen.withOpacity(0.8),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.successGreen.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
         children: [
-          Text(
-            'Market Prices',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: AppConstants.headingFont,
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.white.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              Icons.trending_up,
               color: AppColors.white,
+              size: 24,
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Real-time prices from local markets',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: AppConstants.primaryFont,
-              fontSize: 16,
-              color: AppColors.white.withOpacity(0.9),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Market Prices',
+                  style: TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Real-time prices from local markets and trends',
+                  style: TextStyle(
+                    fontFamily: 'OpenSans',
+                    fontSize: 14,
+                    color: AppColors.white.withOpacity(0.9),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
