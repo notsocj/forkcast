@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants.dart';
+import '../../../services/analytics_service.dart';
 
 class AppAnalyticsPage extends StatefulWidget {
   const AppAnalyticsPage({super.key});
@@ -10,33 +11,125 @@ class AppAnalyticsPage extends StatefulWidget {
 }
 
 class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
+  bool _isLoading = true;
+  Map<String, int> _userCounts = {};
+  int _activeToday = 0;
+  int _totalMealPlans = 0;
+  int _totalQnAQuestions = 0;
+  Map<String, int> _dailyActiveUsers = {};
+  Map<String, double> _featureUsage = {};
+  List<Map<String, dynamic>> _recentActivities = [];
+  Map<String, String> _growthStats = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAnalyticsData();
+  }
+
+  Future<void> _loadAnalyticsData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Load all analytics data concurrently for better performance
+      final results = await Future.wait([
+        AnalyticsService.getUserCountByRole(),
+        AnalyticsService.getActiveUsersToday(),
+        AnalyticsService.getTotalMealPlans(),
+        AnalyticsService.getTotalQnAQuestions(),
+        AnalyticsService.getDailyActiveUsers(),
+        AnalyticsService.getFeatureUsage(),
+        AnalyticsService.getRecentActivities(limit: 5),
+        AnalyticsService.getGrowthStats(),
+      ]);
+
+      setState(() {
+        _userCounts = results[0] as Map<String, int>;
+        _activeToday = results[1] as int;
+        _totalMealPlans = results[2] as int;
+        _totalQnAQuestions = results[3] as int;
+        _dailyActiveUsers = results[4] as Map<String, int>;
+        _featureUsage = results[5] as Map<String, double>;
+        _recentActivities = results[6] as List<Map<String, dynamic>>;
+        _growthStats = results[7] as Map<String, String>;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading analytics data: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      
+      // Show error message to user
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load analytics data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: AppColors.successGreen,
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Refresh Button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Analytics Dashboard',
+                style: TextStyle(
+                  fontFamily: AppConstants.headingFont,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.blackText,
+                ),
+              ),
+              IconButton(
+                onPressed: _loadAnalyticsData,
+                icon: const Icon(Icons.refresh),
+                color: AppColors.successGreen,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
           // Overview Statistics
           Row(
             children: [
               Expanded(
                 child: _buildStatCard(
                   'Total Users',
-                  '2,847',
+                  '${_userCounts['total'] ?? 0}',
                   Icons.people,
                   AppColors.successGreen,
-                  '+12%',
+                  _growthStats['users'] ?? '+0%',
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildStatCard(
                   'Active Today',
-                  '892',
+                  '$_activeToday',
                   Icons.person_outline,
                   Colors.blue,
-                  '+5%',
+                  _growthStats['active_today'] ?? '+0%',
                 ),
               ),
             ],
@@ -47,20 +140,20 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
               Expanded(
                 child: _buildStatCard(
                   'Meal Plans',
-                  '15,234',
+                  '$_totalMealPlans',
                   Icons.restaurant_menu,
                   Colors.orange,
-                  '+18%',
+                  _growthStats['meal_plans'] ?? '+0%',
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildStatCard(
                   'Q&A Posts',
-                  '1,456',
+                  '$_totalQnAQuestions',
                   Icons.forum,
                   Colors.purple,
-                  '+8%',
+                  _growthStats['qna_posts'] ?? '+0%',
                 ),
               ),
             ],
@@ -115,6 +208,16 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
         ],
       ),
     );
+  }
+
+  /// Helper method to calculate relative height for chart bars
+  double _getRelativeHeight(int value) {
+    if (_dailyActiveUsers.isEmpty) return 0.1;
+    
+    final maxValue = _dailyActiveUsers.values.reduce((a, b) => a > b ? a : b);
+    if (maxValue == 0) return 0.1;
+    
+    return (value / maxValue).clamp(0.1, 1.0);
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color color, String change) {
@@ -217,13 +320,13 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildChartBar('Mon', 0.6),
-                _buildChartBar('Tue', 0.8),
-                _buildChartBar('Wed', 0.7),
-                _buildChartBar('Thu', 0.9),
-                _buildChartBar('Fri', 1.0),
-                _buildChartBar('Sat', 0.5),
-                _buildChartBar('Sun', 0.4),
+                _buildChartBar('Mon', _getRelativeHeight(_dailyActiveUsers['Mon'] ?? 0)),
+                _buildChartBar('Tue', _getRelativeHeight(_dailyActiveUsers['Tue'] ?? 0)),
+                _buildChartBar('Wed', _getRelativeHeight(_dailyActiveUsers['Wed'] ?? 0)),
+                _buildChartBar('Thu', _getRelativeHeight(_dailyActiveUsers['Thu'] ?? 0)),
+                _buildChartBar('Fri', _getRelativeHeight(_dailyActiveUsers['Fri'] ?? 0)),
+                _buildChartBar('Sat', _getRelativeHeight(_dailyActiveUsers['Sat'] ?? 0)),
+                _buildChartBar('Sun', _getRelativeHeight(_dailyActiveUsers['Sun'] ?? 0)),
               ],
             ),
           ),
@@ -263,11 +366,11 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
 
   Widget _buildFeatureUsageList() {
     final features = [
-      {'name': 'Meal Planning', 'usage': '85%', 'icon': Icons.restaurant_menu},
-      {'name': 'Market Prices', 'usage': '72%', 'icon': Icons.store},
-      {'name': 'Q&A Forum', 'usage': '68%', 'icon': Icons.forum},
-      {'name': 'Teleconsultation', 'usage': '45%', 'icon': Icons.video_call},
-      {'name': 'BMI Calculator', 'usage': '92%', 'icon': Icons.calculate},
+      {'name': 'Meal Planning', 'usage': '${(_featureUsage['Meal Planning'] ?? 0).toInt()}%', 'icon': Icons.restaurant_menu},
+      {'name': 'Market Prices', 'usage': '${(_featureUsage['Market Prices'] ?? 0).toInt()}%', 'icon': Icons.store},
+      {'name': 'Q&A Forum', 'usage': '${(_featureUsage['Q&A Forum'] ?? 0).toInt()}%', 'icon': Icons.forum},
+      {'name': 'Teleconsultation', 'usage': '${(_featureUsage['Teleconsultation'] ?? 0).toInt()}%', 'icon': Icons.video_call},
+      {'name': 'BMI Calculator', 'usage': '${(_featureUsage['BMI Calculator'] ?? 0).toInt()}%', 'icon': Icons.calculate},
     ];
 
     return Container(
@@ -325,38 +428,27 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
   }
 
   Widget _buildRecentActivityList() {
-    final activities = [
-      {
-        'action': 'New user registration',
-        'user': 'Maria Santos',
-        'time': '5 minutes ago',
-        'icon': Icons.person_add,
-      },
-      {
-        'action': 'Meal plan created',
-        'user': 'Juan Dela Cruz',
-        'time': '12 minutes ago',
-        'icon': Icons.restaurant_menu,
-      },
-      {
-        'action': 'Q&A question posted',
-        'user': 'Anna Reyes',
-        'time': '18 minutes ago',
-        'icon': Icons.help_outline,
-      },
-      {
-        'action': 'Teleconsultation booked',
-        'user': 'Carlos Garcia',
-        'time': '25 minutes ago',
-        'icon': Icons.video_call,
-      },
-      {
-        'action': 'Recipe rated',
-        'user': 'Lisa Gonzales',
-        'time': '32 minutes ago',
-        'icon': Icons.star,
-      },
-    ];
+    if (_recentActivities.isEmpty) {
+      return Container(
+        height: 200,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.successGreen.withOpacity(0.2)),
+        ),
+        child: const Center(
+          child: Text(
+            'No recent activities found',
+            style: TextStyle(
+              fontFamily: AppConstants.primaryFont,
+              fontSize: 16,
+              color: AppColors.grayText,
+            ),
+          ),
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -366,7 +458,7 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
         border: Border.all(color: AppColors.successGreen.withOpacity(0.2)),
       ),
       child: Column(
-        children: activities.map((activity) {
+        children: _recentActivities.map((activity) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: Row(
@@ -378,7 +470,7 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
-                    activity['icon'] as IconData,
+                    _getIconData(activity['icon'] ?? 'circle'),
                     color: AppColors.grayText,
                     size: 18,
                   ),
@@ -389,7 +481,7 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        activity['action'] as String,
+                        activity['action'] ?? 'Unknown action',
                         style: const TextStyle(
                           fontFamily: AppConstants.primaryFont,
                           fontSize: 14,
@@ -398,7 +490,7 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
                         ),
                       ),
                       Text(
-                        'by ${activity['user']}',
+                        'by ${activity['user'] ?? 'Unknown user'}',
                         style: const TextStyle(
                           fontFamily: AppConstants.primaryFont,
                           fontSize: 12,
@@ -409,7 +501,7 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
                   ),
                 ),
                 Text(
-                  activity['time'] as String,
+                  activity['time'] ?? 'Unknown time',
                   style: const TextStyle(
                     fontFamily: AppConstants.primaryFont,
                     fontSize: 12,
@@ -422,5 +514,23 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
         }).toList(),
       ),
     );
+  }
+
+  /// Helper method to convert icon string to IconData
+  IconData _getIconData(String iconName) {
+    switch (iconName) {
+      case 'person_add':
+        return Icons.person_add;
+      case 'restaurant_menu':
+        return Icons.restaurant_menu;
+      case 'help_outline':
+        return Icons.help_outline;
+      case 'video_call':
+        return Icons.video_call;
+      case 'star':
+        return Icons.star;
+      default:
+        return Icons.circle;
+    }
   }
 }

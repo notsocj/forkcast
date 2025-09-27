@@ -6,11 +6,13 @@ class PersistentAuthService {
   static const String _keyRememberMe = 'remember_me';
   static const String _keyUserEmail = 'user_email';
   static const String _keyIsLoggedIn = 'is_logged_in';
+  static const String _keyUserRole = 'user_role';
 
-  /// Save remember me state and user email
+  /// Save remember me state, user email, and user role
   static Future<void> saveRememberMeState({
     required bool rememberMe,
     required String email,
+    String? userRole,
   }) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_keyRememberMe, rememberMe);
@@ -18,10 +20,14 @@ class PersistentAuthService {
     if (rememberMe) {
       await prefs.setString(_keyUserEmail, email);
       await prefs.setBool(_keyIsLoggedIn, true);
+      if (userRole != null) {
+        await prefs.setString(_keyUserRole, userRole);
+      }
     } else {
       // Clear stored data if remember me is disabled
       await prefs.remove(_keyUserEmail);
       await prefs.remove(_keyIsLoggedIn);
+      await prefs.remove(_keyUserRole);
     }
   }
 
@@ -35,6 +41,12 @@ class PersistentAuthService {
   static Future<String?> getStoredEmail() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_keyUserEmail);
+  }
+
+  /// Get stored user role
+  static Future<String?> getStoredUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyUserRole);
   }
 
   /// Check if user should stay logged in
@@ -51,6 +63,7 @@ class PersistentAuthService {
     await prefs.remove(_keyRememberMe);
     await prefs.remove(_keyUserEmail);
     await prefs.remove(_keyIsLoggedIn);
+    await prefs.remove(_keyUserRole);
   }
 
   /// Set logged in state (for manual control)

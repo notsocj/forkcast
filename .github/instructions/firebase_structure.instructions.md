@@ -188,6 +188,31 @@ collections:
       reason: string (optional, reason for blocking/adding availability)
       created_at: timestamp
 
+  # Admin Analytics and Activity Tracking Collections
+  user_activity:
+    documentId: userId (string, same as users collection)
+    fields:
+      user_id: reference (→ users.userId)
+      last_login: timestamp (tracks when user last logged in)
+      updated_at: timestamp
+
+  user_activities:
+    documentId: activityId (string, auto-generated)
+    fields:
+      user_id: reference (→ users.userId)
+      user_name: string (denormalized for quick access)
+      action: string (description of user action, e.g., "New user registration", "Meal plan created")
+      metadata: map (optional, additional data about the action)
+      created_at: timestamp
+
+  feature_usage:
+    documentId: featureId (string)
+    fields:
+      feature_name: string (e.g., "Meal Planning", "Market Prices", "Q&A Forum", "Teleconsultation", "BMI Calculator")
+      usage_count: number (int, how many users have used this feature)
+      total_users: number (int, total number of users for percentage calculation)
+      last_updated: timestamp
+
 ## Rules for ForkCast AI: 
 - Only use the collections and fields defined above. 
 - Use Firestore types: string, number, timestamp, reference, array, map. 

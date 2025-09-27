@@ -7,6 +7,7 @@ import '../../services/persistent_auth_service.dart';
 import '../../services/user_service.dart';
 import '../core_features/main_navigation_wrapper.dart';
 import '../professional/professional_navigation_wrapper.dart';
+import '../admin/admin_navigation_wrapper.dart';
 import 'get_started_page.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -36,9 +37,22 @@ class _SplashScreenState extends State<SplashScreen> {
     // If remember me is enabled and user is authenticated, check role and navigate
     if (shouldStayLoggedIn && currentUser != null) {
       try {
-        // Get user role from Firebase
-        final userService = UserService();
-        final userRole = await userService.getCurrentUserRole(currentUser.uid);
+        // First try to get stored role for faster navigation
+        String? userRole = await PersistentAuthService.getStoredUserRole();
+        
+        // If no stored role, fetch from Firebase
+        if (userRole == null) {
+          final userService = UserService();
+          userRole = await userService.getCurrentUserRole(currentUser.uid);
+          // Save role for next time
+          if (userRole != null) {
+            await PersistentAuthService.saveRememberMeState(
+              rememberMe: true,
+              email: currentUser.email ?? '',
+              userRole: userRole,
+            );
+          }
+        }
         
         if (!mounted) return;
         
@@ -47,6 +61,11 @@ class _SplashScreenState extends State<SplashScreen> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const ProfessionalNavigationWrapper()),
+          );
+        } else if (userRole == 'admin') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const AdminNavigationWrapper()),
           );
         } else {
           // Default to user navigation (role = 'user' or null)

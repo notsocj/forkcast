@@ -528,6 +528,7 @@ class _SignInPageState extends State<SignInPage> {
             await PersistentAuthService.saveRememberMeState(
               rememberMe: _rememberMe,
               email: email,
+              userRole: userData.role,
             );
 
             ScaffoldMessenger.of(context).showSnackBar(
