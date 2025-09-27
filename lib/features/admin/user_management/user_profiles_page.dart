@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants.dart';
+import '../../../services/user_management_service.dart';
+import '../../../models/user.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UserProfilesPage extends StatefulWidget {
   const UserProfilesPage({super.key});
@@ -12,14 +15,122 @@ class UserProfilesPage extends StatefulWidget {
 class _UserProfilesPageState extends State<UserProfilesPage> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedFilter = 'All';
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _profiles = [];
+  Map<String, int> _analytics = {};
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // Load analytics and profiles concurrently
+      final results = await Future.wait([
+        UserManagementService.getHealthAnalytics(),
+        UserManagementService.getUserHealthProfiles(
+          healthConditionFilter: _selectedFilter,
+        ),
+      ]);
+
+      final analytics = results[0] as Map<String, dynamic>;
+      final profiles = results[1] as List<Map<String, dynamic>>;
+
+      setState(() {
+        _analytics = {
+          'totalProfiles': analytics['totalProfiles'] ?? 0,
+          'profilesWithHealthIssues': analytics['profilesWithHealthIssues'] ?? 0,
+          'activeThisWeek': analytics['activeThisWeek'] ?? 0,
+        };
+        _profiles = profiles;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading profiles data: $e');
+      setState(() {
+        _isLoading = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load data: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _performSearch() {
+    // For now, we'll filter locally. In production, consider server-side search
+    if (_searchController.text.isEmpty) {
+      _loadData();
+      return;
+    }
+
+    final searchTerm = _searchController.text.toLowerCase();
+    final filteredProfiles = _profiles.where((profile) {
+      final user = profile['user'] as User;
+      return user.fullName.toLowerCase().contains(searchTerm) ||
+             user.email.toLowerCase().contains(searchTerm);
+    }).toList();
+
+    setState(() {
+      _profiles = filteredProfiles;
+    });
+  }
+
+  void _filterByCondition(String condition) {
+    setState(() {
+      _selectedFilter = condition;
+    });
+    _loadData();
+  }
   
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: AppColors.successGreen,
+        ),
+      );
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Title and Refresh
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'User Health Profiles',
+                style: TextStyle(
+                  fontFamily: AppConstants.headingFont,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.blackText,
+                ),
+              ),
+              IconButton(
+                onPressed: _loadData,
+                icon: const Icon(Icons.refresh),
+                color: AppColors.successGreen,
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          
           // Search and Filters
           Row(
             children: [
@@ -39,6 +150,14 @@ class _UserProfilesPageState extends State<UserProfilesPage> {
                       Expanded(
                         child: TextField(
                           controller: _searchController,
+                          onChanged: (value) {
+                            // Debounce search
+                            Future.delayed(const Duration(milliseconds: 500), () {
+                              if (_searchController.text == value) {
+                                _performSearch();
+                              }
+                            });
+                          },
                           decoration: const InputDecoration(
                             hintText: 'Search profiles...',
                             hintStyle: TextStyle(
@@ -74,9 +193,9 @@ class _UserProfilesPageState extends State<UserProfilesPage> {
                         DropdownMenuItem(value: 'None', child: Text('No Conditions')),
                       ],
                       onChanged: (value) {
-                        setState(() {
-                          _selectedFilter = value!;
-                        });
+                        if (value != null) {
+                          _filterByCondition(value);
+                        }
                       },
                     ),
                   ),
@@ -91,41 +210,68 @@ class _UserProfilesPageState extends State<UserProfilesPage> {
           Row(
             children: [
               Expanded(
-                child: _buildAnalyticsCard('Total Profiles', '1,156', Icons.people, AppColors.successGreen),
+                child: _buildAnalyticsCard('Total Profiles', '${_analytics['totalProfiles'] ?? 0}', Icons.people, AppColors.successGreen),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildAnalyticsCard('With Health Issues', '342', Icons.medical_services, Colors.red),
+                child: _buildAnalyticsCard('With Health Issues', '${_analytics['profilesWithHealthIssues'] ?? 0}', Icons.medical_services, Colors.red),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: _buildAnalyticsCard('Active This Week', '89', Icons.trending_up, Colors.blue),
+                child: _buildAnalyticsCard('Active This Week', '${_analytics['activeThisWeek'] ?? 0}', Icons.trending_up, Colors.blue),
               ),
             ],
           ),
           
           const SizedBox(height: 24),
           
-          const Text(
-            'User Health Profiles',
-            style: TextStyle(
-              fontFamily: AppConstants.headingFont,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.blackText,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Health Profile Details',
+                style: TextStyle(
+                  fontFamily: AppConstants.headingFont,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.blackText,
+                ),
+              ),
+              Text(
+                '${_profiles.length} ${_profiles.length == 1 ? 'profile' : 'profiles'} found',
+                style: const TextStyle(
+                  fontFamily: AppConstants.primaryFont,
+                  fontSize: 14,
+                  color: AppColors.grayText,
+                ),
+              ),
+            ],
           ),
           
           const SizedBox(height: 16),
           
           // Profile Cards
-          ...List.generate(6, (index) => _buildProfileCard(
-            name: _getProfileName(index),
-            age: _getProfileAge(index),
-            bmi: _getProfileBMI(index),
-            conditions: _getHealthConditions(index),
-            lastActive: _getLastActive(index),
-          )),
+          if (_profiles.isEmpty)
+            Container(
+              height: 200,
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.successGreen.withOpacity(0.2)),
+              ),
+              child: const Center(
+                child: Text(
+                  'No profiles found',
+                  style: TextStyle(
+                    fontFamily: AppConstants.primaryFont,
+                    fontSize: 16,
+                    color: AppColors.grayText,
+                  ),
+                ),
+              ),
+            )
+          else
+            ..._profiles.map((profile) => _buildProfileCard(profile: profile)),
         ],
       ),
     );
@@ -186,19 +332,22 @@ class _UserProfilesPageState extends State<UserProfilesPage> {
     );
   }
   
-  Widget _buildProfileCard({
-    required String name,
-    required int age,
-    required double bmi,
-    required List<String> conditions,
-    required String lastActive,
-  }) {
+  Widget _buildProfileCard({required Map<String, dynamic> profile}) {
+    final user = profile['user'] as User;
+    final healthConditions = profile['healthConditions'] as List<String>? ?? [];
+    final lastLogin = profile['lastLogin'] as Timestamp?;
+    
+    final bmi = user.bmi ?? user.calculatedBmi;
     Color bmiColor = bmi < 18.5 ? Colors.blue :
                     bmi < 25 ? AppColors.successGreen :
                     bmi < 30 ? Colors.orange : Colors.red;
     String bmiCategory = bmi < 18.5 ? 'Underweight' :
                         bmi < 25 ? 'Normal' :
                         bmi < 30 ? 'Overweight' : 'Obese';
+    
+    String lastActive = lastLogin != null 
+        ? UserManagementService.formatTimeAgo(lastLogin)
+        : 'Never';
     
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -214,7 +363,7 @@ class _UserProfilesPageState extends State<UserProfilesPage> {
             radius: 28,
             backgroundColor: AppColors.successGreen.withOpacity(0.2),
             child: Text(
-              name[0].toUpperCase(),
+              user.fullName.isNotEmpty ? user.fullName[0].toUpperCase() : 'U',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -231,7 +380,7 @@ class _UserProfilesPageState extends State<UserProfilesPage> {
                   children: [
                     Flexible(
                       child: Text(
-                        name,
+                        user.fullName,
                         style: const TextStyle(
                           fontFamily: AppConstants.primaryFont,
                           fontSize: 16,
@@ -243,7 +392,7 @@ class _UserProfilesPageState extends State<UserProfilesPage> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '($age yrs)',
+                      '(${user.age} yrs)',
                       style: const TextStyle(
                         fontFamily: AppConstants.primaryFont,
                         fontSize: 14,
@@ -277,11 +426,11 @@ class _UserProfilesPageState extends State<UserProfilesPage> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                if (conditions.isNotEmpty)
+                if (healthConditions.isNotEmpty)
                   Wrap(
                     spacing: 4,
                     runSpacing: 4,
-                    children: conditions.map((condition) => Container(
+                    children: healthConditions.map((condition) => Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: Colors.red.withOpacity(0.1),
@@ -313,7 +462,7 @@ class _UserProfilesPageState extends State<UserProfilesPage> {
           ),
           PopupMenuButton<String>(
             onSelected: (value) {
-              _handleProfileAction(value, name);
+              _handleProfileAction(value, user);
             },
             itemBuilder: (context) => [
               const PopupMenuItem(
@@ -335,41 +484,60 @@ class _UserProfilesPageState extends State<UserProfilesPage> {
     );
   }
   
-  void _handleProfileAction(String action, String name) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$action for $name')),
+  void _handleProfileAction(String action, User user) {
+    switch (action) {
+      case 'view':
+        _showProfileDetailsDialog(user);
+        break;
+      case 'meals':
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Meal history for ${user.fullName} - Coming Soon'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+        break;
+      case 'health':
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Health data for ${user.fullName} - Coming Soon'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+        break;
+    }
+  }
+
+  void _showProfileDetailsDialog(User user) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Health Profile: ${user.fullName}'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Email: ${user.email}'),
+              Text('Age: ${user.age} years'),
+              Text('Gender: ${user.gender}'),
+              Text('Height: ${user.heightCm.toStringAsFixed(1)} cm'),
+              Text('Weight: ${user.weightKg.toStringAsFixed(1)} kg'),
+              Text('BMI: ${(user.bmi ?? user.calculatedBmi).toStringAsFixed(1)}'),
+              Text('Household Size: ${user.householdSize} people'),
+              Text('Weekly Budget: ₱${user.weeklyBudgetMin} - ₱${user.weeklyBudgetMax}'),
+              if (user.createdAt != null)
+                Text('Joined: ${user.createdAt!.day}/${user.createdAt!.month}/${user.createdAt!.year}'),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
     );
-  }
-  
-  String _getProfileName(int index) {
-    final names = ['Maria Santos', 'Juan dela Cruz', 'Ana Garcia', 'Carlos Reyes', 'Lisa Tan', 'Pedro Rodriguez'];
-    return names[index];
-  }
-  
-  int _getProfileAge(int index) {
-    final ages = [34, 28, 45, 52, 29, 38];
-    return ages[index];
-  }
-  
-  double _getProfileBMI(int index) {
-    final bmis = [22.5, 26.8, 19.2, 31.4, 24.1, 28.9];
-    return bmis[index];
-  }
-  
-  List<String> _getHealthConditions(int index) {
-    final List<List<String>> conditions = [
-      [], 
-      ['Hypertension'], 
-      [], 
-      ['Diabetes', 'Obesity'], 
-      [], 
-      ['Hypertension', 'High Cholesterol']
-    ];
-    return conditions[index];
-  }
-  
-  String _getLastActive(int index) {
-    final activities = ['2 hours ago', '1 day ago', '3 hours ago', '5 days ago', '1 hour ago', '2 days ago'];
-    return activities[index];
   }
 }

@@ -92,6 +92,44 @@ class User {
     );
   }
 
+  // Factory constructor to create User from data map with ID
+  factory User.fromMap(Map<String, dynamic> data) {
+    return User(
+      id: data['id'],
+      fullName: data['full_name'] ?? '',
+      email: data['email'] ?? '',
+      passwordHash: data['password_hash'],
+      phoneNumber: data['phone_number'],
+      gender: data['gender'] ?? '',
+      birthdate: (data['birthdate'] as Timestamp).toDate(),
+      heightCm: (data['height_cm'] ?? 0.0).toDouble(),
+      weightKg: (data['weight_kg'] ?? 0.0).toDouble(),
+      bmi: data['bmi']?.toDouble(),
+      householdSize: data['household_size'] ?? 1,
+      weeklyBudgetMin: data['weekly_budget_min'] ?? 0,
+      weeklyBudgetMax: data['weekly_budget_max'] ?? 0,
+      createdAt: data['created_at'] != null 
+          ? (data['created_at'] as Timestamp).toDate()
+          : null,
+      role: data['role'] ?? 'user',
+      specialization: data['specialization'],
+      licenseNumber: data['license_number'],
+      yearsExperience: data['years_experience'],
+      consultationFee: data['consultation_fee']?.toDouble(),
+      bio: data['bio'],
+      certifications: data['certifications'] != null
+          ? List<String>.from(data['certifications'])
+          : null,
+      isVerified: data['is_verified'] ?? false,
+      healthConditions: data['health_conditions'] != null
+          ? List<String>.from(data['health_conditions'])
+          : null,
+      foodAllergies: data['food_allergies'] != null
+          ? List<String>.from(data['food_allergies'])
+          : null,
+    );
+  }
+
   // Convert User to Map for Firebase
   Map<String, dynamic> toFirestore() {
     return {
