@@ -50,14 +50,6 @@ class MainBottomNavigation extends StatelessWidget {
               Expanded(
                 child: _buildNavItem(
                   index: 2,
-                  icon: Icons.bar_chart_outlined,
-                  activeIcon: Icons.bar_chart,
-                  label: 'Prices',
-                ),
-              ),
-              Expanded(
-                child: _buildNavItem(
-                  index: 3,
                   icon: Icons.restaurant_menu_outlined,
                   activeIcon: Icons.restaurant_menu,
                   label: 'Meals',
@@ -65,7 +57,7 @@ class MainBottomNavigation extends StatelessWidget {
               ),
               Expanded(
                 child: _buildNavItem(
-                  index: 4,
+                  index: 3,
                   icon: Icons.forum_outlined,
                   activeIcon: Icons.forum,
                   label: 'Q&A',
@@ -73,7 +65,7 @@ class MainBottomNavigation extends StatelessWidget {
               ),
               Expanded(
                 child: _buildNavItem(
-                  index: 5,
+                  index: 4,
                   icon: Icons.video_call_outlined,
                   activeIcon: Icons.video_call,
                   label: 'Consult',

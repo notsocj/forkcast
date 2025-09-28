@@ -87,25 +87,15 @@ class _ManageProfessionalsPageState extends State<ManageProfessionalsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Title and Refresh
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Manage Healthcare Professionals',
-                style: TextStyle(
-                  fontFamily: AppConstants.headingFont,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.blackText,
-                ),
-              ),
-              IconButton(
-                onPressed: _loadData,
-                icon: const Icon(Icons.refresh),
-                color: AppColors.successGreen,
-              ),
-            ],
+          // Title
+          const Text(
+            'Manage Healthcare Professionals',
+            style: TextStyle(
+              fontFamily: AppConstants.headingFont,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.blackText,
+            ),
           ),
           
           const SizedBox(height: 24),
@@ -229,27 +219,14 @@ class _ManageProfessionalsPageState extends State<ManageProfessionalsPage> {
           
           const SizedBox(height: 24),
           
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Healthcare Professionals',
-                style: TextStyle(
-                  fontFamily: AppConstants.headingFont,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.blackText,
-                ),
-              ),
-              Text(
-                '${_professionals.length} professionals found',
-                style: const TextStyle(
-                  fontFamily: AppConstants.primaryFont,
-                  fontSize: 14,
-                  color: AppColors.grayText,
-                ),
-              ),
-            ],
+          const Text(
+            'Healthcare Professionals',
+            style: TextStyle(
+              fontFamily: AppConstants.headingFont,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.blackText,
+            ),
           ),
           
           const SizedBox(height: 16),
@@ -306,7 +283,7 @@ class _ManageProfessionalsPageState extends State<ManageProfessionalsPage> {
   Widget _buildStatCard(String title, String value, IconData icon, Color color) {
     return Container(
       height: 100,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
@@ -318,40 +295,44 @@ class _ManageProfessionalsPageState extends State<ManageProfessionalsPage> {
           Row(
             children: [
               Container(
-                width: 32,
-                height: 32,
+                width: 28,
+                height: 28,
                 decoration: BoxDecoration(
                   color: color.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: Icon(
                   icon,
                   color: color,
-                  size: 18,
+                  size: 16,
                 ),
               ),
               const Spacer(),
-              Text(
-                value,
-                style: const TextStyle(
-                  fontFamily: AppConstants.headingFont,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.blackText,
+              Flexible(
+                child: Text(
+                  value,
+                  style: const TextStyle(
+                    fontFamily: AppConstants.headingFont,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.blackText,
+                  ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Expanded(
             child: Text(
               title,
               style: const TextStyle(
                 fontFamily: AppConstants.primaryFont,
-                fontSize: 12,
+                fontSize: 10,
                 color: AppColors.grayText,
               ),
               maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -438,7 +419,7 @@ class _ManageProfessionalsPageState extends State<ManageProfessionalsPage> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(
+                    Flexible(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -446,48 +427,56 @@ class _ManageProfessionalsPageState extends State<ManageProfessionalsPage> {
                             'License: $licenseNumber',
                             style: const TextStyle(
                               fontFamily: AppConstants.primaryFont,
-                              fontSize: 11,
+                              fontSize: 10,
                               color: AppColors.grayText,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                           Text(
                             'Experience: $yearsExperience years',
                             style: const TextStyle(
                               fontFamily: AppConstants.primaryFont,
-                              fontSize: 11,
+                              fontSize: 10,
                               color: AppColors.grayText,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                           Text(
                             'Fee: ₱${consultationFee.toStringAsFixed(0)}',
                             style: const TextStyle(
                               fontFamily: AppConstants.primaryFont,
-                              fontSize: 11,
+                              fontSize: 10,
                               color: AppColors.grayText,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
                     ),
-                    Expanded(
+                    const SizedBox(width: 8),
+                    Flexible(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               const Icon(
                                 Icons.star,
-                                size: 14,
+                                size: 12,
                                 color: Colors.amber,
                               ),
                               const SizedBox(width: 2),
-                              Text(
-                                averageRating.toStringAsFixed(1),
-                                style: const TextStyle(
-                                  fontFamily: AppConstants.primaryFont,
-                                  fontSize: 11,
-                                  color: AppColors.grayText,
-                                  fontWeight: FontWeight.w500,
+                              Flexible(
+                                child: Text(
+                                  averageRating.toStringAsFixed(1),
+                                  style: const TextStyle(
+                                    fontFamily: AppConstants.primaryFont,
+                                    fontSize: 10,
+                                    color: AppColors.grayText,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -496,17 +485,19 @@ class _ManageProfessionalsPageState extends State<ManageProfessionalsPage> {
                             '$totalConsultations consultations',
                             style: const TextStyle(
                               fontFamily: AppConstants.primaryFont,
-                              fontSize: 11,
+                              fontSize: 10,
                               color: AppColors.grayText,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                           Text(
                             'Joined: $joinDate',
                             style: const TextStyle(
                               fontFamily: AppConstants.primaryFont,
-                              fontSize: 11,
+                              fontSize: 10,
                               color: AppColors.grayText,
                             ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
@@ -570,16 +561,16 @@ class _ManageProfessionalsPageState extends State<ManageProfessionalsPage> {
     Color color = status == 'Verified' ? AppColors.successGreen : 
                  status == 'Pending' ? Colors.orange : Colors.red;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Text(
         status,
         style: TextStyle(
           fontFamily: AppConstants.primaryFont,
-          fontSize: 9,
+          fontSize: 10,
           fontWeight: FontWeight.w600,
           color: color,
         ),
@@ -608,38 +599,115 @@ class _ManageProfessionalsPageState extends State<ManageProfessionalsPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Professional Details: ${professional['full_name']}'),
-        content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDetailRow('Email', professional['email'] ?? 'Not provided'),
-              _buildDetailRow('Phone', professional['phone_number'] ?? 'Not provided'),
-              _buildDetailRow('Specialization', professional['specialization'] ?? 'Not specified'),
-              _buildDetailRow('License Number', professional['license_number'] ?? 'Not provided'),
-              _buildDetailRow('Experience', '${professional['years_experience'] ?? 0} years'),
-              _buildDetailRow('Consultation Fee', '₱${(professional['consultation_fee'] ?? 0.0).toStringAsFixed(0)}'),
-              _buildDetailRow('Total Consultations', '${professional['total_consultations'] ?? 0}'),
-              _buildDetailRow('Average Rating', '${(professional['average_rating'] ?? 0.0).toStringAsFixed(1)} ⭐'),
-              _buildDetailRow('Verified', (professional['is_verified'] ?? false) ? 'Yes' : 'No'),
-              _buildDetailRow('Account Status', professional['account_status'] ?? 'active'),
-              if (professional['bio'] != null) ...[
-                const SizedBox(height: 16),
-                const Text(
-                  'Bio:',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                Text(professional['bio']),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        backgroundColor: AppColors.white,
+        contentPadding: EdgeInsets.zero,
+        titlePadding: EdgeInsets.zero,
+        title: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: const BoxDecoration(
+            color: AppColors.successGreen,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(16),
+              topRight: Radius.circular(16),
+            ),
+          ),
+          child: Text(
+            'Professional Details: ${professional['full_name']}',
+            style: const TextStyle(
+              fontFamily: AppConstants.primaryFont,
+              color: AppColors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+            ),
+          ),
+        ),
+        content: Container(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                _buildDetailRow('Email', professional['email'] ?? 'Not provided'),
+                _buildDetailRow('Phone', professional['phone_number'] ?? 'Not provided'),
+                _buildDetailRow('Specialization', professional['specialization'] ?? 'Not specified'),
+                _buildDetailRow('License Number', professional['license_number'] ?? 'Not provided'),
+                _buildDetailRow('Experience', '${professional['years_experience'] ?? 0} years'),
+                _buildDetailRow('Consultation Fee', '₱${(professional['consultation_fee'] ?? 0.0).toStringAsFixed(0)}'),
+                _buildDetailRow('Total Consultations', '${professional['total_consultations'] ?? 0}'),
+                _buildDetailRow('Average Rating', '${(professional['average_rating'] ?? 0.0).toStringAsFixed(1)} ⭐'),
+                _buildDetailRow('Verified', (professional['is_verified'] ?? false) ? 'Yes' : 'No'),
+                _buildDetailRow('Account Status', professional['account_status'] ?? 'active'),
+                if (professional['bio'] != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBackground,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: AppColors.successGreen.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Bio:',
+                          style: TextStyle(
+                            fontFamily: AppConstants.primaryFont,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.blackText,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          professional['bio'],
+                          style: const TextStyle(
+                            fontFamily: AppConstants.primaryFont,
+                            color: AppColors.grayText,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ],
-            ],
+              ),
+            ),
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Close'),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.successGreen,
+                  foregroundColor: AppColors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                child: const Text(
+                  'Close',
+                  style: TextStyle(
+                    fontFamily: AppConstants.primaryFont,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -649,28 +717,43 @@ class _ManageProfessionalsPageState extends State<ManageProfessionalsPage> {
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-                color: AppColors.grayText,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.primaryBackground.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: AppColors.successGreen.withOpacity(0.2),
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: 120,
+              child: Text(
+                '$label:',
+                style: const TextStyle(
+                  fontFamily: AppConstants.primaryFont,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.successGreen,
+                  fontSize: 13,
+                ),
               ),
             ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                color: AppColors.blackText,
+            Expanded(
+              child: Text(
+                value,
+                style: const TextStyle(
+                  fontFamily: AppConstants.primaryFont,
+                  color: AppColors.blackText,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -126,7 +126,6 @@ class AnalyticsService {
       final snapshot = await _firestore.collection('feature_usage').get();
       Map<String, double> usage = {
         'Meal Planning': 0.0,
-        'Market Prices': 0.0,
         'Q&A Forum': 0.0,
         'Teleconsultation': 0.0,
         'BMI Calculator': 0.0,
@@ -150,7 +149,6 @@ class AnalyticsService {
       print('Error getting feature usage: $e');
       return {
         'Meal Planning': 85.0,
-        'Market Prices': 72.0,
         'Q&A Forum': 68.0,
         'Teleconsultation': 45.0,
         'BMI Calculator': 92.0,

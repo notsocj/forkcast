@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants.dart';
+import '../../../data/predefined_meals.dart';
 
 class ManageRecipesPage extends StatefulWidget {
   const ManageRecipesPage({super.key});
@@ -12,6 +13,64 @@ class ManageRecipesPage extends StatefulWidget {
 class _ManageRecipesPageState extends State<ManageRecipesPage> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = 'All';
+  
+  // Get filtered meals based on search and category
+  List<PredefinedMeal> get filteredMeals {
+    List<PredefinedMeal> meals = PredefinedMealsData.meals;
+    
+    // Apply search filter
+    if (_searchController.text.isNotEmpty) {
+      meals = PredefinedMealsData.searchMeals(_searchController.text);
+    }
+    
+    // Apply category filter
+    if (_selectedCategory != 'All') {
+      meals = meals.where((meal) {
+        switch (_selectedCategory) {
+          case 'Filipino':
+            return meal.tags.contains('Filipino');
+          case 'Healthy':
+            return meal.healthConditions.none || meal.tags.contains('healthy');
+          case 'Vegetarian':
+            return meal.tags.contains('vegetarian') || meal.tags.contains('tokwa') || meal.tags.contains('vegetables');
+          case 'Low Sodium':
+            return meal.healthConditions.hypertension;
+          case 'Diabetes-Friendly':
+            return meal.healthConditions.diabetes;
+          default:
+            return true;
+        }
+      }).toList();
+    }
+    
+    return meals;
+  }
+  
+  // Helper method to convert PredefinedMeal tags to display format
+  List<String> _getMealTags(PredefinedMeal meal) {
+    List<String> tags = [];
+    
+    // Add original tags
+    tags.addAll(meal.tags);
+    
+    // Add health condition tags
+    if (meal.healthConditions.diabetes) tags.add('Diabetes-Safe');
+    if (meal.healthConditions.hypertension) tags.add('Low Sodium');
+    if (meal.healthConditions.obesityOverweight) tags.add('Weight Management');
+    if (meal.healthConditions.underweightMalnutrition) tags.add('Nutrient Dense');
+    if (meal.healthConditions.heartDiseaseChol) tags.add('Heart Healthy');
+    if (meal.healthConditions.anemia) tags.add('Iron Rich');
+    if (meal.healthConditions.osteoporosis) tags.add('Calcium Rich');
+    
+    // Add meal timing tags
+    if (meal.mealTiming.breakfast) tags.add('Breakfast');
+    if (meal.mealTiming.lunch) tags.add('Lunch');
+    if (meal.mealTiming.dinner) tags.add('Dinner');
+    if (meal.mealTiming.snack) tags.add('Snack');
+    
+    // Limit to 3 most relevant tags
+    return tags.take(3).toList();
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -35,6 +94,9 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
                 Expanded(
                   child: TextField(
                     controller: _searchController,
+                    onChanged: (value) {
+                      setState(() {});
+                    },
                     decoration: const InputDecoration(
                       hintText: 'Search recipes by name or ingredients...',
                       hintStyle: TextStyle(
@@ -51,20 +113,21 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
           
           const SizedBox(height: 24),
           
-          // Statistics
+          // Statistics - Total Recipes Only
           Row(
             children: [
               Expanded(
-                child: _buildStatCard('Total Recipes', '456', Icons.restaurant_menu, AppColors.successGreen),
+                flex: 2,
+                child: _buildStatCard(
+                  'Total Recipes', 
+                  PredefinedMealsData.meals.length.toString(), 
+                  Icons.restaurant_menu, 
+                  AppColors.successGreen
+                ),
               ),
               const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard('Published', '398', Icons.check_circle, Colors.green),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard('Pending Review', '58', Icons.pending, Colors.orange),
-              ),
+              // Removed Published and Pending Review cards
+              const Expanded(flex: 3, child: SizedBox()),
             ],
           ),
           
@@ -99,15 +162,16 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
           
           const SizedBox(height: 16),
           
-          // Recipe Cards
-          ...List.generate(5, (index) => _buildRecipeCard(
-            name: _getRecipeName(index),
-            description: _getRecipeDescription(index),
-            kcal: _getRecipeKcal(index),
-            servings: _getRecipeServings(index),
-            tags: _getRecipeTags(index),
-            rating: _getRecipeRating(index),
-            status: _getRecipeStatus(index),
+          // Recipe Cards from FNRI Data
+          ...filteredMeals.map((meal) => _buildRecipeCard(
+            name: meal.recipeName,
+            description: meal.description,
+            kcal: meal.kcal,
+            servings: meal.baseServings,
+            tags: _getMealTags(meal),
+            rating: 4.5, // Default rating since FNRI data doesn't include ratings
+            status: 'Published', // All FNRI recipes are published
+            meal: meal,
           )),
         ],
       ),
@@ -210,6 +274,7 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
     required List<String> tags,
     required double rating,
     required String status,
+    PredefinedMeal? meal,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -327,13 +392,10 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
               ),
               PopupMenuButton<String>(
                 onSelected: (value) {
-                  _handleRecipeAction(value, name);
+                  _handleRecipeAction(value, meal!);
                 },
                 itemBuilder: (context) => [
                   const PopupMenuItem(value: 'view', child: Text('View Recipe')),
-                  const PopupMenuItem(value: 'edit', child: Text('Edit Recipe')),
-                  const PopupMenuItem(value: 'approve', child: Text('Approve')),
-                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
                 ],
               ),
             ],
@@ -387,56 +449,375 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
     );
   }
   
-  void _handleRecipeAction(String action, String recipeName) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$action action for $recipeName')),
+  void _handleRecipeAction(String action, PredefinedMeal meal) {
+    if (action == 'view') {
+      _showRecipeDetails(meal);
+    }
+  }
+  
+  void _showRecipeDetails(PredefinedMeal meal) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            width: MediaQuery.of(context).size.width * 0.9,
+            height: MediaQuery.of(context).size.height * 0.8,
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: const BoxDecoration(
+                    color: AppColors.successGreen,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(16),
+                      topRight: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              meal.recipeName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                fontFamily: AppConstants.headingFont,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${meal.kcal} kcal • ${meal.baseServings} servings • ${meal.prepTimeMinutes} min',
+                              style: TextStyle(
+                                color: Colors.white.withOpacity(0.9),
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+                // Content
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Description
+                        _buildDetailSection(
+                          'Description',
+                          Icons.description,
+                          meal.description,
+                        ),
+                        
+                        const SizedBox(height: 20),
+                        
+                        // Fun Fact
+                        _buildDetailSection(
+                          'Fun Fact',
+                          Icons.lightbulb_outline,
+                          meal.funFact,
+                        ),
+                        
+                        const SizedBox(height: 20),
+                        
+                        // Ingredients
+                        _buildIngredientsSection(meal.ingredients),
+                        
+                        const SizedBox(height: 20),
+                        
+                        // Cooking Instructions
+                        _buildDetailSection(
+                          'Cooking Instructions',
+                          Icons.restaurant_menu,
+                          meal.cookingInstructions,
+                        ),
+                        
+                        const SizedBox(height: 20),
+                        
+                        // Health Conditions
+                        _buildHealthConditionsSection(meal.healthConditions),
+                        
+                        const SizedBox(height: 20),
+                        
+                        // Meal Timing
+                        _buildMealTimingSection(meal.mealTiming),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
   
-  String _getRecipeName(int index) {
-    final names = ['Adobong Manok', 'Sinigang na Hipon', 'Grilled Bangus', 'Monggo Soup', 'Kare-Kareng Baka'];
-    return names[index];
+  Widget _buildDetailSection(String title, IconData icon, String content) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: AppColors.successGreen, size: 20),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontFamily: AppConstants.headingFont,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.blackText,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.primaryBackground,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.successGreen.withOpacity(0.2)),
+          ),
+          child: Text(
+            content,
+            style: const TextStyle(
+              fontFamily: AppConstants.primaryFont,
+              fontSize: 14,
+              color: AppColors.grayText,
+              height: 1.5,
+            ),
+          ),
+        ),
+      ],
+    );
   }
   
-  String _getRecipeDescription(int index) {
-    final descriptions = [
-      'Classic Filipino chicken adobo with soy sauce and vinegar',
-      'Sour shrimp soup with vegetables and tamarind',
-      'Healthy grilled milkfish with lemon and herbs',
-      'Nutritious mung bean soup with vegetables',
-      'Rich peanut stew with oxtail and vegetables'
-    ];
-    return descriptions[index];
+  Widget _buildIngredientsSection(List<MealIngredient> ingredients) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.shopping_cart, color: AppColors.successGreen, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Ingredients',
+              style: TextStyle(
+                fontFamily: AppConstants.headingFont,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.blackText,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.primaryBackground,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.successGreen.withOpacity(0.2)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: ingredients.map((ingredient) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '• ',
+                    style: TextStyle(
+                      color: AppColors.successGreen,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Expanded(
+                    child: Text(
+                      '${ingredient.quantity} ${ingredient.unit} ${ingredient.ingredientName}',
+                      style: const TextStyle(
+                        fontFamily: AppConstants.primaryFont,
+                        fontSize: 14,
+                        color: AppColors.grayText,
+                        height: 1.4,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            )).toList(),
+          ),
+        ),
+      ],
+    );
   }
   
-  int _getRecipeKcal(int index) {
-    final kcals = [320, 180, 250, 160, 420];
-    return kcals[index];
+  Widget _buildHealthConditionsSection(HealthConditions healthConditions) {
+    List<String> suitableConditions = [];
+    
+    if (healthConditions.diabetes) suitableConditions.add('Diabetes');
+    if (healthConditions.hypertension) suitableConditions.add('Hypertension');
+    if (healthConditions.obesityOverweight) suitableConditions.add('Obesity/Overweight');
+    if (healthConditions.underweightMalnutrition) suitableConditions.add('Underweight/Malnutrition');
+    if (healthConditions.heartDiseaseChol) suitableConditions.add('Heart Disease/High Cholesterol');
+    if (healthConditions.anemia) suitableConditions.add('Anemia');
+    if (healthConditions.osteoporosis) suitableConditions.add('Osteoporosis');
+    if (healthConditions.none) suitableConditions.add('Healthy Individuals');
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.health_and_safety, color: AppColors.successGreen, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Suitable Health Conditions',
+              style: TextStyle(
+                fontFamily: AppConstants.headingFont,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.blackText,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: suitableConditions.map((condition) => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.successGreen.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.successGreen.withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.check_circle,
+                  color: AppColors.successGreen,
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  condition,
+                  style: const TextStyle(
+                    fontFamily: AppConstants.primaryFont,
+                    fontSize: 12,
+                    color: AppColors.successGreen,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          )).toList(),
+        ),
+      ],
+    );
   }
   
-  int _getRecipeServings(int index) {
-    final servings = [4, 6, 2, 4, 6];
-    return servings[index];
+  Widget _buildMealTimingSection(MealTiming mealTiming) {
+    List<String> suitableTimes = [];
+    
+    if (mealTiming.breakfast) suitableTimes.add('Breakfast');
+    if (mealTiming.lunch) suitableTimes.add('Lunch');
+    if (mealTiming.dinner) suitableTimes.add('Dinner');
+    if (mealTiming.snack) suitableTimes.add('Snack');
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          children: [
+            Icon(Icons.schedule, color: AppColors.successGreen, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'Meal Timing',
+              style: TextStyle(
+                fontFamily: AppConstants.headingFont,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.blackText,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: suitableTimes.map((time) => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.primaryAccent.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.primaryAccent.withOpacity(0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _getMealTimeIcon(time),
+                  color: AppColors.primaryAccent,
+                  size: 16,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  time,
+                  style: const TextStyle(
+                    fontFamily: AppConstants.primaryFont,
+                    fontSize: 12,
+                    color: AppColors.primaryAccent,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          )).toList(),
+        ),
+      ],
+    );
   }
   
-  List<String> _getRecipeTags(int index) {
-    final tags = [
-      ['Filipino', 'Protein-Rich'],
-      ['Low-Calorie', 'Healthy'],
-      ['Heart-Healthy', 'Low-Sodium'],
-      ['Vegetarian', 'High-Fiber'],
-      ['Traditional', 'High-Protein']
-    ];
-    return tags[index];
-  }
-  
-  double _getRecipeRating(int index) {
-    final ratings = [4.8, 4.5, 4.7, 4.3, 4.6];
-    return ratings[index];
-  }
-  
-  String _getRecipeStatus(int index) {
-    final statuses = ['Published', 'Published', 'Published', 'Pending', 'Published'];
-    return statuses[index];
+  IconData _getMealTimeIcon(String mealTime) {
+    switch (mealTime.toLowerCase()) {
+      case 'breakfast':
+        return Icons.wb_sunny;
+      case 'lunch':
+        return Icons.wb_sunny_outlined;
+      case 'dinner':
+        return Icons.nights_stay;
+      case 'snack':
+        return Icons.local_cafe;
+      default:
+        return Icons.restaurant;
+    }
   }
 }

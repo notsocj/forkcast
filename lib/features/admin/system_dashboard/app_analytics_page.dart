@@ -367,7 +367,6 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
   Widget _buildFeatureUsageList() {
     final features = [
       {'name': 'Meal Planning', 'usage': '${(_featureUsage['Meal Planning'] ?? 0).toInt()}%', 'icon': Icons.restaurant_menu},
-      {'name': 'Market Prices', 'usage': '${(_featureUsage['Market Prices'] ?? 0).toInt()}%', 'icon': Icons.store},
       {'name': 'Q&A Forum', 'usage': '${(_featureUsage['Q&A Forum'] ?? 0).toInt()}%', 'icon': Icons.forum},
       {'name': 'Teleconsultation', 'usage': '${(_featureUsage['Teleconsultation'] ?? 0).toInt()}%', 'icon': Icons.video_call},
       {'name': 'BMI Calculator', 'usage': '${(_featureUsage['BMI Calculator'] ?? 0).toInt()}%', 'icon': Icons.calculate},

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../core/widgets/main_bottom_navigation.dart';
 import 'dashboard/user_dashboard_page.dart';
 import 'profile/user_profile_page.dart';
-import '../market/market_price_dashboard_page.dart';
 import '../meal_planning/meal_plan_page.dart';
 import '../qna/qna_forum_page.dart';
 import '../teleconsultation/book_consultation_page.dart';
@@ -20,7 +19,6 @@ class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
   final List<Widget> _pages = [
     const UserDashboardPage(),      // Home
     const UserProfilePage(),        // Profile
-    const MarketPriceDashboardPage(),    // Price Monitoring
     const MealPlanPage(),           // Meal Plan
     const QnaForumPage(),          // Q&A Forum
     const BookConsultationPage(),    // Teleconsultation

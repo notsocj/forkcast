@@ -700,8 +700,12 @@ class _ManageUsersPageState extends State<ManageUsersPage> {
     final budgetMaxController = TextEditingController(text: user.weeklyBudgetMax.toString());
     final householdController = TextEditingController(text: user.householdSize.toString());
     
-    String selectedGender = user.gender;
-    String selectedRole = user.role;
+    // Ensure the selected values exist in the dropdown options
+    final genderOptions = ['Male', 'Female', 'Prefer not to say'];
+    final roleOptions = ['user', 'professional', 'admin'];
+    
+    String selectedGender = genderOptions.contains(user.gender) ? user.gender : genderOptions.first;
+    String selectedRole = roleOptions.contains(user.role) ? user.role : roleOptions.first;
     bool isLoading = false;
 
     showDialog(
@@ -780,19 +784,119 @@ class _ManageUsersPageState extends State<ManageUsersPage> {
                           const SizedBox(height: 16),
                           _buildTextField('Phone Number', phoneController, Icons.phone),
                           const SizedBox(height: 16),
-                          _buildDropdownField('Gender', selectedGender, 
-                            ['Male', 'Female', 'Prefer not to say'], (value) {
-                            setState(() {
-                              selectedGender = value!;
-                            });
-                          }),
+                          // Gender Dropdown
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Gender',
+                                style: TextStyle(
+                                  fontFamily: AppConstants.primaryFont,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.grayText,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                value: selectedGender,
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      selectedGender = value;
+                                    });
+                                  }
+                                },
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(color: AppColors.grayText),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(color: AppColors.successGreen, width: 2),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: AppColors.grayText.withOpacity(0.3)),
+                                  ),
+                                  filled: true,
+                                  fillColor: AppColors.white,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                                ),
+                                items: genderOptions.map((String option) {
+                                  return DropdownMenuItem<String>(
+                                    value: option,
+                                    child: Text(
+                                      option,
+                                      style: const TextStyle(
+                                        fontFamily: AppConstants.primaryFont,
+                                        fontSize: 14,
+                                        color: AppColors.blackText,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 16),
-                          _buildDropdownField('Role', selectedRole,
-                            ['user', 'professional', 'admin'], (value) {
-                            setState(() {
-                              selectedRole = value!;
-                            });
-                          }),
+                          // Role Dropdown
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Role',
+                                style: TextStyle(
+                                  fontFamily: AppConstants.primaryFont,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.grayText,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              DropdownButtonFormField<String>(
+                                value: selectedRole,
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    setState(() {
+                                      selectedRole = value;
+                                    });
+                                  }
+                                },
+                                decoration: InputDecoration(
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(color: AppColors.grayText),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: const BorderSide(color: AppColors.successGreen, width: 2),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(color: AppColors.grayText.withOpacity(0.3)),
+                                  ),
+                                  filled: true,
+                                  fillColor: AppColors.white,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                                ),
+                                items: roleOptions.map((String option) {
+                                  return DropdownMenuItem<String>(
+                                    value: option,
+                                    child: Text(
+                                      option,
+                                      style: const TextStyle(
+                                        fontFamily: AppConstants.primaryFont,
+                                        fontSize: 14,
+                                        color: AppColors.blackText,
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ],
+                          ),
                         ]),
                         const SizedBox(height: 20),
                         _buildEditSection('Physical Information', [
@@ -1377,57 +1481,7 @@ class _ManageUsersPageState extends State<ManageUsersPage> {
     );
   }
 
-  Widget _buildDropdownField(String label, String value, List<String> options, Function(String?) onChanged) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontFamily: AppConstants.primaryFont,
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.grayText,
-          ),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: value,
-          onChanged: onChanged,
-          decoration: InputDecoration(
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.grayText),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.successGreen, width: 2),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: AppColors.grayText.withOpacity(0.3)),
-            ),
-            filled: true,
-            fillColor: AppColors.white,
-            contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-          ),
-          items: options.map((String option) {
-            return DropdownMenuItem<String>(
-              value: option,
-              child: Text(
-                option,
-                style: const TextStyle(
-                  fontFamily: AppConstants.primaryFont,
-                  fontSize: 14,
-                  color: AppColors.blackText,
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
-    );
-  }
+
 
   Widget _buildDetailSection(String title, List<Widget> children) {
     return Column(

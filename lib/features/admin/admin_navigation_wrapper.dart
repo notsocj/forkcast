@@ -4,7 +4,6 @@ import '../../core/theme/app_colors.dart';
 import '../auth/sign_in_page.dart';
 import 'user_management/manage_users_page.dart';
 import 'content_management/manage_recipes_page.dart';
-import 'market_data/manage_market_data_page.dart';
 import 'forum_management/moderate_posts_page.dart';
 import 'consultation_management/manage_professionals_page.dart';
 import 'system_dashboard/app_analytics_page.dart';
@@ -23,7 +22,6 @@ class _AdminNavigationWrapperState extends State<AdminNavigationWrapper> {
     const AppAnalyticsPage(),           // Analytics Dashboard
     const ManageUsersPage(),            // User Management
     const ManageRecipesPage(),          // Content Management
-    const ManageMarketDataPage(),       // Market Data
     const ModeratePostsPage(),          // Forum Management
     const ManageProfessionalsPage(),    // Consultation Management
   ];
@@ -32,7 +30,6 @@ class _AdminNavigationWrapperState extends State<AdminNavigationWrapper> {
     'Analytics Dashboard',
     'User Management',
     'Content Management', 
-    'Market Data',
     'Forum Management',
     'Professional Management',
   ];
@@ -41,7 +38,6 @@ class _AdminNavigationWrapperState extends State<AdminNavigationWrapper> {
     'Monitor app performance and user insights',
     'Manage user accounts and permissions',
     'Manage recipes and ingredient database',
-    'Manage market prices and data sources',
     'Review reported content and forum posts',
     'Manage nutritionist and healthcare professional accounts',
   ];
@@ -50,7 +46,6 @@ class _AdminNavigationWrapperState extends State<AdminNavigationWrapper> {
     Icons.analytics,
     Icons.people,
     Icons.restaurant_menu,
-    Icons.store,
     Icons.forum,
     Icons.medical_services,
   ];
@@ -285,14 +280,6 @@ class AdminBottomNavigation extends StatelessWidget {
               Expanded(
                 child: _buildNavItem(
                   index: 3,
-                  icon: Icons.store_outlined,
-                  activeIcon: Icons.store,
-                  label: 'Market',
-                ),
-              ),
-              Expanded(
-                child: _buildNavItem(
-                  index: 4,
                   icon: Icons.forum_outlined,
                   activeIcon: Icons.forum,
                   label: 'Forum',
@@ -300,7 +287,7 @@ class AdminBottomNavigation extends StatelessWidget {
               ),
               Expanded(
                 child: _buildNavItem(
-                  index: 5,
+                  index: 4,
                   icon: Icons.medical_services_outlined,
                   activeIcon: Icons.medical_services,
                   label: 'Pros',
