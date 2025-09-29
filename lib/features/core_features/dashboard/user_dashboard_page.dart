@@ -4,6 +4,8 @@ import '../../../services/auth_service.dart';
 import '../../../services/user_service.dart';
 import '../../../services/meal_logging_service.dart';
 import '../../../models/user.dart';
+import '../../meal_planning/meal_plan_page.dart';
+import '../main_navigation_wrapper.dart';
 
 class UserDashboardPage extends StatefulWidget {
   const UserDashboardPage({super.key});
@@ -109,17 +111,12 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     return baseCalories;
   }
 
-  /// Get health status based on BMI and medical conditions
+  /// Get health status based on BMI only
   String _getHealthStatus() {
     if (_currentUser == null) return 'Unknown';
     
-    final healthConditions = _currentUser!.healthConditions;
-    if (healthConditions != null && healthConditions.isNotEmpty) {
-      // If user has health conditions, show the primary one
-      return healthConditions.first;
-    }
-    
     final bmi = _currentUser!.bmi ?? _currentUser!.calculatedBmi;
+    
     if (bmi < 18.5) {
       return 'Underweight';
     } else if (bmi < 25.0) {
@@ -644,13 +641,24 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                 color: AppColors.blackText,
               ),
             ),
-            Text(
-              'See all',
-              style: TextStyle(
-                fontFamily: 'OpenSans',
-                fontSize: 14,
-                color: AppColors.primaryAccent,
-                fontWeight: FontWeight.w600,
+            GestureDetector(
+              onTap: () {
+                // Navigate to MainNavigationWrapper with Meal Plan tab selected (index 2)
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const MainNavigationWrapper(initialTab: 2),
+                  ),
+                );
+              },
+              child: Text(
+                'See all',
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  fontSize: 14,
+                  color: AppColors.primaryAccent,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ),
           ],

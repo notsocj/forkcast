@@ -97,32 +97,6 @@ class AccountSettingsPage extends StatelessWidget {
                       ),
                       _buildModernDivider(),
                       _buildModernSettingsTile(
-                        icon: Icons.notifications_outlined,
-                        title: 'Notification Settings',
-                        onTap: () {
-                          _showNotificationSettingsDialog(context);
-                        },
-                      ),
-                      _buildModernDivider(),
-                      _buildModernSettingsTile(
-                        icon: Icons.tune,
-                        title: 'Application Preferences',
-                        onTap: () {
-                          _showApplicationPreferencesDialog(context);
-                        },
-                      ),
-                      _buildModernDivider(),
-                      _buildModernSettingsTile(
-                        icon: Icons.logout,
-                        title: 'Log Out',
-                        textColor: AppColors.primaryAccent,
-                        iconColor: AppColors.primaryAccent,
-                        onTap: () {
-                          _showLogoutDialog(context);
-                        },
-                      ),
-                      _buildModernDivider(),
-                      _buildModernSettingsTile(
                         icon: Icons.delete_outline,
                         title: 'Delete Account',
                         textColor: AppColors.primaryAccent,
@@ -213,62 +187,6 @@ class AccountSettingsPage extends StatelessWidget {
     );
   }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Log Out'),
-        content: const Text('Are you sure you want to log out?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).pop();
-              // TODO: Implement actual logout logic
-            },
-            child: Text(
-              'Log Out',
-              style: TextStyle(color: AppColors.primaryAccent),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showDeleteAccountDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Account'),
-        content: const Text(
-          'Are you sure you want to delete your account? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).pop();
-              // TODO: Implement actual account deletion logic
-            },
-            child: Text(
-              'Delete',
-              style: TextStyle(color: AppColors.primaryAccent),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   void _showChangePasswordDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -302,65 +220,28 @@ class AccountSettingsPage extends StatelessWidget {
     );
   }
 
-  void _showNotificationSettingsDialog(BuildContext context) {
+  void _showDeleteAccountDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        backgroundColor: AppColors.white,
-        title: const Text(
-          'Notification Settings',
-          style: TextStyle(
-            fontFamily: 'Lato',
-            fontWeight: FontWeight.bold,
-            color: AppColors.blackText,
-          ),
-        ),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Account'),
         content: const Text(
-          'Notification settings will be available soon. You\'ll be able to customize meal reminders, price alerts, and health tips.',
-          style: TextStyle(
-            fontFamily: 'Lato',
-            color: AppColors.grayText,
-          ),
+          'Are you sure you want to delete your account? This action cannot be undone.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: Text(
-              'OK',
-              style: TextStyle(color: AppColors.successGreen),
-            ),
+            child: const Text('Cancel'),
           ),
-        ],
-      ),
-    );
-  }
-
-  void _showApplicationPreferencesDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext ctx) => AlertDialog(
-        backgroundColor: AppColors.white,
-        title: const Text(
-          'Application Preferences',
-          style: TextStyle(
-            fontFamily: 'Lato',
-            fontWeight: FontWeight.bold,
-            color: AppColors.blackText,
-          ),
-        ),
-        content: const Text(
-          'App preferences will be available soon. You\'ll be able to customize themes, units of measurement, and language settings.',
-          style: TextStyle(
-            fontFamily: 'Lato',
-            color: AppColors.grayText,
-          ),
-        ),
-        actions: [
           TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              Navigator.of(context).pop();
+              // TODO: Implement actual account deletion logic
+            },
             child: Text(
-              'OK',
-              style: TextStyle(color: AppColors.successGreen),
+              'Delete',
+              style: TextStyle(color: AppColors.primaryAccent),
             ),
           ),
         ],

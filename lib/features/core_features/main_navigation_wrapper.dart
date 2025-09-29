@@ -7,14 +7,22 @@ import '../qna/qna_forum_page.dart';
 import '../teleconsultation/book_consultation_page.dart';
 
 class MainNavigationWrapper extends StatefulWidget {
-  const MainNavigationWrapper({super.key});
+  final int initialTab;
+  
+  const MainNavigationWrapper({super.key, this.initialTab = 0});
 
   @override
   State<MainNavigationWrapper> createState() => _MainNavigationWrapperState();
 }
 
 class _MainNavigationWrapperState extends State<MainNavigationWrapper> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialTab;
+  }
 
   final List<Widget> _pages = [
     const UserDashboardPage(),      // Home

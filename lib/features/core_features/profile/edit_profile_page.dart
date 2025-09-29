@@ -33,6 +33,20 @@ class _EditProfilePageState extends State<EditProfilePage> {
   bool _isLoading = true;
   bool _isSaving = false;
   
+  // Health conditions dropdown data
+  final List<String> _availableHealthConditions = [
+    'Diabetes',
+    'Hypertension',
+    'Obesity / Overweight',
+    'Underweight / Malnutrition',
+    'Heart Disease / High Cholesterol',
+    'Anemia (Iron-deficiency)',
+    'Osteoporosis (Bone health / calcium deficiency)',
+    'None (healthy profile, no NCDs)',
+  ];
+  
+  List<String> _selectedHealthConditions = [];
+  
   @override
   void initState() {
     super.initState();
@@ -76,6 +90,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
         : '₱${user.weeklyBudgetMin}-${user.weeklyBudgetMax}';
     _selectedGender = user.gender;
     
+    // Initialize selected health conditions
+    _selectedHealthConditions = user.healthConditions ?? [];
     _healthConditionsController.text = user.healthConditions?.join(', ') ?? '';
     _foodAllergiesController.text = user.foodAllergies?.join(', ') ?? '';
   }
@@ -225,15 +241,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                       const SizedBox(height: 16),
                       
-                      // Health Conditions with Add New button
-                      _buildExpandableField(
-                        controller: _healthConditionsController,
-                        label: 'Health Condition',
-                        addButtonText: 'Add New',
-                        onAddPressed: () {
-                          _showAddHealthConditionDialog();
-                        },
-                      ),
+                      // Health Conditions dropdown
+                      _buildHealthConditionsDropdown(),
                       const SizedBox(height: 16),
                       
                       // Food Allergies with Add New button
@@ -631,6 +640,122 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
   
+  Widget _buildHealthConditionsDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Health Conditions',
+          style: TextStyle(
+            fontFamily: 'Lato',
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: AppColors.blackText,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.lightGray),
+          ),
+          child: Column(
+            children: [
+              // Display selected conditions
+              if (_selectedHealthConditions.isNotEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _selectedHealthConditions.map((condition) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.successGreen.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: AppColors.successGreen.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              condition,
+                              style: TextStyle(
+                                fontFamily: 'OpenSans',
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.successGreen,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedHealthConditions.remove(condition);
+                                  _healthConditionsController.text = _selectedHealthConditions.join(', ');
+                                });
+                              },
+                              child: Icon(
+                                Icons.close,
+                                size: 16,
+                                color: AppColors.successGreen,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              
+              // Dropdown for available conditions
+              GestureDetector(
+                onTap: () {
+                  _showHealthConditionsDialog();
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  decoration: BoxDecoration(
+                    border: _selectedHealthConditions.isNotEmpty 
+                        ? Border(top: BorderSide(color: AppColors.lightGray))
+                        : null,
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.add_circle_outline,
+                        color: AppColors.successGreen,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _selectedHealthConditions.isEmpty 
+                            ? 'Select health conditions' 
+                            : 'Add more conditions',
+                        style: TextStyle(
+                          fontFamily: 'OpenSans',
+                          fontSize: 14,
+                          color: AppColors.grayText,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+  
   Widget _buildSaveButton() {
     return Container(
       width: double.infinity,
@@ -726,12 +851,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
           budgetMax = _currentUser!.weeklyBudgetMax;
         }
         
-        // Parse health conditions
-        List<String> healthConditions = _healthConditionsController.text
-            .split(',')
-            .map((e) => e.trim())
-            .where((e) => e.isNotEmpty)
-            .toList();
+        // Use selected health conditions from dropdown
+        List<String> healthConditions = List.from(_selectedHealthConditions);
         
         // Parse food allergies
         List<String> foodAllergies = _foodAllergiesController.text
@@ -797,58 +918,231 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
   
-  void _showAddHealthConditionDialog() {
+  void _showHealthConditionsDialog() {
     showDialog(
       context: context,
+      barrierDismissible: true,
       builder: (BuildContext context) {
-        final TextEditingController dialogController = TextEditingController();
-        return AlertDialog(
-          title: Text(
-            'Add Health Condition',
-            style: TextStyle(
-              fontFamily: 'Lato',
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          content: TextField(
-            controller: dialogController,
-            decoration: InputDecoration(
-              hintText: 'Enter health condition',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setDialogState) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: 400, maxHeight: 600),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Header with gradient background
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            AppColors.successGreen,
+                            AppColors.successGreen.withOpacity(0.8),
+                          ],
+                        ),
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(24),
+                          topRight: Radius.circular(24),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Icon(
+                                  Icons.health_and_safety,
+                                  color: AppColors.white,
+                                  size: 20,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Select Health Conditions',
+                                  style: TextStyle(
+                                    fontFamily: 'Lato',
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Select all conditions that apply to you:',
+                            style: TextStyle(
+                              fontFamily: 'OpenSans',
+                              fontSize: 14,
+                              color: AppColors.white.withOpacity(0.9),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    // Content area with conditions
+                    Flexible(
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        child: SingleChildScrollView(
+                          child: Column(
+                            children: _availableHealthConditions.map((condition) {
+                              final isSelected = _selectedHealthConditions.contains(condition);
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                decoration: BoxDecoration(
+                                  color: isSelected 
+                                      ? AppColors.successGreen.withOpacity(0.1)
+                                      : AppColors.primaryBackground,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: isSelected 
+                                        ? AppColors.successGreen.withOpacity(0.3)
+                                        : AppColors.lightGray.withOpacity(0.5),
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: CheckboxListTile(
+                                  value: isSelected,
+                                  onChanged: (bool? value) {
+                                    setDialogState(() {
+                                      if (value == true) {
+                                        if (!_selectedHealthConditions.contains(condition)) {
+                                          _selectedHealthConditions.add(condition);
+                                        }
+                                      } else {
+                                        _selectedHealthConditions.remove(condition);
+                                      }
+                                    });
+                                  },
+                                  title: Text(
+                                    condition,
+                                    style: TextStyle(
+                                      fontFamily: 'OpenSans',
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      color: isSelected 
+                                          ? AppColors.successGreen
+                                          : AppColors.blackText,
+                                    ),
+                                  ),
+                                  activeColor: AppColors.successGreen,
+                                  checkColor: AppColors.white,
+                                  controlAffinity: ListTileControlAffinity.leading,
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    // Action buttons
+                    Container(
+                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              style: TextButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: AppColors.grayText.withOpacity(0.3),
+                                    width: 1,
+                                  ),
+                                ),
+                              ),
+                              child: Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontFamily: 'OpenSans',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.grayText,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                setState(() {
+                                  _healthConditionsController.text = _selectedHealthConditions.join(', ');
+                                });
+                                Navigator.pop(context);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.successGreen,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 2,
+                                shadowColor: AppColors.successGreen.withOpacity(0.3),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.check,
+                                    color: AppColors.white,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'Done',
+                                    style: TextStyle(
+                                      fontFamily: 'Lato',
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: AppColors.grayText),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (dialogController.text.isNotEmpty) {
-                  // Add logic to append to health conditions
-                  String currentText = _healthConditionsController.text;
-                  if (currentText.isNotEmpty) {
-                    _healthConditionsController.text = '$currentText, ${dialogController.text}';
-                  } else {
-                    _healthConditionsController.text = dialogController.text;
-                  }
-                  Navigator.pop(context);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.successGreen,
-              ),
-              child: Text(
-                'Add',
-                style: TextStyle(color: Colors.white),
-              ),
-            ),
-          ],
+            );
+          },
         );
       },
     );

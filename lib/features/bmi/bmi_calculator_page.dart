@@ -104,6 +104,48 @@ class _BMICalculatorPageState extends State<BMICalculatorPage> {
     return Colors.red;
   }
 
+  void _setupLater() async {
+    try {
+      // Navigate to dashboard without calculating BMI
+      final authService = AuthService();
+      final userService = UserService();
+      
+      final currentUser = authService.currentUser;
+      if (currentUser != null) {
+        final userData = await userService.getUser(currentUser.uid);
+        if (userData != null && userData.role == 'professional') {
+          // Navigate to professional dashboard
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => const ProfessionalNavigationWrapper(),
+            ),
+          );
+        } else {
+          // Navigate to user dashboard
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => const MainNavigationWrapper(),
+            ),
+          );
+        }
+      } else {
+        // Fallback to regular user dashboard
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const MainNavigationWrapper(),
+          ),
+        );
+      }
+    } catch (e) {
+      // Fallback navigation if there's any error
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => const MainNavigationWrapper(),
+        ),
+      );
+    }
+  }
+
   void _resetCalculator() {
     setState(() {
       _ageController.clear();
@@ -221,6 +263,11 @@ class _BMICalculatorPageState extends State<BMICalculatorPage> {
                 
                 // Calculate Button
                 _buildCalculateButton(),
+                
+                const SizedBox(height: 16),
+                
+                // Setup Later Button
+                _buildSetupLaterButton(),
                 
                 const SizedBox(height: 32),
                 
@@ -483,6 +530,35 @@ class _BMICalculatorPageState extends State<BMICalculatorPage> {
             fontSize: 18,
             fontWeight: FontWeight.bold,
             color: AppColors.white,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSetupLaterButton() {
+    return Container(
+      height: 56,
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.primaryAccent, width: 2),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: OutlinedButton(
+        onPressed: _setupLater,
+        style: OutlinedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          side: BorderSide.none,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+        child: Text(
+          'Setup Later',
+          style: TextStyle(
+            fontFamily: AppConstants.primaryFont,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryAccent,
           ),
         ),
       ),

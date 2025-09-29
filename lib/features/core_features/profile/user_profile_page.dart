@@ -4,6 +4,7 @@ import '../../../services/auth_service.dart';
 import '../../../services/user_service.dart';
 import '../../../models/user.dart';
 import '../../auth/sign_in_page.dart';
+import '../../bmi/bmi_calculator_page.dart';
 import 'account_settings_page.dart';
 import 'edit_profile_page.dart';
 
@@ -311,6 +312,28 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 },
               ),
             ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _buildActionCard(
+                icon: Icons.monitor_weight,
+                title: 'Setup BMI',
+                subtitle: 'Calculate & Track',
+                gradient: [Colors.blue, Colors.blue.withOpacity(0.7)],
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const BMICalculatorPage(),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(child: Container()), // Empty space to maintain grid layout
           ],
         ),
       ],
@@ -658,8 +681,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   ? Wrap(
                       spacing: 8,
                       runSpacing: 8,
+                      alignment: WrapAlignment.start,
                       children: _currentUser!.healthConditions!
-                          .map((condition) => _buildHealthConditionChip(condition, Icons.health_and_safety))
+                          .map((condition) => _buildHealthConditionChip(condition, Icons.local_hospital))
                           .toList(),
                     )
                   : _buildHealthConditionChip('No health conditions', Icons.check_circle, isPositive: true),
@@ -714,6 +738,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   ? Wrap(
                       spacing: 8,
                       runSpacing: 8,
+                      alignment: WrapAlignment.start,
                       children: _currentUser!.foodAllergies!
                           .map((allergy) => _buildHealthConditionChip(allergy, Icons.no_food, isPositive: false))
                           .toList(),
@@ -730,6 +755,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
     Color chipColor = isPositive ? AppColors.successGreen : AppColors.primaryAccent;
     
     return Container(
+      constraints: const BoxConstraints(maxWidth: 280), // Add max width constraint
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -744,25 +770,31 @@ class _UserProfilePageState extends State<UserProfilePage> {
           width: 1,
         ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            size: 16,
-            color: chipColor,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            condition,
-            style: TextStyle(
-              fontFamily: 'OpenSans',
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
+      child: IntrinsicWidth(
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 16,
               color: chipColor,
             ),
-          ),
-        ],
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                condition,
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: chipColor,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
