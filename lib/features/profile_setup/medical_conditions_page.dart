@@ -18,7 +18,7 @@ class _MedicalConditionsPageState extends State<MedicalConditionsPage> {
   
   // Medical condition selection state
   String? _selectedCategory;
-  String? _selectedSpecificCondition;
+  Set<String> _selectedSpecificConditions = {}; // Multiple conditions
   // If the user specifies an "Other" condition text
   String? _otherConditionText;
   bool _canContinue = false;
@@ -74,7 +74,7 @@ class _MedicalConditionsPageState extends State<MedicalConditionsPage> {
   void _selectCategory(String category) {
     setState(() {
       _selectedCategory = category;
-      _selectedSpecificCondition = null; // Reset specific condition
+      _selectedSpecificConditions.clear(); // Reset specific conditions
       _otherConditionText = null; // Reset typed other
       // If user chooses 'None' immediately allow continue
       if (category == 'None') {
@@ -84,11 +84,17 @@ class _MedicalConditionsPageState extends State<MedicalConditionsPage> {
     });
   }
 
-  void _selectSpecificCondition(String condition) {
+  void _toggleSpecificCondition(String condition) {
     setState(() {
-      _selectedSpecificCondition = condition;
-      // Clear any previously typed other text when they pick a predefined one
-      if (condition != 'Other') _otherConditionText = null;
+      if (_selectedSpecificConditions.contains(condition)) {
+        _selectedSpecificConditions.remove(condition);
+        // Clear other text if removing 'Other'
+        if (condition == 'Other') _otherConditionText = null;
+      } else {
+        _selectedSpecificConditions.add(condition);
+        // Clear any previously typed other text when they pick a predefined one
+        if (condition != 'Other') _otherConditionText = null;
+      }
       _updateContinueButton();
     });
   }
@@ -223,147 +229,102 @@ class _MedicalConditionsPageState extends State<MedicalConditionsPage> {
     );
   }
 
-  // Open a modal bottom sheet to select specific condition (includes 'Other')
-  void _openSpecificSheet() {
-    if (_selectedCategory == null || _selectedCategory == 'None') return;
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return DraggableScrollableSheet(
-          initialChildSize: 0.56,
-          minChildSize: 0.32,
-          maxChildSize: 0.92,
-          expand: false,
-          builder: (context, scrollController) {
-            return Container(
-              decoration: BoxDecoration(
-                color: AppColors.primaryBackground,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
-                    blurRadius: 12,
-                    offset: const Offset(0, -6),
+  // Build checkbox list for specific conditions
+  Widget _buildConditionCheckboxes() {
+    if (_selectedCategory == null || _selectedCategory == 'None') {
+      return const SizedBox.shrink();
+    }
+
+    final conditions = [..._specificConditions, 'Other'];
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 20),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+          child: Text(
+            'Select conditions (you can choose multiple):',
+            style: TextStyle(
+              fontFamily: AppConstants.primaryFont,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: AppColors.blackText,
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        ...conditions.map((condition) {
+          final bool isSelected = _selectedSpecificConditions.contains(condition);
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4.0),
+            child: GestureDetector(
+              onTap: () => _toggleSpecificCondition(condition),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.successGreen.withOpacity(0.1) : AppColors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected ? AppColors.successGreen.withOpacity(0.3) : AppColors.lightGray,
                   ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 12),
-                  Container(
-                    width: 48,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: AppColors.grayText.withOpacity(0.25),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Select Condition',
-                            style: TextStyle(
-                              fontFamily: AppConstants.headingFont,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.blackText,
-                            ),
-                          ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.successGreen : Colors.transparent,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(
+                          color: isSelected ? AppColors.successGreen : AppColors.grayText.withOpacity(0.5),
+                          width: 2,
                         ),
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: Icon(Icons.close, color: AppColors.grayText),
+                      ),
+                      child: isSelected
+                          ? const Icon(
+                              Icons.check,
+                              color: AppColors.white,
+                              size: 16,
+                            )
+                          : null,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        condition,
+                        style: TextStyle(
+                          fontFamily: AppConstants.primaryFont,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.blackText,
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Expanded(
-                    child: ListView.separated(
-                      controller: scrollController,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      itemCount: _specificConditions.length + 1,
-                      separatorBuilder: (_, __) => const SizedBox(height: 6),
-                      itemBuilder: (context, index) {
-                        final bool isOtherIndex = index == _specificConditions.length;
-                        final String condition = isOtherIndex ? 'Other' : _specificConditions[index];
-                        final bool isSelected = _selectedSpecificCondition == condition;
-                        return GestureDetector(
-                          onTap: () {
-                            Navigator.pop(context);
-                            _selectSpecificCondition(condition);
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                            decoration: BoxDecoration(
-                              color: isSelected ? AppColors.successGreen.withOpacity(0.12) : AppColors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected ? AppColors.successGreen.withOpacity(0.3) : AppColors.lightGray,
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    color: isSelected ? AppColors.successGreen : AppColors.lightGray,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Center(
-                                    child: Icon(
-                                      isSelected ? Icons.check : Icons.medical_services,
-                                      color: isSelected ? AppColors.white : AppColors.grayText,
-                                      size: 18,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    condition,
-                                    style: TextStyle(
-                                      fontFamily: AppConstants.primaryFont,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.blackText,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            );
-          },
-        );
-      },
+            ),
+          );
+        }).toList(),
+      ],
     );
   }
 
   void _updateContinueButton() {
     setState(() {
       // User can continue if they selected 'None', OR they've selected a category and
-      // either picked a specific condition from the list, OR chose 'Other' and typed text.
+      // either picked specific conditions from the list, OR chose 'Other' and typed text.
       if (_selectedCategory == 'None') {
         _canContinue = true;
       } else if (_selectedCategory != null) {
-        if (_selectedSpecificCondition == 'Other') {
-          _canContinue = (_otherConditionText != null && _otherConditionText!.trim().isNotEmpty);
+        if (_selectedSpecificConditions.contains('Other')) {
+          // If 'Other' is selected, check if text is provided, but also allow other conditions
+          _canContinue = (_otherConditionText != null && _otherConditionText!.trim().isNotEmpty) ||
+                        _selectedSpecificConditions.length > 1; // Other conditions besides 'Other'
         } else {
-          _canContinue = _selectedSpecificCondition != null;
+          _canContinue = _selectedSpecificConditions.isNotEmpty;
         }
       } else {
         _canContinue = false;
@@ -466,75 +427,63 @@ class _MedicalConditionsPageState extends State<MedicalConditionsPage> {
 
                   const SizedBox(height: 20),
 
-                  // Specific condition picker (opens bottom sheet)
-                  GestureDetector(
-                    onTap: _selectedCategory != null ? _openSpecificSheet : null,
-                    child: Container(
-                      width: 280,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
-                      decoration: BoxDecoration(
-                        color: _selectedCategory != null
-                            ? AppColors.lightGray.withOpacity(0.3)
-                            : AppColors.grayText.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.grayText.withOpacity(0.3)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // Show checkbox list for specific conditions
+                  _buildConditionCheckboxes(),
+
+                  const SizedBox(height: 30),
+
+                  // Selected conditions display (if any are selected)
+                  if (_selectedCategory != null && _selectedSpecificConditions.isNotEmpty)
+                    Container(
+                      margin: const EdgeInsets.only(top: 20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            _selectedSpecificCondition ?? 'Select specific Medical Condition',
-                            style: TextStyle(
-                              fontFamily: AppConstants.primaryFont,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w500,
-                              color: _selectedSpecificCondition != null
-                                  ? AppColors.blackText
-                                  : AppColors.grayText,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                            child: Text(
+                              'Selected conditions:',
+                              style: TextStyle(
+                                fontFamily: AppConstants.primaryFont,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.grayText,
+                              ),
                             ),
                           ),
-                          Icon(
-                            Icons.keyboard_arrow_down,
-                            color: _selectedCategory != null
-                                ? AppColors.grayText
-                                : AppColors.grayText.withOpacity(0.5),
-                            size: 20,
+                          const SizedBox(height: 8),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _selectedSpecificConditions.map((condition) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: AppColors.successGreen.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: AppColors.successGreen.withOpacity(0.3)),
+                                ),
+                                child: Text(
+                                  // Show typed other text if user chose Other
+                                  condition == 'Other' && _otherConditionText != null
+                                      ? _otherConditionText!
+                                      : condition,
+                                  style: const TextStyle(
+                                    fontFamily: AppConstants.primaryFont,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.successGreen,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
                           ),
                         ],
                       ),
                     ),
-                  ),
-
-                  const SizedBox(height: 30),
-
-                  // Selected condition pill (if both are selected)
-                  if (_selectedCategory != null && _selectedSpecificCondition != null)
-                    Container(
-                      margin: const EdgeInsets.only(top: 20),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: AppColors.successGreen.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: AppColors.successGreen.withOpacity(0.3)),
-                        ),
-                        child: Text(
-                          // Show typed other text if user chose Other
-                          _selectedSpecificCondition == 'Other' && _otherConditionText != null
-                              ? _otherConditionText!
-                              : _selectedSpecificCondition!,
-                          style: const TextStyle(
-                            fontFamily: AppConstants.primaryFont,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.successGreen,
-                          ),
-                        ),
-                      ),
-                    ),
 
                   // If user selected 'Other' show a text field to type the custom condition
-                  if (_selectedSpecificCondition == 'Other')
+                  if (_selectedSpecificConditions.contains('Other'))
                     Padding(
                       padding: const EdgeInsets.only(top: 12.0),
                       child: SizedBox(
@@ -542,7 +491,7 @@ class _MedicalConditionsPageState extends State<MedicalConditionsPage> {
                         child: TextFormField(
                           initialValue: _otherConditionText,
                           decoration: const InputDecoration(
-                            hintText: 'Please specify',
+                            hintText: 'Please specify your other condition',
                           ),
                           onChanged: (val) {
                             setState(() {
@@ -551,7 +500,7 @@ class _MedicalConditionsPageState extends State<MedicalConditionsPage> {
                             });
                           },
                           validator: (val) {
-                            if (_selectedSpecificCondition == 'Other') {
+                            if (_selectedSpecificConditions.contains('Other')) {
                               if (val == null || val.trim().isEmpty) {
                                 return 'Please specify your condition';
                               }
@@ -609,15 +558,19 @@ class _MedicalConditionsPageState extends State<MedicalConditionsPage> {
     // Build health conditions list
     List<String> healthConditions = [];
     if (_selectedCategory != null && _selectedCategory != 'None') {
-      if (_selectedSpecificCondition != null) {
-        if (_selectedSpecificCondition == 'Other') {
-          // For 'Other', we could add the category name or handle custom input
-          healthConditions.add('$_selectedCategory - Other');
-        } else {
-          healthConditions.add(_selectedSpecificCondition!);
+      // Add all selected specific conditions
+      for (String condition in _selectedSpecificConditions) {
+        if (condition == 'Other' && _otherConditionText != null && _otherConditionText!.trim().isNotEmpty) {
+          // For 'Other', add the custom text
+          healthConditions.add(_otherConditionText!.trim());
+        } else if (condition != 'Other') {
+          // Add the predefined condition
+          healthConditions.add(condition);
         }
-      } else {
-        // If only category selected, add the category
+      }
+      
+      // If no specific conditions were selected, add the category
+      if (healthConditions.isEmpty) {
         healthConditions.add(_selectedCategory!);
       }
     }

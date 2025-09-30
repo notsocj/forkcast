@@ -158,6 +158,13 @@ applyTo: '**'
      - [x] Number-only keyboard with input validation (1-99 people)
      - [x] Real-time input validation and user feedback
      - [x] Clean text input interface with helpful range indicators
+   - [x] `medical_conditions_page.dart` (progress 8/8, multiple health condition selection)
+     - [x] **Multiple Condition Selection** - Users can select multiple medical conditions from each category
+     - [x] **Category Dropdown UI** - Maintained modal bottom sheet for category selection
+     - [x] **Checkbox Interface** - Replaced specific condition dropdown with checkbox-based multiple selection
+     - [x] **Real-time Selection Display** - Visual summary of selected conditions with removable chips
+     - [x] **Custom Condition Input** - "Other" option with text field for custom medical conditions
+     - [x] **Smart Continue Logic** - Button enabled when at least one condition selected or "None" chosen
    - [x] `edit_profile_page.dart` (comprehensive profile editing with all Firebase schema fields, modern UI design)
    - [x] **Food Allergies Integration** (Complete implementation)
      - [x] `User` model updated with `foodAllergies` field and Firebase serialization
