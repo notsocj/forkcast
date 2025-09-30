@@ -1011,7 +1011,7 @@ class _MealPlanPageState extends State<MealPlanPage> {
         throw Exception('User not authenticated');
       }
 
-      // Get AI meal plan suggestions
+      // Get AI meal plan suggestions (date-aware, won't repeat on same day)
       Map<String, List<Recipe>> dailyPlan = 
           await _personalizedMealService.generateDailyMealPlan(user.uid);
 
@@ -1081,7 +1081,7 @@ class _MealPlanPageState extends State<MealPlanPage> {
         ),
       );
 
-      // Get AI meal type suggestions (get multiple for variety)
+      // Get AI meal type suggestions (date-aware, won't repeat on same day)
       List<Recipe> suggestions = await _personalizedMealService
           .generateMealTypeSuggestions(user.uid, mealType.toLowerCase(), null);
 

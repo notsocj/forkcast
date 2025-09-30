@@ -347,6 +347,12 @@ applyTo: '**'
   - [x] Complete FNRI-powered navigation flow implemented (Meal Plan → AI Suggestions → Search Results → Recipe Detail → Nutrition Facts with PAX → Meal Logging)
   - [x] All meal planning pages updated to use FNRI research-based meals with health condition filtering
   - [x] AI-powered meal suggestions replace manual refresh functionality
+  - [x] **Smart Suggestion Tracking System** - Date-aware meal suggestion memory
+    - [x] PersonalizedMealService tracks suggested meals per day (not per session)
+    - [x] Date tracking prevents showing same suggestions multiple times on same day
+    - [x] Automatic cache clearing when date changes to reset suggestions for new day
+    - [x] Variety enforcement across multiple suggestion requests within same day
+    - [x] Force clear method available for testing or manual reset scenarios
   - [x] Health condition filtering by diabetes, hypertension, obesity, underweight, heart disease, anemia, osteoporosis
   - [x] PAX scaling functionality for household meal planning (1-10 people)
   - [x] Filtering by health, budget, ingredients functional via FNRI data helper methods

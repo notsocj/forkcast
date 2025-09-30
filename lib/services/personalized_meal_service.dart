@@ -12,9 +12,27 @@ class PersonalizedMealService {
   // Track suggested recipes to ensure variety across meal types
   final Set<String> _suggestedRecipeIds = <String>{};
   
-  /// Clear suggested recipes cache (call when starting new suggestion session)
+  // Track the date when suggestions were last made
+  DateTime? _lastSuggestionDate;
+  
+  /// Clear suggested recipes cache only if it's a new day
+  void clearSuggestedRecipesIfNewDay() {
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    
+    // If it's a new day or first time, clear the suggestions
+    if (_lastSuggestionDate == null || 
+        _lastSuggestionDate!.isBefore(todayDate)) {
+      _suggestedRecipeIds.clear();
+      _lastSuggestionDate = todayDate;
+      print('Cleared suggestion cache for new day: $todayDate');
+    }
+  }
+  
+  /// Force clear suggested recipes cache (for testing or manual reset)
   void clearSuggestedRecipes() {
     _suggestedRecipeIds.clear();
+    _lastSuggestionDate = null;
   }
 
   /// Generate daily meal plan with personalized meal suggestions for all meal types
@@ -26,8 +44,8 @@ class PersonalizedMealService {
         throw Exception('User not found');
       }
 
-      // Clear previous suggestions to ensure fresh variety
-      clearSuggestedRecipes();
+      // Clear suggestions only if it's a new day
+      clearSuggestedRecipesIfNewDay();
 
       // Get all recipes from Firebase
       final allRecipes = await _recipeService.getAllRecipes();
@@ -59,8 +77,8 @@ class PersonalizedMealService {
     String mealType, 
     List<Recipe>? allRecipes,
   ) async {
-    // Clear cache for fresh suggestions when called individually
-    clearSuggestedRecipes();
+    // Clear cache only if it's a new day (keeps variety within the same day)
+    clearSuggestedRecipesIfNewDay();
     
     return await _generateMealTypeSuggestionsWithVariety(
       userId,
