@@ -61,5 +61,86 @@ class AuthService {
     await _auth.signOut();
   }
 
+  // Change password functionality
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('No user is currently signed in');
+    }
+
+    // Reauthenticate the user with current password
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: currentPassword,
+    );
+
+    try {
+      await user.reauthenticateWithCredential(credential);
+      await user.updatePassword(newPassword);
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'wrong-password':
+          throw Exception('Current password is incorrect');
+        case 'weak-password':
+          throw Exception('New password is too weak');
+        case 'requires-recent-login':
+          throw Exception('Please sign in again before changing your password');
+        default:
+          throw Exception('Failed to change password: ${e.message}');
+      }
+    }
+  }
+
+  // Delete account functionality
+  Future<void> deleteAccount(String currentPassword) async {
+    final user = _auth.currentUser;
+    if (user == null) {
+      throw Exception('No user is currently signed in');
+    }
+
+    // Reauthenticate the user with current password
+    final credential = EmailAuthProvider.credential(
+      email: user.email!,
+      password: currentPassword,
+    );
+
+    try {
+      await user.reauthenticateWithCredential(credential);
+      
+      // Delete user data from Firestore first
+      final userService = UserService();
+      await userService.deleteUser(user.uid);
+      
+      // Record account deletion activity
+      try {
+        final userData = await userService.getUser(user.uid);
+        if (userData != null) {
+          await AnalyticsService.recordUserActivity(
+            userId: user.uid,
+            userName: userData.fullName,
+            action: 'Account deletion',
+          );
+        }
+      } catch (e) {
+        print('Error recording deletion activity: $e');
+      }
+      
+      // Finally delete the Firebase Auth account
+      await user.delete();
+    } on FirebaseAuthException catch (e) {
+      switch (e.code) {
+        case 'wrong-password':
+          throw Exception('Current password is incorrect');
+        case 'requires-recent-login':
+          throw Exception('Please sign in again before deleting your account');
+        default:
+          throw Exception('Failed to delete account: ${e.message}');
+      }
+    }
+  }
+
   User? get currentUser => _auth.currentUser;
 }

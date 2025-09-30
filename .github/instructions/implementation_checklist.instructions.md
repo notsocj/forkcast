@@ -66,10 +66,16 @@ applyTo: '**'
 - Configure linter and project rules (`analysis_options.yaml`)
 
 ### Phase 3: Authentication & Profile Management
-- Implement login, sign up, forgot password flows
-- Implement user profile setup flow
-- Connect authentication to Firestore `users` collection
-- Handle roles: `user`, `admin`, `professional`
+- [x] Implement login, sign up, forgot password flows
+- [x] Implement user profile setup flow
+- [x] Connect authentication to Firestore `users` collection
+- [x] Handle roles: `user`, `admin`, `professional`
+- [x] **AuthService Enhancement** (Complete password and account management)
+  - [x] `changePassword()` method with current password reauthentication
+  - [x] `deleteAccount()` method with Firestore data cleanup integration
+  - [x] Comprehensive Firebase Auth exception handling
+  - [x] Analytics integration for account management activities
+  - [x] UserService integration for complete user data deletion
 
 ### Phase 4: Core Features Implementation
 - [x] BMI Calculator
@@ -143,6 +149,23 @@ applyTo: '**'
      - [x] Edit profile page connected to save allergies to Firebase
      - [x] User profile page displays allergies chips in health information section
      - [x] Add/edit allergies dialog functionality implemented
+   - [x] **Account Settings Implementation** (Complete functional implementation)
+     - [x] `account_settings_page.dart` converted to StatefulWidget with full functionality
+     - [x] **Change Password Feature** - Complete Firebase Authentication integration
+       - [x] Professional multi-step password change dialog with validation
+       - [x] Current password reauthentication for security
+       - [x] New password strength requirements and confirmation matching
+       - [x] Real-time form validation and loading states
+       - [x] Comprehensive error handling for Firebase Auth exceptions
+       - [x] Success/error snackbar notifications with modern design
+     - [x] **Delete Account Feature** - Complete account deletion with data cleanup
+       - [x] Warning dialog with detailed information about data deletion
+       - [x] Password confirmation required for account deletion security
+       - [x] Firebase Auth account deletion with reauthentication
+       - [x] UserService integration for complete Firestore data cleanup
+       - [x] Analytics logging for account deletion tracking
+       - [x] Automatic navigation to sign-in page after successful deletion
+       - [x] Professional UI design with warning icons and color-coded elements
   - [x] Profile connected to Firestore `users` collection
   - [x] **Profile Setup Backend Integration**
     - [x] `User` model class created (`lib/models/user.dart`) with Firebase serialization

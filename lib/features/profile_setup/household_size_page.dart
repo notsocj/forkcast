@@ -78,7 +78,7 @@ class _HouseholdSizePageState extends State<HouseholdSizePage> {
                 // Top spacing and title
                 const SizedBox(height: 40),
                 Text(
-                  "How many pax are you\nin the family?",
+                  "How many are you\nin the family?",
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontFamily: AppConstants.headingFont,
