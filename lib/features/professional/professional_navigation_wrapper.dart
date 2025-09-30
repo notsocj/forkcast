@@ -3,6 +3,7 @@ import '../../core/theme/app_colors.dart';
 import 'consultations/consultation_dashboard_page.dart';
 import 'consultations/upcoming_schedules_page.dart';
 import 'consultations/patient_notes_page.dart';
+import 'consultations/professional_qna_forum_page.dart';
 import 'profile/update_profile_page.dart';
 import 'profile/manage_availability_page.dart';
 
@@ -20,6 +21,7 @@ class _ProfessionalNavigationWrapperState extends State<ProfessionalNavigationWr
     const ConsultationDashboardPage(),    // Dashboard
     const UpcomingSchedulesPage(),        // Schedules
     const PatientNotesPage(),            // Patient Notes
+    const ProfessionalQnAForumPage(),    // Q&A Forum
     const UpdateProfilePage(),           // Profile
     const ManageAvailabilityPage(),      // Availability
   ];
@@ -100,6 +102,14 @@ class ProfessionalBottomNavigation extends StatelessWidget {
               Expanded(
                 child: _buildNavItem(
                   index: 3,
+                  icon: Icons.forum_outlined,
+                  activeIcon: Icons.forum,
+                  label: 'Q&A',
+                ),
+              ),
+              Expanded(
+                child: _buildNavItem(
+                  index: 4,
                   icon: Icons.person_outline,
                   activeIcon: Icons.person,
                   label: 'Profile',
@@ -107,7 +117,7 @@ class ProfessionalBottomNavigation extends StatelessWidget {
               ),
               Expanded(
                 child: _buildNavItem(
-                  index: 4,
+                  index: 5,
                   icon: Icons.calendar_today_outlined,
                   activeIcon: Icons.calendar_today,
                   label: 'Hours',

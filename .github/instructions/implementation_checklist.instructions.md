@@ -561,6 +561,24 @@ applyTo: '**'
       - [x] Patient history viewing with modal bottom sheets and consultation timeline
       - [x] Add note functionality with dialog system and Firebase-ready structure
       - [x] Health condition tags and medical suitability indicators
+    - [x] **Professional Q&A Forum Page** (`professional_qna_forum_page.dart`) - Complete implementation
+      - [x] Full Q&A functionality with answer, post, save, and delete features
+      - [x] Professional-themed UI with 🩺 branding and green gradient color scheme
+      - [x] Save/unsave questions with bookmark icon toggle and Firebase integration
+      - [x] **Saved Questions View Filter** - Toggle button switches between all/saved questions
+        - [x] Visual feedback: green background when showing saved questions
+        - [x] Dynamic StreamBuilder switches between getAllQuestions() and getSavedQuestions()
+        - [x] Button text changes: "Saved" → "Showing Saved" when active
+        - [x] Contextual empty state messages for both views
+      - [x] Delete questions with ownership validation and cascading deletes
+      - [x] Post new questions with professional medical context and modal dialog
+      - [x] View question details and all answers by navigating to QnaAnswersPage
+      - [x] Answer count display with FutureBuilder and real-time updates
+      - [x] Professional badge display for verified nutritionists
+      - [x] Snackbar notifications for all CRUD operations
+      - [x] Search bar integration for finding specific nutrition questions
+      - [x] Integration with existing QnAService for full CRUD operations
+      - [x] Added to professional navigation wrapper as tab #4 (Q&A) between Notes and Profile
   - [x] **Profile Management Pages**
     - [x] `update_profile_page.dart` - Comprehensive professional profile editing interface
       - [x] Profile picture management with avatar display and change photo functionality
