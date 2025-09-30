@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/predefined_meals.dart';
 import '../../services/meal_logging_service.dart';
+import '../../services/user_service.dart';
 
 class NutritionFactsPage extends StatefulWidget {
   final PredefinedMeal meal;
@@ -23,11 +25,38 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
   late double _currentAmount;
   int _selectedPax = 1; // Number of people eating
   final MealLoggingService _mealLoggingService = MealLoggingService();
+  final UserService _userService = UserService();
+  bool _isLoadingUserData = true;
 
   @override
   void initState() {
     super.initState();
     _currentAmount = widget.amount;
+    _loadUserHouseholdSize();
+  }
+
+  // Load user's household size to prefill PAX selector
+  Future<void> _loadUserHouseholdSize() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser != null) {
+        final userData = await _userService.getUser(currentUser.uid);
+        if (userData != null && userData.householdSize > 0) {
+          setState(() {
+            _selectedPax = userData.householdSize;
+            _isLoadingUserData = false;
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      print('Error loading user household size: $e');
+    }
+    
+    // Fallback to default PAX of 1 if loading fails
+    setState(() {
+      _isLoadingUserData = false;
+    });
   }
 
   // Calculate nutrition values based on current amount, meal data, and PAX
@@ -350,6 +379,31 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
               color: AppColors.grayText,
             ),
           ),
+          if (_isLoadingUserData)
+            const SizedBox(height: 16),
+          if (_isLoadingUserData)
+            Row(
+              children: [
+                SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.successGreen),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Loading your household size...',
+                  style: TextStyle(
+                    fontFamily: 'OpenSans',
+                    fontSize: 12,
+                    color: AppColors.grayText,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            ),
           const SizedBox(height: 16),
           
           // PAX Selection Row
@@ -434,7 +488,9 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
           
           // Info text
           Text(
-            'Nutrition values will be calculated based on the selected number of people.',
+            _isLoadingUserData 
+                ? 'Nutrition values will be calculated based on the selected number of people.'
+                : 'Pre-filled with your household size. You can adjust as needed.',
             style: TextStyle(
               fontFamily: 'OpenSans',
               fontSize: 12,

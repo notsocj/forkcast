@@ -312,6 +312,13 @@ applyTo: '**'
       - [x] Dynamic nutrition scaling based on selected PAX count
       - [x] Real-time ingredient quantity updates with PAX adjustments
       - [x] Scaled calorie and nutrient calculations (fat, carbs, protein) for multiple people
+      - [x] **PAX Prefilling with User Data** - Firebase integration for personalized defaults
+        - [x] Firebase Auth and UserService integration for user data retrieval
+        - [x] Automatic prefilling of PAX selector with user's household size from profile
+        - [x] Loading state with spinner and informative messaging during data fetch
+        - [x] Fallback to default PAX value (4) when user data unavailable
+        - [x] User can still adjust prefilled PAX value for flexibility
+        - [x] Enhanced user experience with personalized meal logging defaults
     - [x] **Enhanced Meal Type Selection Dialog** - Complete implementation
       - [x] Modal bottom sheet with meal type options (Breakfast, Lunch, Dinner, Snack)
       - [x] Visual icons and color coding for each meal type
