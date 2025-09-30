@@ -475,7 +475,26 @@ applyTo: '**'
       - [x] Real-time data synchronization and automatic BMI calculation
       - [x] Admin activity logging and audit trail
       - [x] Concurrent data operations for optimal performance
-  - [x] Recipe management pages (`manage_recipes_page.dart`)
+  - [x] **Content Management**
+    - [x] `manage_recipes_page.dart` - **Complete Firebase Migration with Subcollections**
+      - [x] Migrated from PredefinedMealsData to Firebase RecipeService
+      - [x] Real-time recipe loading with loading states and CircularProgressIndicator
+      - [x] Search functionality with Firebase recipe queries (name, description, tags, ingredients)
+      - [x] Category filtering (All, Filipino, Healthy, Vegetarian, Low Sodium, Diabetes-Friendly)
+      - [x] Recipe display with health condition tags and meal timing indicators
+      - [x] Updated to use Recipe model with RecipeIngredient, RecipeHealthConditions, RecipeMealTiming
+      - [x] Complete recipe details modal with ingredients, health conditions, and cooking instructions
+      - [x] Statistics dashboard showing total recipes from Firebase Firestore
+      - [x] Automatic tag generation from health conditions and meal timing data
+      - [x] **Enhanced Firebase Structure Integration**
+        - [x] RecipeService loads ingredients subcollection (ingredient_0, ingredient_1, etc.)
+        - [x] RecipeService loads health_conditions subcollection (fixed doc ID: "conditions")
+        - [x] RecipeService loads meal_timing subcollection (fixed doc ID: "timing")
+        - [x] Recipe model supports optional healthConditions and mealTiming parameters
+        - [x] Falls back to denormalized fields if subcollections unavailable
+        - [x] Complete CRUD operations support subcollections (add, update, delete)
+        - [x] Batch operations for atomic subcollection updates
+        - [x] Proper ingredient sorting by document ID (ingredient_0, ingredient_1, etc.)
   - [x] Price data validation pages
   - [x] **Forum Management & Moderation** (Complete Firebase Implementation)
     - [x] `ForumManagementService` created (`lib/services/forum_management_service.dart`)

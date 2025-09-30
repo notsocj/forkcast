@@ -190,8 +190,10 @@ class Recipe {
   factory Recipe.fromFirestore(
     Map<String, dynamic> data,
     String documentId,
-    List<RecipeIngredient> ingredients,
-  ) {
+    List<RecipeIngredient> ingredients, {
+    RecipeHealthConditions? healthConditions,
+    RecipeMealTiming? mealTiming,
+  }) {
     return Recipe(
       id: documentId,
       recipeName: data['recipe_name'] ?? '',
@@ -201,8 +203,9 @@ class Recipe {
       funFact: data['fun_fact'] ?? '',
       ingredients: ingredients,
       cookingInstructions: data['cooking_instructions'] ?? '',
-      healthConditions: RecipeHealthConditions.fromFirestore(data),
-      mealTiming: RecipeMealTiming.fromFirestore(data),
+      // Use subcollection data if available, otherwise fall back to denormalized fields
+      healthConditions: healthConditions ?? RecipeHealthConditions.fromFirestore(data),
+      mealTiming: mealTiming ?? RecipeMealTiming.fromFirestore(data),
       tags: List<String>.from(data['tags'] ?? []),
       difficulty: data['difficulty'] ?? 'Medium',
       prepTimeMinutes: data['prep_time_minutes'] ?? 30,

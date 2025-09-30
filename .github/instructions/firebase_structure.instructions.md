@@ -111,21 +111,58 @@ collections:
       hidden_reason: string (optional, reason for hiding)
 
   recipes:
-    documentId: recipeId (string)
+    documentId: recipeId (string, e.g., "fnri_001")
     fields:
       recipe_name: string (VARCHAR(150))
       description: string (TEXT)
+      fun_fact: string (TEXT, optional)
       kcal: number (int)
       servings: number (int)
-      cooking_instructions: string
+      cooking_instructions: string (TEXT)
+      difficulty: string (enum: ["Easy", "Medium", "Hard"])
+      prep_time_minutes: number (int)
+      image_url: string (path to recipe image, e.g., "meals_pictures/chicken_lumpia_1.png")
+      tags: array (array of tag strings, e.g., ["Filipino", "chicken", "vegetables"])
       created_at: timestamp
+      # Health condition safety flags (boolean, denormalized from health_conditions subcollection for quick filtering)
+      is_diabetes_safe: boolean
+      is_hypertension_safe: boolean
+      is_obesity_safe: boolean
+      is_underweight_safe: boolean
+      is_heart_disease_safe: boolean
+      is_anemia_safe: boolean
+      is_osteoporosis_safe: boolean
+      is_none_safe: boolean
+      # Meal timing suitability flags (boolean, denormalized from meal_timing subcollection for quick filtering)
+      is_breakfast_suitable: boolean
+      is_lunch_suitable: boolean
+      is_dinner_suitable: boolean
+      is_snack_suitable: boolean
     subcollections:
       ingredients:
-        documentId: recipeIngredientId (string)
+        documentId: ingredientId (string, e.g., "ingredient_0", "ingredient_1")
         fields:
           ingredient_name: string
           quantity: number (double)
           unit: string
+      health_conditions:
+        documentId: "conditions" (fixed document ID)
+        fields:
+          is_diabetes_safe: boolean
+          is_hypertension_safe: boolean
+          is_obesity_safe: boolean
+          is_underweight_safe: boolean
+          is_heart_disease_safe: boolean
+          is_anemia_safe: boolean
+          is_osteoporosis_safe: boolean
+          is_none_safe: boolean
+      meal_timing:
+        documentId: "timing" (fixed document ID)
+        fields:
+          is_breakfast_suitable: boolean
+          is_lunch_suitable: boolean
+          is_dinner_suitable: boolean
+          is_snack_suitable: boolean
 
   ingredients:
     documentId: ingredientId (string)

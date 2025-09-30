@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/constants.dart';
-import '../../../data/predefined_meals.dart';
+import '../../../services/recipe_service.dart';
+import '../../../models/recipe.dart';
 
 class ManageRecipesPage extends StatefulWidget {
   const ManageRecipesPage({super.key});
@@ -12,15 +13,49 @@ class ManageRecipesPage extends StatefulWidget {
 
 class _ManageRecipesPageState extends State<ManageRecipesPage> {
   final TextEditingController _searchController = TextEditingController();
+  final RecipeService _recipeService = RecipeService();
   String _selectedCategory = 'All';
+  List<Recipe> _allRecipes = [];
+  bool _isLoading = true;
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadRecipes();
+  }
+  
+  Future<void> _loadRecipes() async {
+    setState(() {
+      _isLoading = true;
+    });
+    
+    try {
+      final recipes = await _recipeService.getAllRecipes();
+      setState(() {
+        _allRecipes = recipes;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading recipes: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
   
   // Get filtered meals based on search and category
-  List<PredefinedMeal> get filteredMeals {
-    List<PredefinedMeal> meals = PredefinedMealsData.meals;
+  List<Recipe> get filteredMeals {
+    List<Recipe> meals = _allRecipes;
     
     // Apply search filter
     if (_searchController.text.isNotEmpty) {
-      meals = PredefinedMealsData.searchMeals(_searchController.text);
+      final query = _searchController.text.toLowerCase();
+      meals = meals.where((meal) {
+        return meal.recipeName.toLowerCase().contains(query) ||
+               meal.description.toLowerCase().contains(query) ||
+               meal.tags.any((tag) => tag.toLowerCase().contains(query)) ||
+               meal.ingredients.any((ing) => ing.ingredientName.toLowerCase().contains(query));
+      }).toList();
     }
     
     // Apply category filter
@@ -28,11 +63,14 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
       meals = meals.where((meal) {
         switch (_selectedCategory) {
           case 'Filipino':
-            return meal.tags.contains('Filipino');
+            return meal.tags.any((tag) => tag.toLowerCase().contains('filipino'));
           case 'Healthy':
-            return meal.healthConditions.none || meal.tags.contains('healthy');
+            return meal.healthConditions.none || meal.tags.any((tag) => tag.toLowerCase().contains('healthy'));
           case 'Vegetarian':
-            return meal.tags.contains('vegetarian') || meal.tags.contains('tokwa') || meal.tags.contains('vegetables');
+            return meal.tags.any((tag) => 
+              tag.toLowerCase().contains('vegetarian') || 
+              tag.toLowerCase().contains('tokwa') || 
+              tag.toLowerCase().contains('vegetables'));
           case 'Low Sodium':
             return meal.healthConditions.hypertension;
           case 'Diabetes-Friendly':
@@ -46,8 +84,8 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
     return meals;
   }
   
-  // Helper method to convert PredefinedMeal tags to display format
-  List<String> _getMealTags(PredefinedMeal meal) {
+  // Helper method to convert Recipe to display tags
+  List<String> _getMealTags(Recipe meal) {
     List<String> tags = [];
     
     // Add original tags
@@ -74,6 +112,14 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
   
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.successGreen),
+        ),
+      );
+    }
+    
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -120,7 +166,7 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
                 flex: 2,
                 child: _buildStatCard(
                   'Total Recipes', 
-                  PredefinedMealsData.meals.length.toString(), 
+                  _allRecipes.length.toString(), 
                   Icons.restaurant_menu, 
                   AppColors.successGreen
                 ),
@@ -274,7 +320,7 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
     required List<String> tags,
     required double rating,
     required String status,
-    PredefinedMeal? meal,
+    Recipe? meal,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -449,13 +495,13 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
     );
   }
   
-  void _handleRecipeAction(String action, PredefinedMeal meal) {
+  void _handleRecipeAction(String action, Recipe meal) {
     if (action == 'view') {
       _showRecipeDetails(meal);
     }
   }
   
-  void _showRecipeDetails(PredefinedMeal meal) {
+  void _showRecipeDetails(Recipe meal) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -613,7 +659,7 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
     );
   }
   
-  Widget _buildIngredientsSection(List<MealIngredient> ingredients) {
+  Widget _buildIngredientsSection(List<RecipeIngredient> ingredients) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -676,7 +722,7 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
     );
   }
   
-  Widget _buildHealthConditionsSection(HealthConditions healthConditions) {
+  Widget _buildHealthConditionsSection(RecipeHealthConditions healthConditions) {
     List<String> suitableConditions = [];
     
     if (healthConditions.diabetes) suitableConditions.add('Diabetes');
@@ -743,7 +789,7 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
     );
   }
   
-  Widget _buildMealTimingSection(MealTiming mealTiming) {
+  Widget _buildMealTimingSection(RecipeMealTiming mealTiming) {
     List<String> suitableTimes = [];
     
     if (mealTiming.breakfast) suitableTimes.add('Breakfast');

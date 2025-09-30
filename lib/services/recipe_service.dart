@@ -189,9 +189,9 @@ class RecipeService {
           .collection(_collection)
           .add(recipe.toFirestore());
 
-      // Add ingredients subcollection
       final batch = _firestore.batch();
       
+      // Add ingredients subcollection
       for (int i = 0; i < recipe.ingredients.length; i++) {
         final ingredient = recipe.ingredients[i];
         final ingredientRef = docRef
@@ -200,6 +200,18 @@ class RecipeService {
         
         batch.set(ingredientRef, ingredient.toFirestore());
       }
+
+      // Add health_conditions subcollection (fixed document ID: "conditions")
+      final healthConditionsRef = docRef
+          .collection('health_conditions')
+          .doc('conditions');
+      batch.set(healthConditionsRef, recipe.healthConditions.toFirestore());
+
+      // Add meal_timing subcollection (fixed document ID: "timing")
+      final mealTimingRef = docRef
+          .collection('meal_timing')
+          .doc('timing');
+      batch.set(mealTimingRef, recipe.mealTiming.toFirestore());
 
       await batch.commit();
 
@@ -221,6 +233,8 @@ class RecipeService {
           .doc(recipeId)
           .update(recipe.toFirestore());
 
+      final batch = _firestore.batch();
+
       // Update ingredients subcollection
       final ingredientsRef = _firestore
           .collection(_collection)
@@ -229,7 +243,6 @@ class RecipeService {
 
       // Delete existing ingredients
       final existingIngredients = await ingredientsRef.get();
-      final batch = _firestore.batch();
       
       for (final doc in existingIngredients.docs) {
         batch.delete(doc.reference);
@@ -241,6 +254,22 @@ class RecipeService {
         final ingredientRef = ingredientsRef.doc('ingredient_$i');
         batch.set(ingredientRef, ingredient.toFirestore());
       }
+
+      // Update health_conditions subcollection (fixed document ID: "conditions")
+      final healthConditionsRef = _firestore
+          .collection(_collection)
+          .doc(recipeId)
+          .collection('health_conditions')
+          .doc('conditions');
+      batch.set(healthConditionsRef, recipe.healthConditions.toFirestore());
+
+      // Update meal_timing subcollection (fixed document ID: "timing")
+      final mealTimingRef = _firestore
+          .collection(_collection)
+          .doc(recipeId)
+          .collection('meal_timing')
+          .doc('timing');
+      batch.set(mealTimingRef, recipe.mealTiming.toFirestore());
 
       await batch.commit();
 
@@ -257,21 +286,30 @@ class RecipeService {
   /// Delete a recipe
   Future<bool> deleteRecipe(String recipeId) async {
     try {
-      // Delete ingredients subcollection first
-      final ingredientsRef = _firestore
-          .collection(_collection)
-          .doc(recipeId)
-          .collection('ingredients');
-
-      final ingredients = await ingredientsRef.get();
       final batch = _firestore.batch();
-      
+      final recipeRef = _firestore.collection(_collection).doc(recipeId);
+
+      // Delete ingredients subcollection
+      final ingredientsRef = recipeRef.collection('ingredients');
+      final ingredients = await ingredientsRef.get();
       for (final doc in ingredients.docs) {
         batch.delete(doc.reference);
       }
 
+      // Delete health_conditions subcollection
+      final healthConditionsRef = recipeRef
+          .collection('health_conditions')
+          .doc('conditions');
+      batch.delete(healthConditionsRef);
+
+      // Delete meal_timing subcollection
+      final mealTimingRef = recipeRef
+          .collection('meal_timing')
+          .doc('timing');
+      batch.delete(mealTimingRef);
+
       // Delete the recipe document
-      batch.delete(_firestore.collection(_collection).doc(recipeId));
+      batch.delete(recipeRef);
 
       await batch.commit();
 
@@ -299,18 +337,47 @@ class RecipeService {
             ingredientDoc.data()))
         .toList();
 
-    // Sort ingredients by document ID to maintain order
-    ingredients.sort((a, b) => 
-        ingredientsSnapshot.docs
-            .firstWhere((doc) => doc.data()['ingredient_name'] == a.ingredientName)
-            .id
-            .compareTo(
-                ingredientsSnapshot.docs
-                    .firstWhere((doc) => doc.data()['ingredient_name'] == b.ingredientName)
-                    .id
-            ));
+    // Sort ingredients by document ID to maintain order (ingredient_0, ingredient_1, etc.)
+    ingredients.sort((a, b) {
+      final aDoc = ingredientsSnapshot.docs
+          .firstWhere((doc) => doc.data()['ingredient_name'] == a.ingredientName);
+      final bDoc = ingredientsSnapshot.docs
+          .firstWhere((doc) => doc.data()['ingredient_name'] == b.ingredientName);
+      return aDoc.id.compareTo(bDoc.id);
+    });
 
-    return Recipe.fromFirestore(data, doc.id, ingredients);
+    // Get health_conditions from subcollection (document ID: "conditions")
+    RecipeHealthConditions? healthConditions;
+    try {
+      final healthDoc = await doc.reference
+          .collection('health_conditions')
+          .doc('conditions')
+          .get();
+      
+      if (healthDoc.exists) {
+        healthConditions = RecipeHealthConditions.fromFirestore(healthDoc.data()!);
+      }
+    } catch (e) {
+      print('Error loading health_conditions for ${doc.id}: $e');
+    }
+
+    // Get meal_timing from subcollection (document ID: "timing")
+    RecipeMealTiming? mealTiming;
+    try {
+      final timingDoc = await doc.reference
+          .collection('meal_timing')
+          .doc('timing')
+          .get();
+      
+      if (timingDoc.exists) {
+        mealTiming = RecipeMealTiming.fromFirestore(timingDoc.data()!);
+      }
+    } catch (e) {
+      print('Error loading meal_timing for ${doc.id}: $e');
+    }
+
+    return Recipe.fromFirestore(data, doc.id, ingredients, 
+        healthConditions: healthConditions, mealTiming: mealTiming);
   }
 
   /// Build Recipe object from DocumentSnapshot (for getById)
@@ -327,18 +394,47 @@ class RecipeService {
             ingredientDoc.data()))
         .toList();
 
-    // Sort ingredients by document ID to maintain order
-    ingredients.sort((a, b) => 
-        ingredientsSnapshot.docs
-            .firstWhere((doc) => doc.data()['ingredient_name'] == a.ingredientName)
-            .id
-            .compareTo(
-                ingredientsSnapshot.docs
-                    .firstWhere((doc) => doc.data()['ingredient_name'] == b.ingredientName)
-                    .id
-            ));
+    // Sort ingredients by document ID to maintain order (ingredient_0, ingredient_1, etc.)
+    ingredients.sort((a, b) {
+      final aDoc = ingredientsSnapshot.docs
+          .firstWhere((doc) => doc.data()['ingredient_name'] == a.ingredientName);
+      final bDoc = ingredientsSnapshot.docs
+          .firstWhere((doc) => doc.data()['ingredient_name'] == b.ingredientName);
+      return aDoc.id.compareTo(bDoc.id);
+    });
 
-    return Recipe.fromFirestore(data, doc.id, ingredients);
+    // Get health_conditions from subcollection (document ID: "conditions")
+    RecipeHealthConditions? healthConditions;
+    try {
+      final healthDoc = await doc.reference
+          .collection('health_conditions')
+          .doc('conditions')
+          .get();
+      
+      if (healthDoc.exists) {
+        healthConditions = RecipeHealthConditions.fromFirestore(healthDoc.data()!);
+      }
+    } catch (e) {
+      print('Error loading health_conditions for ${doc.id}: $e');
+    }
+
+    // Get meal_timing from subcollection (document ID: "timing")
+    RecipeMealTiming? mealTiming;
+    try {
+      final timingDoc = await doc.reference
+          .collection('meal_timing')
+          .doc('timing')
+          .get();
+      
+      if (timingDoc.exists) {
+        mealTiming = RecipeMealTiming.fromFirestore(timingDoc.data()!);
+      }
+    } catch (e) {
+      print('Error loading meal_timing for ${doc.id}: $e');
+    }
+
+    return Recipe.fromFirestore(data, doc.id, ingredients,
+        healthConditions: healthConditions, mealTiming: mealTiming);
   }
 
   /// Clear the cache
