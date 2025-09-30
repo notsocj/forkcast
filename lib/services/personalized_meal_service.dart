@@ -1,246 +1,302 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../data/predefined_meals.dart';
 import '../models/user.dart';
+import '../models/recipe.dart';
 import 'user_service.dart';
+import 'recipe_service.dart';
 
+/// AI-powered meal recommendation service with health condition awareness
+/// Uses Firebase recipes instead of local predefined data
 class PersonalizedMealService {
   final UserService _userService = UserService();
+  final RecipeService _recipeService = RecipeService();
 
-  /// Get personalized meal suggestions based on user's health conditions and meal timing
-  Future<List<PredefinedMeal>> getPersonalizedMealsForUser(String userId, String mealTime) async {
+  /// Generate daily meal plan with personalized meal suggestions for all meal types
+  /// Returns Map with meal types as keys and List<Recipe> as values
+  Future<Map<String, List<Recipe>>> generateDailyMealPlan(String userId) async {
     try {
-      // Get user data
-      DocumentSnapshot userDoc = await _userService.users.doc(userId).get();
-      if (!userDoc.exists) {
-        // Return all meals if user not found
-        return PredefinedMealsData.getMealsForMealTime(mealTime);
+      final user = await _userService.getUser(userId);
+      if (user == null) {
+        throw Exception('User not found');
       }
 
-      User user = User.fromFirestore(userDoc);
+      // Get all recipes from Firebase
+      final allRecipes = await _recipeService.getAllRecipes();
       
-      // Use health conditions for filtering
-      if (user.healthConditions != null && user.healthConditions!.isNotEmpty) {
-        return PredefinedMealsData.getPersonalizedMeals(user.healthConditions!, mealTime);
-      } else {
-        // Return all meals suitable for the meal time if no health conditions
-        return PredefinedMealsData.getMealsForMealTime(mealTime);
+      final mealPlan = <String, List<Recipe>>{};
+      
+      // Generate suggestions for each meal type
+      for (final mealType in ['Breakfast', 'Lunch', 'Dinner', 'Snack']) {
+        final suggestions = await generateMealTypeSuggestions(
+          userId, 
+          mealType, 
+          allRecipes,
+        );
+        mealPlan[mealType] = suggestions;
       }
+      
+      return mealPlan;
     } catch (e) {
-      // Return all meals if error occurs
-      return PredefinedMealsData.getMealsForMealTime(mealTime);
+      print('Error generating daily meal plan: $e');
+      return {};
     }
   }
 
-  /// Get personalized search results based on user's health conditions
-  Future<List<PredefinedMeal>> getPersonalizedSearchResults(String userId, String query) async {
+  /// Generate targeted recommendations for specific meal times
+  /// Returns List<Recipe> filtered and scored for the meal type
+  Future<List<Recipe>> generateMealTypeSuggestions(
+    String userId, 
+    String mealType, 
+    List<Recipe>? allRecipes,
+  ) async {
     try {
-      // Get user data
-      DocumentSnapshot userDoc = await _userService.users.doc(userId).get();
-      if (!userDoc.exists) {
-        // Return standard search if user not found
-        return PredefinedMealsData.searchMeals(query);
+      final user = await _userService.getUser(userId);
+      if (user == null) {
+        throw Exception('User not found');
       }
 
-      User user = User.fromFirestore(userDoc);
+      // Get recipes from Firebase if not provided
+      final recipes = allRecipes ?? await _recipeService.getAllRecipes();
       
-      // Use health-aware search
-      return PredefinedMealsData.searchMealsWithHealthFilter(query, user.healthConditions);
-    } catch (e) {
-      // Return standard search if error occurs
-      return PredefinedMealsData.searchMeals(query);
-    }
-  }
-
-  /// Generate AI-powered meal plan suggestions for entire day
-  Future<Map<String, List<PredefinedMeal>>> generateDailyMealPlan(String userId) async {
-    try {
-      // Get user data
-      DocumentSnapshot userDoc = await _userService.users.doc(userId).get();
-      User? user;
-      if (userDoc.exists) {
-        user = User.fromFirestore(userDoc);
-      }
-
-      // Get suitable meals for each meal time
-      List<PredefinedMeal> breakfastOptions = await getPersonalizedMealsForUser(userId, 'breakfast');
-      List<PredefinedMeal> lunchOptions = await getPersonalizedMealsForUser(userId, 'lunch');
-      List<PredefinedMeal> dinnerOptions = await getPersonalizedMealsForUser(userId, 'dinner');
-      List<PredefinedMeal> snackOptions = await getPersonalizedMealsForUser(userId, 'snack');
-
-      // AI Logic: Select balanced meals based on nutrition and variety
-      return {
-        'breakfast': _selectBalancedMeals(breakfastOptions, 2, user),
-        'lunch': _selectBalancedMeals(lunchOptions, 3, user),
-        'dinner': _selectBalancedMeals(dinnerOptions, 3, user),
-        'snack': _selectBalancedMeals(snackOptions, 2, user),
-      };
-    } catch (e) {
-      // Return default suggestions if error occurs
-      return {
-        'breakfast': PredefinedMealsData.getMealsForMealTime('breakfast').take(2).toList(),
-        'lunch': PredefinedMealsData.getMealsForMealTime('lunch').take(3).toList(),
-        'dinner': PredefinedMealsData.getMealsForMealTime('dinner').take(3).toList(),
-        'snack': PredefinedMealsData.getMealsForMealTime('snack').take(2).toList(),
-      };
-    }
-  }
-
-  /// Generate AI-powered meal suggestions for specific meal type
-  Future<List<PredefinedMeal>> generateMealTypeSuggestions(String userId, String mealType) async {
-    try {
-      List<PredefinedMeal> suitableMeals = await getPersonalizedMealsForUser(userId, mealType);
-      
-      // Get user data for personalization
-      DocumentSnapshot userDoc = await _userService.users.doc(userId).get();
-      User? user;
-      if (userDoc.exists) {
-        user = User.fromFirestore(userDoc);
-      }
-
-      return _selectBalancedMeals(suitableMeals, 5, user);
-    } catch (e) {
-      return PredefinedMealsData.getMealsForMealTime(mealType).take(5).toList();
-    }
-  }
-
-  /// AI Logic: Select balanced meals based on nutrition, variety, and user profile
-  List<PredefinedMeal> _selectBalancedMeals(List<PredefinedMeal> availableMeals, int count, User? user) {
-    if (availableMeals.length <= count) {
-      return List.from(availableMeals);
-    }
-
-    List<PredefinedMeal> selected = [];
-    List<PredefinedMeal> remaining = List.from(availableMeals);
-
-    // Sort by nutritional balance and variety
-    remaining.sort((a, b) {
-      double scoreA = _calculateMealScore(a, user);
-      double scoreB = _calculateMealScore(b, user);
-      return scoreB.compareTo(scoreA); // Higher score first
-    });
-
-    // Select top-scored meals with variety
-    Set<String> usedTags = {};
-    
-    for (PredefinedMeal meal in remaining) {
-      if (selected.length >= count) break;
-      
-      // Ensure variety - avoid meals with too similar tags
-      bool hasVariety = meal.tags.any((tag) => !usedTags.contains(tag.toLowerCase()));
-      
-      if (hasVariety || selected.isEmpty) {
-        selected.add(meal);
-        usedTags.addAll(meal.tags.map((tag) => tag.toLowerCase()));
-      }
-    }
-
-    // Fill remaining slots if needed
-    if (selected.length < count) {
-      for (PredefinedMeal meal in remaining) {
-        if (selected.length >= count) break;
-        if (!selected.contains(meal)) {
-          selected.add(meal);
+      // Filter recipes suitable for the meal type
+      final suitableRecipes = recipes.where((recipe) {
+        // Check meal timing suitability
+        switch (mealType.toLowerCase()) {
+          case 'breakfast':
+            return recipe.mealTiming.breakfast;
+          case 'lunch':
+            return recipe.mealTiming.lunch;
+          case 'dinner':
+            return recipe.mealTiming.dinner;
+          case 'snack':
+            return recipe.mealTiming.snack;
+          default:
+            return true;
         }
-      }
-    }
+      }).toList();
 
-    return selected;
+      // Score and rank recipes based on user profile
+      final scoredRecipes = <Map<String, dynamic>>[];
+      for (final recipe in suitableRecipes) {
+        final score = await _calculateMealScore(recipe, user);
+        scoredRecipes.add({
+          'recipe': recipe,
+          'score': score,
+        });
+      }
+
+      // Sort by score (highest first) and return top 5
+      scoredRecipes.sort((a, b) => b['score'].compareTo(a['score']));
+      
+      return scoredRecipes
+          .take(5)
+          .map((item) => item['recipe'] as Recipe)
+          .toList();
+    } catch (e) {
+      print('Error generating meal suggestions: $e');
+      return [];
+    }
   }
 
-  /// Calculate meal score based on user profile and nutritional value
-  double _calculateMealScore(PredefinedMeal meal, User? user) {
+  /// Multi-factor scoring algorithm considering BMI, health conditions, variety, budget
+  Future<double> _calculateMealScore(Recipe recipe, User user) async {
     double score = 0.0;
 
-    // Base nutritional score
-    if (meal.kcal >= 200 && meal.kcal <= 600) score += 2.0; // Good calorie range
-    if (meal.tags.contains('healthy') || meal.tags.contains('Filipino')) score += 1.5;
-    if (meal.tags.contains('vegetables')) score += 1.0;
-    if (meal.prepTimeMinutes <= 30) score += 0.5; // Quick to prepare
+    // 1. Health condition safety scoring (40% weight)
+    final healthScore = _calculateHealthConditionScore(recipe, user);
+    score += healthScore * 0.4;
 
-    // User-specific scoring
-    if (user != null) {
-      // BMI-based recommendations
-      if (user.bmi != null) {
-        if (user.bmi! < 18.5) { // Underweight
-          if (meal.healthConditions.underweightMalnutrition) score += 2.0;
-          if (meal.kcal > 400) score += 1.0; // Higher calorie meals
-        } else if (user.bmi! > 25) { // Overweight
-          if (meal.healthConditions.obesityOverweight) score += 2.0;
-          if (meal.kcal < 400) score += 1.0; // Lower calorie meals
-          if (meal.tags.contains('vegetables')) score += 1.0;
-        }
-      }
+    // 2. BMI-based nutrition scoring (30% weight)
+    final nutritionScore = _calculateBMINutritionScore(recipe, user);
+    score += nutritionScore * 0.3;
 
-      // Budget considerations
-      if (meal.difficulty == 'Easy') score += 0.5; // Easier meals might be more budget-friendly
-      if (meal.ingredients.length <= 8) score += 0.3; // Fewer ingredients
-    }
+    // 3. Budget considerations (20% weight)
+    final budgetScore = _calculateBudgetScore(recipe, user);
+    score += budgetScore * 0.2;
 
-    // Add some randomization for variety
-    score += (DateTime.now().millisecondsSinceEpoch % 100) / 200.0;
+    // 4. Variety and preparation factors (10% weight)
+    final varietyScore = _calculateVarietyScore(recipe);
+    score += varietyScore * 0.1;
 
     return score;
   }
 
-  /// Get health condition friendly alternatives for a specific meal
-  Future<List<PredefinedMeal>> getHealthFriendlyAlternatives(String userId, String mealId) async {
+  /// Calculate health condition safety score (0.0 to 1.0)
+  double _calculateHealthConditionScore(Recipe recipe, User user) {
+    // Get user's health conditions
+    final userConditions = user.healthConditions ?? [];
+    
+    if (userConditions.isEmpty) {
+      // User has no health conditions, check if recipe is safe for general health
+      return recipe.healthConditions.none ? 1.0 : 0.8;
+    }
+
+    // Check recipe safety for each user condition
+    double safetyScore = 1.0;
+
+    for (final condition in userConditions) {
+      switch (condition.toLowerCase()) {
+        case 'diabetes':
+          if (!recipe.healthConditions.diabetes) safetyScore -= 0.2;
+          break;
+        case 'hypertension':
+          if (!recipe.healthConditions.hypertension) safetyScore -= 0.2;
+          break;
+        case 'obesity':
+        case 'overweight':
+          if (!recipe.healthConditions.obesityOverweight) safetyScore -= 0.2;
+          break;
+        case 'underweight':
+        case 'malnutrition':
+          if (!recipe.healthConditions.underweightMalnutrition) safetyScore -= 0.2;
+          break;
+        case 'heart disease':
+        case 'high cholesterol':
+          if (!recipe.healthConditions.heartDiseaseChol) safetyScore -= 0.2;
+          break;
+        case 'anemia':
+        case 'iron deficiency':
+          if (!recipe.healthConditions.anemia) safetyScore -= 0.2;
+          break;
+        case 'osteoporosis':
+        case 'calcium deficiency':
+          if (!recipe.healthConditions.osteoporosis) safetyScore -= 0.2;
+          break;
+      }
+    }
+
+    return safetyScore.clamp(0.0, 1.0);
+  }
+
+  /// Calculate BMI-based nutrition score (0.0 to 1.0)
+  double _calculateBMINutritionScore(Recipe recipe, User user) {
+    final bmi = user.bmi ?? 22.0; // Default to normal BMI if not set
+    
+    if (bmi < 18.5) {
+      // Underweight: prefer high-calorie, high-protein meals
+      if (recipe.kcal > 400) return 1.0;
+      if (recipe.kcal > 300) return 0.8;
+      return 0.6;
+    } else if (bmi >= 18.5 && bmi < 25.0) {
+      // Normal weight: balanced nutrition
+      if (recipe.kcal >= 250 && recipe.kcal <= 400) return 1.0;
+      if (recipe.kcal >= 200 && recipe.kcal <= 500) return 0.8;
+      return 0.6;
+    } else if (bmi >= 25.0 && bmi < 30.0) {
+      // Overweight: moderate calorie restriction
+      if (recipe.kcal <= 350) return 1.0;
+      if (recipe.kcal <= 400) return 0.7;
+      return 0.5;
+    } else {
+      // Obese: low-calorie, high-nutrition meals
+      if (recipe.kcal <= 300) return 1.0;
+      if (recipe.kcal <= 350) return 0.6;
+      return 0.3;
+    }
+  }
+
+  /// Calculate budget score based on estimated cost (0.0 to 1.0)
+  double _calculateBudgetScore(Recipe recipe, User user) {
+    // Simple budget scoring - can be enhanced with actual ingredient prices
+    final weeklyBudget = user.weeklyBudgetMax.toDouble();
+    final dailyBudget = weeklyBudget / 7;
+    final mealBudget = dailyBudget / 4; // 4 meals per day
+    
+    // Estimate recipe cost based on ingredients (simplified)
+    final estimatedCost = recipe.ingredients.length * 25.0; // Rough estimate
+    
+    if (estimatedCost <= mealBudget * 0.8) return 1.0;
+    if (estimatedCost <= mealBudget) return 0.8;
+    if (estimatedCost <= mealBudget * 1.2) return 0.6;
+    return 0.4;
+  }
+
+  /// Calculate variety score to promote diverse meals (0.0 to 1.0)
+  double _calculateVarietyScore(Recipe recipe) {
+    // Simple variety scoring - can be enhanced with meal history
+    // For now, prefer recipes with more ingredients (more diverse nutrition)
+    final ingredientCount = recipe.ingredients.length;
+    
+    if (ingredientCount >= 8) return 1.0;
+    if (ingredientCount >= 6) return 0.8;
+    if (ingredientCount >= 4) return 0.6;
+    return 0.4;
+  }
+
+  /// Get personalized meals filtered by health conditions
+  Future<List<Recipe>> getPersonalizedMealsForUser(String userId) async {
     try {
-      PredefinedMeal? originalMeal = PredefinedMealsData.getMealById(mealId);
-      if (originalMeal == null) return [];
-
-      // Get user health conditions
-      DocumentSnapshot userDoc = await _userService.users.doc(userId).get();
-      if (!userDoc.exists) return [];
-
-      User user = User.fromFirestore(userDoc);
-      if (user.healthConditions == null || user.healthConditions!.isEmpty) return [];
-
-      // Find alternative meals with similar tags but health-appropriate
-      List<PredefinedMeal> alternatives = [];
-      
-      for (PredefinedMeal meal in PredefinedMealsData.meals) {
-        if (meal.id == mealId) continue; // Skip the original meal
-        
-        // Check if meal is health-appropriate
-        bool isHealthFriendly = true;
-        for (String condition in user.healthConditions!) {
-          switch (condition.toLowerCase()) {
-            case 'diabetes':
-              if (!meal.healthConditions.diabetes) isHealthFriendly = false;
-              break;
-            case 'hypertension':
-              if (!meal.healthConditions.hypertension) isHealthFriendly = false;
-              break;
-            case 'obesity':
-              if (!meal.healthConditions.obesityOverweight) isHealthFriendly = false;
-              break;
-            case 'underweight':
-              if (!meal.healthConditions.underweightMalnutrition) isHealthFriendly = false;
-              break;
-            case 'heart_disease':
-              if (!meal.healthConditions.heartDiseaseChol) isHealthFriendly = false;
-              break;
-            case 'anemia':
-              if (!meal.healthConditions.anemia) isHealthFriendly = false;
-              break;
-            case 'osteoporosis':
-              if (!meal.healthConditions.osteoporosis) isHealthFriendly = false;
-              break;
-          }
-        }
-
-        if (isHealthFriendly) {
-          // Check for similar tags or meal type
-          bool hasSimilarTags = originalMeal.tags.any((tag) => meal.tags.contains(tag));
-          if (hasSimilarTags) {
-            alternatives.add(meal);
-          }
-        }
+      final user = await _userService.getUser(userId);
+      if (user == null) {
+        throw Exception('User not found');
       }
 
-      // Return top 5 alternatives
-      return alternatives.take(5).toList();
+      // Get all recipes and filter by health conditions
+      final allRecipes = await _recipeService.getAllRecipes();
+      final userConditions = user.healthConditions ?? [];
+      
+      if (userConditions.isEmpty) {
+        // No health conditions, return all recipes
+        return allRecipes;
+      }
+
+      // Filter recipes safe for user's health conditions
+      final safeRecipes = allRecipes.where((recipe) {
+        for (final condition in userConditions) {
+          switch (condition.toLowerCase()) {
+            case 'diabetes':
+              if (!recipe.healthConditions.diabetes) return false;
+              break;
+            case 'hypertension':
+              if (!recipe.healthConditions.hypertension) return false;
+              break;
+            case 'obesity':
+            case 'overweight':
+              if (!recipe.healthConditions.obesityOverweight) return false;
+              break;
+            case 'underweight':
+            case 'malnutrition':
+              if (!recipe.healthConditions.underweightMalnutrition) return false;
+              break;
+            case 'heart disease':
+            case 'high cholesterol':
+              if (!recipe.healthConditions.heartDiseaseChol) return false;
+              break;
+            case 'anemia':
+            case 'iron deficiency':
+              if (!recipe.healthConditions.anemia) return false;
+              break;
+            case 'osteoporosis':
+            case 'calcium deficiency':
+              if (!recipe.healthConditions.osteoporosis) return false;
+              break;
+          }
+        }
+        return true;
+      }).toList();
+
+      return safeRecipes;
     } catch (e) {
+      print('Error getting personalized meals: $e');
+      return [];
+    }
+  }
+
+  /// Search recipes with health awareness
+  Future<List<Recipe>> searchRecipes(String query, String userId) async {
+    try {
+      final personalizedRecipes = await getPersonalizedMealsForUser(userId);
+      
+      // Filter by search query
+      final searchResults = personalizedRecipes.where((recipe) {
+        final queryLower = query.toLowerCase();
+        return recipe.recipeName.toLowerCase().contains(queryLower) ||
+               recipe.description.toLowerCase().contains(queryLower) ||
+               recipe.ingredients.any((ingredient) => 
+                   ingredient.ingredientName.toLowerCase().contains(queryLower));
+      }).toList();
+
+      return searchResults;
+    } catch (e) {
+      print('Error searching recipes: $e');
       return [];
     }
   }

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/theme/app_colors.dart';
 import '../../data/predefined_meals.dart';
+import '../../models/recipe.dart';
 import '../../services/meal_logging_service.dart';
 import '../../services/personalized_meal_service.dart';
+import '../../services/search_history_service.dart';
 import 'meal_search_results_page.dart';
 import 'recipe_detail_page.dart';
 
@@ -18,9 +20,11 @@ class _MealPlanPageState extends State<MealPlanPage> {
   final TextEditingController _searchController = TextEditingController();
   final MealLoggingService _mealLoggingService = MealLoggingService();
   final PersonalizedMealService _personalizedMealService = PersonalizedMealService();
+  final SearchHistoryService _searchHistoryService = SearchHistoryService();
   
-  // Recent searches from predefined data
-  final List<String> _recentSearches = PredefinedMealsData.recentSearches;
+  // Recent searches loaded from Firebase
+  List<String> _recentSearches = [];
+  bool _isLoadingSearchHistory = true;
   
   // Today's meals data loaded from Firebase
   List<Map<String, dynamic>> _todaysMeals = [];
@@ -31,6 +35,27 @@ class _MealPlanPageState extends State<MealPlanPage> {
   void initState() {
     super.initState();
     _loadTodaysMeals();
+    _loadRecentSearches();
+  }
+
+  Future<void> _loadRecentSearches() async {
+    setState(() {
+      _isLoadingSearchHistory = true;
+    });
+
+    try {
+      final searches = await _searchHistoryService.getRecentSearches(limit: 6);
+      setState(() {
+        _recentSearches = searches;
+        _isLoadingSearchHistory = false;
+      });
+    } catch (e) {
+      print('Error loading recent searches: $e');
+      setState(() {
+        _recentSearches = [];
+        _isLoadingSearchHistory = false;
+      });
+    }
   }
 
   Future<void> _loadTodaysMeals() async {
@@ -347,7 +372,11 @@ class _MealPlanPageState extends State<MealPlanPage> {
           child: Wrap(
             spacing: 12,
             runSpacing: 8,
-            children: _recentSearches.map((search) => _buildSearchChip(search)).toList(),
+            children: _isLoadingSearchHistory
+                ? [_buildLoadingSearchChip()]
+                : _recentSearches.isEmpty
+                    ? [_buildNoSearchHistoryChip()]
+                    : _recentSearches.map((search) => _buildSearchChip(search)).toList(),
           ),
         ),
       ],
@@ -381,6 +410,61 @@ class _MealPlanPageState extends State<MealPlanPage> {
             fontSize: 14,
             color: AppColors.blackText,
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingSearchChip() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.lightGray,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          SizedBox(
+            width: 12,
+            height: 12,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.grayText),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            'Loading...',
+            style: TextStyle(
+              fontFamily: 'OpenSans',
+              fontSize: 14,
+              color: AppColors.grayText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildNoSearchHistoryChip() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.lightGray.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.lightGray,
+          width: 1,
+        ),
+      ),
+      child: Text(
+        'No recent searches',
+        style: TextStyle(
+          fontFamily: 'OpenSans',
+          fontSize: 14,
+          color: AppColors.grayText,
+          fontStyle: FontStyle.italic,
         ),
       ),
     );
@@ -928,7 +1012,7 @@ class _MealPlanPageState extends State<MealPlanPage> {
       }
 
       // Get AI meal plan suggestions
-      Map<String, List<PredefinedMeal>> dailyPlan = 
+      Map<String, List<Recipe>> dailyPlan = 
           await _personalizedMealService.generateDailyMealPlan(user.uid);
 
       // Automatically log all AI suggestions to today's meals
@@ -998,16 +1082,52 @@ class _MealPlanPageState extends State<MealPlanPage> {
       );
 
       // Get AI meal type suggestions (get multiple for variety)
-      List<PredefinedMeal> suggestions = await _personalizedMealService
-          .generateMealTypeSuggestions(user.uid, mealType.toLowerCase());
+      List<Recipe> suggestions = await _personalizedMealService
+          .generateMealTypeSuggestions(user.uid, mealType.toLowerCase(), null);
 
       if (suggestions.isNotEmpty) {
         // Select first suggestion to log automatically
-        PredefinedMeal selectedMeal = suggestions.first;
+        Recipe selectedMeal = suggestions.first;
+        
+        // Convert Recipe to PredefinedMeal for logging (temporary compatibility)
+        final predefinedMeal = PredefinedMeal(
+          id: selectedMeal.id,
+          recipeName: selectedMeal.recipeName,
+          description: selectedMeal.description,
+          kcal: selectedMeal.kcal,
+          baseServings: selectedMeal.baseServings,
+          funFact: selectedMeal.funFact,
+          ingredients: selectedMeal.ingredients.map((ingredient) => MealIngredient(
+            ingredientName: ingredient.ingredientName,
+            quantity: ingredient.quantity,
+            unit: ingredient.unit,
+          )).toList(),
+          cookingInstructions: selectedMeal.cookingInstructions,
+          healthConditions: HealthConditions(
+            diabetes: selectedMeal.healthConditions.diabetes,
+            hypertension: selectedMeal.healthConditions.hypertension,
+            obesityOverweight: selectedMeal.healthConditions.obesityOverweight,
+            underweightMalnutrition: selectedMeal.healthConditions.underweightMalnutrition,
+            heartDiseaseChol: selectedMeal.healthConditions.heartDiseaseChol,
+            anemia: selectedMeal.healthConditions.anemia,
+            osteoporosis: selectedMeal.healthConditions.osteoporosis,
+            none: selectedMeal.healthConditions.none,
+          ),
+          mealTiming: MealTiming(
+            breakfast: selectedMeal.mealTiming.breakfast,
+            lunch: selectedMeal.mealTiming.lunch,
+            dinner: selectedMeal.mealTiming.dinner,
+            snack: selectedMeal.mealTiming.snack,
+          ),
+          tags: selectedMeal.tags,
+          difficulty: selectedMeal.difficulty,
+          prepTimeMinutes: selectedMeal.prepTimeMinutes,
+          imageUrl: selectedMeal.imageUrl,
+        );
         
         // Log the meal directly with default PAX (1)
         await _mealLoggingService.logMeal(
-          meal: selectedMeal,
+          meal: predefinedMeal,
           mealType: mealType,
           amount: 1.0,
           measurement: 'serving',
@@ -1263,16 +1383,52 @@ class _MealPlanPageState extends State<MealPlanPage> {
   }
 
   /// Log daily meal plan suggestions automatically
-  Future<void> _logDailyMealPlan(Map<String, List<PredefinedMeal>> dailyPlan) async {
+  Future<void> _logDailyMealPlan(Map<String, List<Recipe>> dailyPlan) async {
     for (String mealType in dailyPlan.keys) {
       final meals = dailyPlan[mealType];
       if (meals != null && meals.isNotEmpty) {
         // Select the first meal suggestion for each meal type
         final selectedMeal = meals.first;
         
+        // Convert Recipe to PredefinedMeal for logging (temporary compatibility)
+        final predefinedMeal = PredefinedMeal(
+          id: selectedMeal.id,
+          recipeName: selectedMeal.recipeName,
+          description: selectedMeal.description,
+          kcal: selectedMeal.kcal,
+          baseServings: selectedMeal.baseServings,
+          funFact: selectedMeal.funFact,
+          ingredients: selectedMeal.ingredients.map((ingredient) => MealIngredient(
+            ingredientName: ingredient.ingredientName,
+            quantity: ingredient.quantity,
+            unit: ingredient.unit,
+          )).toList(),
+          cookingInstructions: selectedMeal.cookingInstructions,
+          healthConditions: HealthConditions(
+            diabetes: selectedMeal.healthConditions.diabetes,
+            hypertension: selectedMeal.healthConditions.hypertension,
+            obesityOverweight: selectedMeal.healthConditions.obesityOverweight,
+            underweightMalnutrition: selectedMeal.healthConditions.underweightMalnutrition,
+            heartDiseaseChol: selectedMeal.healthConditions.heartDiseaseChol,
+            anemia: selectedMeal.healthConditions.anemia,
+            osteoporosis: selectedMeal.healthConditions.osteoporosis,
+            none: selectedMeal.healthConditions.none,
+          ),
+          mealTiming: MealTiming(
+            breakfast: selectedMeal.mealTiming.breakfast,
+            lunch: selectedMeal.mealTiming.lunch,
+            dinner: selectedMeal.mealTiming.dinner,
+            snack: selectedMeal.mealTiming.snack,
+          ),
+          tags: selectedMeal.tags,
+          difficulty: selectedMeal.difficulty,
+          prepTimeMinutes: selectedMeal.prepTimeMinutes,
+          imageUrl: selectedMeal.imageUrl,
+        );
+        
         // Log the meal with default settings
         await _mealLoggingService.logMeal(
-          meal: selectedMeal,
+          meal: predefinedMeal,
           mealType: mealType,
           amount: 1.0,
           measurement: 'serving',

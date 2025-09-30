@@ -210,7 +210,7 @@ class MealLoggingService {
   double _calculateAdjustedCalories(PredefinedMeal meal, double amount, String measurement) {
     // Base calories are per serving
     double baseCalories = meal.kcal.toDouble();
-    int servings = meal.servings;
+    int servings = meal.baseServings;
     
     // Calculate calories per serving
     double caloriesPerServing = baseCalories / servings;

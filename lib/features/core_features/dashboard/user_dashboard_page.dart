@@ -4,7 +4,6 @@ import '../../../services/auth_service.dart';
 import '../../../services/user_service.dart';
 import '../../../services/meal_logging_service.dart';
 import '../../../models/user.dart';
-import '../../meal_planning/meal_plan_page.dart';
 import '../main_navigation_wrapper.dart';
 
 class UserDashboardPage extends StatefulWidget {

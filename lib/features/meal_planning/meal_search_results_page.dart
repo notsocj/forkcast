@@ -1,14 +1,25 @@
 import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
+import '../../models/recipe.dart';
 import '../../data/predefined_meals.dart';
+import '../../services/recipe_service.dart';
+import '../../services/search_history_service.dart';
 import 'recipe_detail_page.dart';
 
 class MealSearchResultsPage extends StatefulWidget {
   final String searchQuery;
+  final List<String>? mealTypes;
+  final String? prepTimeRange;
+  final List<String>? mainIngredients;
+  final List<String>? healthConditions;
   
   const MealSearchResultsPage({
     super.key,
     required this.searchQuery,
+    this.mealTypes,
+    this.prepTimeRange,
+    this.mainIngredients,
+    this.healthConditions,
   });
 
   @override
@@ -17,27 +28,78 @@ class MealSearchResultsPage extends StatefulWidget {
 
 class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
   late TextEditingController _searchController;
-  List<PredefinedMeal> _searchResults = [];
-  List<PredefinedMeal> _currentResults = [];
+  final RecipeService _recipeService = RecipeService();
+  final SearchHistoryService _searchHistoryService = SearchHistoryService();
+  
+  List<Recipe> _searchResults = [];
+  List<Recipe> _currentResults = [];
+  bool _isLoading = true;
+  bool _isSearching = false;
+
+  // Filter state
+  List<String> _selectedMealTypes = [];
+  String? _selectedPrepTimeRange;
+  List<String> _selectedMainIngredients = [];
+  bool _showFilters = false;
 
   @override
   void initState() {
     super.initState();
     _searchController = TextEditingController(text: widget.searchQuery);
+    
+    // Initialize filters from widget parameters
+    _selectedMealTypes = widget.mealTypes ?? [];
+    _selectedPrepTimeRange = widget.prepTimeRange;
+    _selectedMainIngredients = widget.mainIngredients ?? [];
+    
     _performSearch(widget.searchQuery);
   }
 
-  void _performSearch(String query) {
+  Future<void> _performSearch(String query) async {
     setState(() {
-      if (query.isEmpty) {
-        // Show all meals if query is empty
-        _searchResults = PredefinedMealsData.meals;
-      } else {
-        // Search for meals matching the query
-        _searchResults = PredefinedMealsData.searchMeals(query);
-      }
-      _currentResults = _searchResults;
+      _isLoading = true;
+      _isSearching = true;
     });
+
+    try {
+      // Add to search history if query is not empty
+      if (query.trim().isNotEmpty) {
+        await _searchHistoryService.addSearchToHistory(query.trim());
+      }
+
+      // Perform Firebase search with filters
+      final results = await _recipeService.searchRecipes(
+        query,
+        healthConditions: widget.healthConditions,
+        mealTypes: _selectedMealTypes.isNotEmpty ? _selectedMealTypes : null,
+        prepTimeRange: _selectedPrepTimeRange,
+        mainIngredients: _selectedMainIngredients.isNotEmpty ? _selectedMainIngredients : null,
+      );
+
+      setState(() {
+        _searchResults = results;
+        _currentResults = results;
+        _isLoading = false;
+        _isSearching = false;
+      });
+    } catch (e) {
+      setState(() {
+        _searchResults = [];
+        _currentResults = [];
+        _isLoading = false;
+        _isSearching = false;
+      });
+      
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error searching recipes: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -49,6 +111,8 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
           children: [
             // Header with search
             _buildHeader(),
+            // Filters section
+            if (_showFilters) _buildFiltersSection(),
             // Main content
             Expanded(
               child: Container(
@@ -59,9 +123,11 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
                     topRight: Radius.circular(25),
                   ),
                 ),
-                child: _currentResults.isEmpty
-                    ? _buildNoResultsView()
-                    : _buildResultsList(),
+                child: _isLoading 
+                    ? _buildLoadingView()
+                    : _currentResults.isEmpty
+                        ? _buildNoResultsView()
+                        : _buildResultsList(),
               ),
             ),
           ],
@@ -136,20 +202,252 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
             ),
           ),
           const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.tune,
-              color: AppColors.white,
-              size: 20,
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _showFilters = !_showFilters;
+              });
+            },
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: _showFilters 
+                    ? AppColors.white.withOpacity(0.3)
+                    : AppColors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.tune,
+                color: AppColors.white,
+                size: 20,
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLoadingView() {
+    return const Center(
+      child: Padding(
+        padding: EdgeInsets.all(40),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.successGreen),
+            ),
+            SizedBox(height: 24),
+            Text(
+              'Searching recipes...',
+              style: TextStyle(
+                fontFamily: 'OpenSans',
+                fontSize: 16,
+                color: AppColors.grayText,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFiltersSection() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Meal Type Filter
+          _buildFilterSection(
+            'Meal Type',
+            ['Breakfast', 'Lunch', 'Dinner', 'Snack'],
+            _selectedMealTypes,
+            (selected) {
+              setState(() {
+                _selectedMealTypes = selected;
+              });
+              _performSearch(_searchController.text);
+            },
+          ),
+          const SizedBox(height: 16),
+          
+          // Prep Time Filter
+          _buildSingleSelectFilter(
+            'Prep Time',
+            ['Under 20 mins', '15–30 min', '30–60 min', 'Over 1 hour'],
+            _selectedPrepTimeRange,
+            (selected) {
+              setState(() {
+                _selectedPrepTimeRange = selected;
+              });
+              _performSearch(_searchController.text);
+            },
+          ),
+          const SizedBox(height: 16),
+          
+          // Main Ingredient Filter
+          _buildFilterSection(
+            'Main Ingredient',
+            ['Chicken', 'Pork', 'Beef', 'Fish', 'Vegetable', 'Rice', 'Noodles'],
+            _selectedMainIngredients,
+            (selected) {
+              setState(() {
+                _selectedMainIngredients = selected;
+              });
+              _performSearch(_searchController.text);
+            },
+          ),
+          
+          // Clear filters button
+          if (_selectedMealTypes.isNotEmpty || 
+              _selectedPrepTimeRange != null || 
+              _selectedMainIngredients.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: TextButton(
+                onPressed: () {
+                  setState(() {
+                    _selectedMealTypes.clear();
+                    _selectedPrepTimeRange = null;
+                    _selectedMainIngredients.clear();
+                  });
+                  _performSearch(_searchController.text);
+                },
+                child: Text(
+                  'Clear All Filters',
+                  style: TextStyle(
+                    color: AppColors.primaryAccent,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterSection(
+    String title,
+    List<String> options,
+    List<String> selected,
+    Function(List<String>) onChanged,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontFamily: 'Lato',
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.white,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: options.map((option) {
+            final isSelected = selected.contains(option);
+            return GestureDetector(
+              onTap: () {
+                final newSelected = List<String>.from(selected);
+                if (isSelected) {
+                  newSelected.remove(option);
+                } else {
+                  newSelected.add(option);
+                }
+                onChanged(newSelected);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isSelected 
+                      ? AppColors.white
+                      : AppColors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.white.withOpacity(0.3),
+                  ),
+                ),
+                child: Text(
+                  option,
+                  style: TextStyle(
+                    fontFamily: 'OpenSans',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: isSelected 
+                        ? AppColors.successGreen
+                        : AppColors.white,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSingleSelectFilter(
+    String title,
+    List<String> options,
+    String? selected,
+    Function(String?) onChanged,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontFamily: 'Lato',
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.white,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: options.map((option) {
+            final isSelected = selected == option;
+            return GestureDetector(
+              onTap: () {
+                onChanged(isSelected ? null : option);
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: isSelected 
+                      ? AppColors.white
+                      : AppColors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: AppColors.white.withOpacity(0.3),
+                  ),
+                ),
+                child: Text(
+                  option,
+                  style: TextStyle(
+                    fontFamily: 'OpenSans',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: isSelected 
+                        ? AppColors.successGreen
+                        : AppColors.white,
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ],
     );
   }
 
@@ -228,13 +526,13 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
     );
   }
 
-  Widget _buildRecipeCard(PredefinedMeal meal) {
+  Widget _buildRecipeCard(Recipe recipe) {
     return GestureDetector(
       onTap: () {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => RecipeDetailPage(meal: meal),
+            builder: (context) => RecipeDetailPage(meal: _recipeToMeal(recipe)),
           ),
         );
       },
@@ -273,9 +571,9 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
                       topLeft: Radius.circular(20),
                       topRight: Radius.circular(20),
                     ),
-                    child: meal.imageUrl.isNotEmpty
+                    child: recipe.imageUrl.isNotEmpty
                         ? Image.asset(
-                            'assets/images/${meal.imageUrl}',
+                            'assets/images/${recipe.imageUrl}',
                             height: 200,
                             width: double.infinity,
                             fit: BoxFit.cover,
@@ -296,7 +594,7 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
                                       ),
                                       const SizedBox(height: 8),
                                       Text(
-                                        meal.recipeName,
+                                        recipe.recipeName,
                                         style: TextStyle(
                                           fontFamily: 'OpenSans',
                                           fontSize: 12,
@@ -327,7 +625,7 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    meal.recipeName,
+                                    recipe.recipeName,
                                     style: TextStyle(
                                       fontFamily: 'OpenSans',
                                       fontSize: 12,
@@ -377,7 +675,7 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
                 children: [
                   // Recipe name
                   Text(
-                    meal.recipeName,
+                    recipe.recipeName,
                     style: TextStyle(
                       fontFamily: 'Lato',
                       fontSize: 18,
@@ -388,7 +686,7 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
                   const SizedBox(height: 8),
                   // Description
                   Text(
-                    meal.description,
+                    recipe.description,
                     style: TextStyle(
                       fontFamily: 'OpenSans',
                       fontSize: 14,
@@ -400,11 +698,11 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
                   // Recipe meta info
                   Row(
                     children: [
-                      _buildMetaChip(Icons.local_fire_department, '${meal.kcal} kcal', AppColors.primaryAccent),
+                      _buildMetaChip(Icons.local_fire_department, '${recipe.kcal} kcal', AppColors.primaryAccent),
                       const SizedBox(width: 12),
-                      _buildMetaChip(Icons.access_time, '${meal.prepTimeMinutes}min', AppColors.successGreen),
+                      _buildMetaChip(Icons.access_time, '${recipe.prepTimeMinutes}min', AppColors.successGreen),
                       const SizedBox(width: 12),
-                      _buildMetaChip(Icons.star_outline, meal.difficulty, AppColors.purpleAccent),
+                      _buildMetaChip(Icons.star_outline, recipe.difficulty, AppColors.purpleAccent),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -412,7 +710,7 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children: meal.tags
+                    children: recipe.tags
                         .map((tag) => _buildTag(tag))
                         .toList(),
                   ),
@@ -475,6 +773,44 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
           color: AppColors.grayText,
         ),
       ),
+    );
+  }
+
+  /// Convert Recipe to PredefinedMeal for backward compatibility
+  PredefinedMeal _recipeToMeal(Recipe recipe) {
+    return PredefinedMeal(
+      id: recipe.id,
+      recipeName: recipe.recipeName,
+      description: recipe.description,
+      baseServings: recipe.baseServings,
+      kcal: recipe.kcal,
+      funFact: recipe.funFact,
+      ingredients: recipe.ingredients.map((ingredient) => MealIngredient(
+        ingredientName: ingredient.ingredientName,
+        quantity: ingredient.quantity,
+        unit: ingredient.unit,
+      )).toList(),
+      cookingInstructions: recipe.cookingInstructions,
+      healthConditions: HealthConditions(
+        diabetes: recipe.healthConditions.diabetes,
+        hypertension: recipe.healthConditions.hypertension,
+        obesityOverweight: recipe.healthConditions.obesityOverweight,
+        underweightMalnutrition: recipe.healthConditions.underweightMalnutrition,
+        heartDiseaseChol: recipe.healthConditions.heartDiseaseChol,
+        anemia: recipe.healthConditions.anemia,
+        osteoporosis: recipe.healthConditions.osteoporosis,
+        none: recipe.healthConditions.none,
+      ),
+      mealTiming: MealTiming(
+        breakfast: recipe.mealTiming.breakfast,
+        lunch: recipe.mealTiming.lunch,
+        dinner: recipe.mealTiming.dinner,
+        snack: recipe.mealTiming.snack,
+      ),
+      tags: recipe.tags,
+      difficulty: recipe.difficulty,
+      prepTimeMinutes: recipe.prepTimeMinutes,
+      imageUrl: recipe.imageUrl,
     );
   }
 
