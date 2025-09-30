@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
@@ -16,11 +17,13 @@ class WeightInputPage extends StatefulWidget {
 class _WeightInputPageState extends State<WeightInputPage> {
   final _formKey = GlobalKey<FormState>();
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _textController = TextEditingController();
   
   // Weight state
   double _weightKg = 85.0; // Default weight in kg
   bool _isMetric = true; // true for kg, false for lb
   bool _canContinue = true; // Default to true since we have default values
+  bool _isTextInput = false; // Toggle between ruler and text input
 
   // Ruler configuration
   static const double _minWeightKg = 30.0;
@@ -38,6 +41,7 @@ class _WeightInputPageState extends State<WeightInputPage> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _textController.dispose();
     super.dispose();
   }
 
@@ -76,6 +80,237 @@ class _WeightInputPageState extends State<WeightInputPage> {
     setState(() {
       _isMetric = isMetric;
     });
+  }
+
+  void _toggleInputMode(bool isTextInput) {
+    setState(() {
+      _isTextInput = isTextInput;
+      if (isTextInput) {
+        // Update text field with current weight
+        _textController.text = _isMetric ? _weightKg.toStringAsFixed(1) : '';
+      }
+    });
+  }
+
+  void _onTextChanged(String value) {
+    final double? parsedValue = double.tryParse(value);
+    if (parsedValue != null) {
+      setState(() {
+        if (_isMetric) {
+          _weightKg = parsedValue.clamp(_minWeightKg, _maxWeightKg);
+        } else {
+          // Convert pounds to kg
+          _weightKg = (parsedValue / 2.20462).clamp(_minWeightKg, _maxWeightKg);
+        }
+        _canContinue = _weightKg >= _minWeightKg && _weightKg <= _maxWeightKg;
+      });
+    } else {
+      setState(() {
+        _canContinue = false;
+      });
+    }
+  }
+
+  Widget _buildInputToggle(String label, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.successGreen.withOpacity(0.1) : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? AppColors.successGreen : AppColors.grayText.withOpacity(0.3),
+            width: 1,
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontFamily: AppConstants.primaryFont,
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? AppColors.successGreen : AppColors.blackText,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextInput() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const SizedBox(height: 40),
+        Container(
+          width: 200,
+          child: TextFormField(
+            controller: _textController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontFamily: AppConstants.primaryFont,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppColors.blackText,
+            ),
+            decoration: InputDecoration(
+              hintText: _isMetric ? 'Enter weight in kg' : 'Enter weight in lb',
+              hintStyle: TextStyle(
+                fontFamily: AppConstants.primaryFont,
+                fontSize: 16,
+                color: AppColors.grayText,
+              ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: AppColors.successGreen, width: 2),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: const BorderSide(color: AppColors.successGreen, width: 2),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+                borderSide: BorderSide(color: AppColors.grayText.withOpacity(0.3), width: 1),
+              ),
+              suffixText: _displayUnit,
+              suffixStyle: const TextStyle(
+                fontFamily: AppConstants.primaryFont,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.successGreen,
+              ),
+            ),
+            onChanged: _onTextChanged,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          _isMetric ? 'Range: 30-200 kg' : 'Range: 66-440 lb',
+          style: TextStyle(
+            fontFamily: AppConstants.primaryFont,
+            fontSize: 14,
+            color: AppColors.grayText,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRulerInput() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Ruler with center indicator
+        SizedBox(
+          height: 120,
+          child: Stack(
+            children: [
+              // Scrollable ruler
+              NotificationListener<ScrollNotification>(
+                onNotification: (notification) {
+                  if (notification is ScrollUpdateNotification) {
+                    _onRulerScroll();
+                  }
+                  return false;
+                },
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width / 2 - 20),
+                  child: Container(
+                    height: 80,
+                    width: (_maxWeightKg - _minWeightKg) * _pixelsPerKg,
+                    child: CustomPaint(
+                      painter: WeightRulerPainter(),
+                      size: Size((_maxWeightKg - _minWeightKg) * _pixelsPerKg, 80),
+                    ),
+                  ),
+                ),
+              ),
+              // Center indicator (green line)
+              Positioned(
+                left: MediaQuery.of(context).size.width / 2 - 24 - 1,
+                top: 0,
+                child: Container(
+                  width: 2,
+                  height: 80,
+                  color: AppColors.successGreen,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        
+        // Weight range labels
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 40),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '80',
+                style: TextStyle(
+                  fontFamily: AppConstants.primaryFont,
+                  fontSize: 14,
+                  color: AppColors.grayText,
+                ),
+              ),
+              Text(
+                '90',
+                style: TextStyle(
+                  fontFamily: AppConstants.primaryFont,
+                  fontSize: 14,
+                  color: AppColors.grayText,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 40),
+        
+        // Input field display (matches reference)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            border: Border.all(color: AppColors.successGreen, width: 2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                _displayWeight,
+                style: const TextStyle(
+                  fontFamily: AppConstants.primaryFont,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.successGreen,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.successGreen,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  _displayUnit,
+                  style: const TextStyle(
+                    fontFamily: AppConstants.primaryFont,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   @override
@@ -153,124 +388,23 @@ class _WeightInputPageState extends State<WeightInputPage> {
                     color: AppColors.blackText,
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
                 
-                // Ruler section
+                // Toggle between ruler and text input
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildInputToggle('Ruler', !_isTextInput, () => _toggleInputMode(false)),
+                    const SizedBox(width: 20),
+                    _buildInputToggle('Type', _isTextInput, () => _toggleInputMode(true)),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                
+                // Input section (ruler or text input)
                 Expanded(
                   child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Ruler with center indicator
-                        SizedBox(
-                          height: 120,
-                          child: Stack(
-                            children: [
-                              // Scrollable ruler
-                              NotificationListener<ScrollNotification>(
-                                onNotification: (notification) {
-                                  if (notification is ScrollUpdateNotification) {
-                                    _onRulerScroll();
-                                  }
-                                  return false;
-                                },
-                                child: SingleChildScrollView(
-                                  controller: _scrollController,
-                                  scrollDirection: Axis.horizontal,
-                                  padding: EdgeInsets.symmetric(horizontal: MediaQuery.of(context).size.width / 2 - 20),
-                                  child: Container(
-                                    height: 80,
-                                    width: (_maxWeightKg - _minWeightKg) * _pixelsPerKg,
-                                    child: CustomPaint(
-                                      painter: WeightRulerPainter(),
-                                      size: Size((_maxWeightKg - _minWeightKg) * _pixelsPerKg, 80),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              // Center indicator (green line)
-                              Positioned(
-                                left: MediaQuery.of(context).size.width / 2 - 24 - 1,
-                                top: 0,
-                                child: Container(
-                                  width: 2,
-                                  height: 80,
-                                  color: AppColors.successGreen,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        
-                        // Weight range labels
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 40),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '80',
-                                style: TextStyle(
-                                  fontFamily: AppConstants.primaryFont,
-                                  fontSize: 14,
-                                  color: AppColors.grayText,
-                                ),
-                              ),
-                              Text(
-                                '90',
-                                style: TextStyle(
-                                  fontFamily: AppConstants.primaryFont,
-                                  fontSize: 14,
-                                  color: AppColors.grayText,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                        
-                        // Input field display (matches reference)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: AppColors.successGreen, width: 2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                _displayWeight,
-                                style: const TextStyle(
-                                  fontFamily: AppConstants.primaryFont,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.successGreen,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: AppColors.successGreen,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  _displayUnit,
-                                  style: const TextStyle(
-                                    fontFamily: AppConstants.primaryFont,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
+                    child: _isTextInput ? _buildTextInput() : _buildRulerInput(),
                   ),
                 ),
                 

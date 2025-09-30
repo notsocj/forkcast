@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
@@ -15,16 +16,38 @@ class HouseholdSizePage extends StatefulWidget {
 
 class _HouseholdSizePageState extends State<HouseholdSizePage> {
   final _formKey = GlobalKey<FormState>();
+  final TextEditingController _textController = TextEditingController(text: '1');
   
   // Household size state
   int _householdSize = 1;
   bool _canContinue = true; // Start with true since 1 is valid
 
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
   void _updateHouseholdSize(int newSize) {
     setState(() {
       _householdSize = newSize.clamp(1, 99); // Minimum 1, maximum 99
       _canContinue = _householdSize > 0;
+      _textController.text = _householdSize.toString();
     });
+  }
+
+  void _onTextChanged(String value) {
+    final int? parsedValue = int.tryParse(value);
+    if (parsedValue != null && parsedValue > 0 && parsedValue <= 99) {
+      setState(() {
+        _householdSize = parsedValue;
+        _canContinue = true;
+      });
+    } else {
+      setState(() {
+        _canContinue = value.isNotEmpty ? false : true; // Allow empty for editing
+      });
+    }
   }
 
   void _incrementSize() {
@@ -164,29 +187,65 @@ class _HouseholdSizePageState extends State<HouseholdSizePage> {
                 
                 const SizedBox(height: 40),
                 
-                // Number pad
+                // Text input for household size
                 Expanded(
                   child: Center(
-                    child: Container(
-                      width: 280,
-                      child: GridView.count(
-                        shrinkWrap: true,
-                        crossAxisCount: 3,
-                        mainAxisSpacing: 12,
-                        crossAxisSpacing: 12,
-                        childAspectRatio: 1.2,
-                        children: [
-                          _buildNumberButton(1),
-                          _buildNumberButton(2),
-                          _buildNumberButton(3),
-                          _buildNumberButton(4),
-                          _buildNumberButton(5),
-                          _buildNumberButton(6),
-                          _buildNumberButton(7),
-                          _buildNumberButton(8),
-                          _buildNumberButton(9),
-                        ],
-                      ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox(height: 60),
+                        Container(
+                          width: 200,
+                          child: TextFormField(
+                            controller: _textController,
+                            keyboardType: TextInputType.number,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily: AppConstants.primaryFont,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.blackText,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'Enter number',
+                              hintStyle: TextStyle(
+                                fontFamily: AppConstants.primaryFont,
+                                fontSize: 16,
+                                color: AppColors.grayText,
+                              ),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: AppColors.successGreen, width: 2),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(color: AppColors.successGreen, width: 2),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(color: AppColors.grayText.withOpacity(0.3), width: 1),
+                              ),
+                              suffixText: 'people',
+                              suffixStyle: const TextStyle(
+                                fontFamily: AppConstants.primaryFont,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.successGreen,
+                              ),
+                            ),
+                            onChanged: _onTextChanged,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Text(
+                          'Range: 1-99 people',
+                          style: TextStyle(
+                            fontFamily: AppConstants.primaryFont,
+                            fontSize: 14,
+                            color: AppColors.grayText,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -226,38 +285,7 @@ class _HouseholdSizePageState extends State<HouseholdSizePage> {
     );
   }
 
-  Widget _buildNumberButton(int number) {
-    bool isHighlighted = _householdSize == number;
-    return GestureDetector(
-      onTap: () => _updateHouseholdSize(number),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isHighlighted 
-              ? AppColors.successGreen 
-              : AppColors.lightGray,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: isHighlighted ? [
-            BoxShadow(
-              color: AppColors.successGreen.withOpacity(0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ] : null,
-        ),
-        child: Center(
-          child: Text(
-            '$number',
-            style: TextStyle(
-              fontFamily: AppConstants.primaryFont,
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: isHighlighted ? AppColors.white : AppColors.blackText,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+
 
   void _handleContinue() {
     if (_householdSize > 0) {

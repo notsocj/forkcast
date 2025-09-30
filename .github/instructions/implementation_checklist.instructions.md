@@ -140,9 +140,24 @@ applyTo: '**'
      - [x] `gender_selection_page.dart` (progress 2/8, Male/Female/Prefer not to say options with green selection)
      - [x] `birthday_entry_page.dart` (progress 3/8, scrollable date pickers for Month/Day/Year)
      - [x] `height_input_page.dart` (progress 4/8, scrollable ruler with cm/ft toggle and connected input field)
+       - [x] **Enhanced Input Options** - Added ruler and text input toggle functionality
+       - [x] Toggle between visual ruler and direct text input for user preference
+       - [x] Metric (cm) and Imperial (ft) unit support with automatic conversion
+       - [x] Text input validation with range checking (100-250 cm / 3.3-8.2 ft)
+       - [x] Real-time value synchronization between ruler and text input modes
      - [x] `weight_input_page.dart` (progress 5/8, scrollable ruler with kg/lb toggle and connected input field)
+       - [x] **Enhanced Input Options** - Added ruler and text input toggle functionality
+       - [x] Toggle between visual ruler and direct text input for user preference
+       - [x] Metric (kg) and Imperial (lb) unit support with automatic conversion
+       - [x] Text input validation with range checking (30-200 kg / 66-440 lb)
+       - [x] Real-time value synchronization between ruler and text input modes
   - [x] `weekly_budget_page.dart` (progress 6/8, modern numeric input, +/- controls, custom dialog)
     - [x] Navigate medical conditions → BMI (profile flow navigation wired)
+   - [x] `household_size_page.dart` (progress 7/8, text input with number validation)
+     - [x] **Simplified Text Input** - Replaced number pad with direct text input
+     - [x] Number-only keyboard with input validation (1-99 people)
+     - [x] Real-time input validation and user feedback
+     - [x] Clean text input interface with helpful range indicators
    - [x] `edit_profile_page.dart` (comprehensive profile editing with all Firebase schema fields, modern UI design)
    - [x] **Food Allergies Integration** (Complete implementation)
      - [x] `User` model updated with `foodAllergies` field and Firebase serialization
