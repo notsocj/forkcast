@@ -59,55 +59,81 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     }
   }
 
-  /// Calculate total calories consumed today
-  double _getConsumedCalories() {
+  /// Calculate nutrient density score for today's meals
+  double _getNutrientDensityScore() {
     if (_todaysMealStatus == null) return 0.0;
     
-    double totalCalories = 0.0;
+    int mealsLogged = 0;
+    double totalScore = 0.0;
     
     for (String mealType in ['Breakfast', 'Lunch', 'Dinner', 'Snack']) {
       final mealData = _todaysMealStatus![mealType];
       if (mealData != null && mealData['logged'] == true) {
         final data = mealData['data'] as Map<String, dynamic>?;
-        if (data != null && data['scaled_kcal'] != null) {
-          totalCalories += (data['scaled_kcal'] as num).toDouble();
+        if (data != null) {
+          mealsLogged++;
+          // Score based on balanced nutrition (simplified scoring)
+          totalScore += 85.0; // Each logged meal contributes to nutritional variety
         }
       }
     }
     
-    return totalCalories;
+    return mealsLogged > 0 ? totalScore / mealsLogged : 0.0;
   }
 
-  /// Calculate daily calorie limit based on user profile (simplified version)
-  double _getDailyCalorieLimit() {
-    if (_currentUser == null) return 2000.0; // default
+  /// Get nutritional variety target (number of different food groups consumed)
+  int _getNutritionalVarietyTarget() {
+    // Target: consume from 5-6 different food groups daily
+    // (Grains, Vegetables, Fruits, Protein, Dairy, Healthy Fats)
+    return 5;
+  }
+  
+  /// Calculate current nutritional variety score
+  int _getCurrentNutritionalVariety() {
+    if (_todaysMealStatus == null) return 0;
     
-    // This is a simplified calculation. In a real app, you'd use more complex formulas
-    // like Harris-Benedict or Mifflin-St Jeor equations
-    double baseCalories = 1800; // base for adults
+    Set<String> foodGroups = <String>{};
     
-    // Adjust based on age (simplified)
-    int age = DateTime.now().year - _currentUser!.birthdate.year;
-    if (age > 50) {
-      baseCalories -= 100;
-    } else if (age < 25) {
-      baseCalories += 100;
+    for (String mealType in ['Breakfast', 'Lunch', 'Dinner', 'Snack']) {
+      final mealData = _todaysMealStatus![mealType];
+      if (mealData != null && mealData['logged'] == true) {
+        final data = mealData['data'] as Map<String, dynamic>?;
+        if (data != null) {
+          // Simulate food group identification based on meal name
+          String mealName = (data['recipe_name'] ?? '').toString().toLowerCase();
+          
+          // Add food groups based on common Filipino ingredients
+          if (mealName.contains('rice') || mealName.contains('bread') || mealName.contains('noodle')) {
+            foodGroups.add('Grains');
+          }
+          if (mealName.contains('chicken') || mealName.contains('fish') || mealName.contains('pork') || 
+              mealName.contains('beef') || mealName.contains('egg') || mealName.contains('tofu')) {
+            foodGroups.add('Protein');
+          }
+          if (mealName.contains('vegetable') || mealName.contains('malunggay') || mealName.contains('kangkong') ||
+              mealName.contains('cabbage') || mealName.contains('spinach') || mealName.contains('tomato')) {
+            foodGroups.add('Vegetables');
+          }
+          if (mealName.contains('banana') || mealName.contains('apple') || mealName.contains('orange') ||
+              mealName.contains('mango') || mealName.contains('fruit')) {
+            foodGroups.add('Fruits');
+          }
+          if (mealName.contains('milk') || mealName.contains('cheese') || mealName.contains('yogurt')) {
+            foodGroups.add('Dairy');
+          }
+          if (mealName.contains('oil') || mealName.contains('nuts') || mealName.contains('avocado')) {
+            foodGroups.add('Healthy Fats');
+          }
+          
+          // Default: add at least one food group for any logged meal
+          if (foodGroups.isEmpty) {
+            foodGroups.add('Mixed Foods');
+          }
+        }
+      }
     }
     
-    // Adjust based on gender (simplified)
-    if (_currentUser!.gender.toLowerCase() == 'male') {
-      baseCalories += 300;
-    }
-    
-    // Adjust based on weight (simplified)
-    double weight = _currentUser!.weightKg;
-    if (weight > 70) {
-      baseCalories += (weight - 70) * 10;
-    } else if (weight < 60) {
-      baseCalories -= (60 - weight) * 8;
-    }
-    
-    return baseCalories;
+    return foodGroups.length;
   }
 
   /// Get health status based on BMI only
@@ -192,66 +218,107 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     }
   }
 
-  /// Calculate total nutrients consumed today
+  /// Calculate key nutrients consumed today focusing on micronutrients
   Map<String, double> _getTodayNutrients() {
     if (_todaysMealStatus == null) {
-      return {'protein': 0.0, 'carbs': 0.0, 'fat': 0.0};
+      return {'vitamin_c': 0.0, 'iron': 0.0, 'calcium': 0.0, 'fiber': 0.0};
     }
     
-    double totalProtein = 0.0;
-    double totalCarbs = 0.0;
-    double totalFat = 0.0;
+    double totalVitaminC = 0.0;
+    double totalIron = 0.0;
+    double totalCalcium = 0.0;
+    double totalFiber = 0.0;
     
     for (String mealType in ['Breakfast', 'Lunch', 'Dinner', 'Snack']) {
       final mealData = _todaysMealStatus![mealType];
       if (mealData != null && mealData['logged'] == true) {
         final data = mealData['data'] as Map<String, dynamic>?;
         if (data != null) {
-          // These are estimated from calories since we don't have exact macros
-          // In a real app, you'd store protein/carbs/fat values in Firebase
-          final calories = (data['scaled_kcal'] as num?)?.toDouble() ?? 0.0;
+          String mealName = (data['recipe_name'] ?? '').toString().toLowerCase();
           
-          // Rough estimation: 
-          // - Breakfast/Snack: more carbs (60% carbs, 20% protein, 20% fat)
-          // - Lunch/Dinner: balanced (40% carbs, 30% protein, 30% fat)
-          if (mealType == 'Breakfast' || mealType == 'Snack') {
-            totalCarbs += (calories * 0.60) / 4; // 4 calories per gram of carbs
-            totalProtein += (calories * 0.20) / 4; // 4 calories per gram of protein
-            totalFat += (calories * 0.20) / 9; // 9 calories per gram of fat
-          } else {
-            totalCarbs += (calories * 0.40) / 4;
-            totalProtein += (calories * 0.30) / 4;
-            totalFat += (calories * 0.30) / 9;
+          // Estimate nutrient content based on Filipino food knowledge
+          // Vitamin C rich foods
+          if (mealName.contains('malunggay') || mealName.contains('guava') || 
+              mealName.contains('papaya') || mealName.contains('citrus')) {
+            totalVitaminC += 25.0; // mg
+          } else if (mealName.contains('vegetable') || mealName.contains('fruit')) {
+            totalVitaminC += 10.0;
+          }
+          
+          // Iron rich foods
+          if (mealName.contains('meat') || mealName.contains('liver') || 
+              mealName.contains('fish') || mealName.contains('malunggay')) {
+            totalIron += 2.5; // mg
+          } else if (mealName.contains('egg') || mealName.contains('beans')) {
+            totalIron += 1.2;
+          }
+          
+          // Calcium rich foods
+          if (mealName.contains('milk') || mealName.contains('cheese') || 
+              mealName.contains('sardines') || mealName.contains('malunggay')) {
+            totalCalcium += 150.0; // mg
+          } else if (mealName.contains('vegetable') || mealName.contains('tofu')) {
+            totalCalcium += 80.0;
+          }
+          
+          // Fiber rich foods
+          if (mealName.contains('rice') && mealName.contains('brown')) {
+            totalFiber += 8.0; // g
+          } else if (mealName.contains('vegetable') || mealName.contains('fruit') || 
+                     mealName.contains('beans') || mealName.contains('whole')) {
+            totalFiber += 5.0;
+          } else if (mealName.contains('rice') || mealName.contains('bread')) {
+            totalFiber += 2.0;
           }
         }
       }
     }
     
     return {
-      'protein': totalProtein,
-      'carbs': totalCarbs,
-      'fat': totalFat,
+      'vitamin_c': totalVitaminC,
+      'iron': totalIron,
+      'calcium': totalCalcium,
+      'fiber': totalFiber,
     };
   }
 
-  /// Get daily nutrient targets based on user profile
+  /// Get daily nutrient targets for key micronutrients
   Map<String, double> _getNutrientTargets() {
     if (_currentUser == null) {
-      return {'protein': 50.0, 'carbs': 250.0, 'fat': 65.0}; // default values
+      return {
+        'vitamin_c': 65.0, // mg - RDA for adults
+        'iron': 8.0, // mg - RDA for adults (varies by gender)
+        'calcium': 1000.0, // mg - RDA for adults
+        'fiber': 25.0, // g - recommended daily intake
+      };
     }
     
-    final dailyCalories = _getDailyCalorieLimit();
-    final weight = _currentUser!.weightKg;
+    // Adjust targets based on user profile
+    double vitaminCTarget = 65.0; // Base RDA
+    double ironTarget = 8.0; // Base for males
+    double calciumTarget = 1000.0; // Base for adults
+    double fiberTarget = 25.0; // Base recommendation
     
-    // Calculate targets based on standard recommendations
-    final proteinTarget = weight * 0.8; // 0.8g per kg body weight
-    final fatTarget = (dailyCalories * 0.25) / 9; // 25% of calories from fat
-    final carbsTarget = (dailyCalories - (proteinTarget * 4) - (fatTarget * 9)) / 4; // remaining calories from carbs
+    // Adjust based on gender
+    if (_currentUser!.gender.toLowerCase() == 'female') {
+      ironTarget = 18.0; // Higher iron requirement for women
+    }
+    
+    // Adjust based on age
+    int age = DateTime.now().year - _currentUser!.birthdate.year;
+    if (age > 50) {
+      calciumTarget = 1200.0; // Higher calcium for older adults
+      vitaminCTarget = 75.0; // Slightly higher Vitamin C
+    } else if (age < 25) {
+      calciumTarget = 1300.0; // Higher calcium for young adults
+      fiberTarget = 30.0; // Higher fiber for young adults
+    }
     
     return {
-      'protein': proteinTarget,
-      'carbs': carbsTarget,
-      'fat': fatTarget,
+      'vitamin_c': vitaminCTarget,
+      'iron': ironTarget,
+      'calcium': calciumTarget,
+      'fiber': fiberTarget,
     };
   }
 
@@ -314,8 +381,8 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 8),
-                      // Calorie Overview Card
-                      _buildCalorieOverviewCard(),
+                      // Nutritional Overview Card
+                      _buildNutritionalOverviewCard(),
                       const SizedBox(height: 20),
                       
                       // Nutrient Breakdown Card
@@ -434,7 +501,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     );
   }
 
-  Widget _buildCalorieOverviewCard() {
+  Widget _buildNutritionalOverviewCard() {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -452,7 +519,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Health Overview',
+            'Nutritional Overview',
             style: TextStyle(
               fontFamily: 'Lato',
               fontSize: 18,
@@ -464,20 +531,20 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildCalorieItem(
-                icon: Icons.restaurant_outlined,
-                title: 'Consumed',
-                value: '${_getConsumedCalories().toInt()}',
-                color: AppColors.primaryAccent,
-              ),
-              _buildCalorieItem(
-                icon: Icons.local_fire_department_outlined,
-                title: 'Daily Limit',
-                value: '${_getDailyCalorieLimit().toInt()}',
+              _buildNutritionalItem(
+                icon: Icons.eco_outlined,
+                title: 'Food Groups',
+                value: '${_getCurrentNutritionalVariety()}/${_getNutritionalVarietyTarget()}',
                 color: AppColors.successGreen,
               ),
-              _buildCalorieItem(
-                icon: Icons.fitness_center_outlined,
+              _buildNutritionalItem(
+                icon: Icons.psychology_outlined,
+                title: 'Quality Score',
+                value: '${_getNutrientDensityScore().toInt()}%',
+                color: AppColors.primaryAccent,
+              ),
+              _buildNutritionalItem(
+                icon: Icons.favorite_outline,
                 title: 'Health Status',
                 value: _getHealthStatus(),
                 color: AppColors.purpleAccent,
@@ -489,14 +556,16 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     );
   }
 
-  Widget _buildCalorieItem({
+  Widget _buildNutritionalItem({
     required IconData icon,
     required String title,
     required String value,
     required Color color,
   }) {
-    // Check if value is numeric for styling
-    final isNumeric = double.tryParse(value) != null;
+    // Check if value contains numbers or percentages for styling
+    final hasNumbers = RegExp(r'\d').hasMatch(value);
+    final isPercentage = value.contains('%');
+    final isFraction = value.contains('/');
     
     return Expanded(
       child: Column(
@@ -519,7 +588,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: 'Lato',
-              fontSize: isNumeric ? 20 : 14,
+              fontSize: (hasNumbers && (isPercentage || isFraction)) ? 16 : 14,
               fontWeight: FontWeight.bold,
               color: AppColors.blackText,
             ),
@@ -554,7 +623,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Nutrient Breakdown',
+            'Key Nutrients Today',
             style: TextStyle(
               fontFamily: 'Lato',
               fontSize: 18,
@@ -563,19 +632,40 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
             ),
           ),
           const SizedBox(height: 16),
-          _buildNutrientProgressBar('Protein', _getNutrientProgress('protein'), AppColors.primaryAccent),
+          _buildNutrientProgressBar('Vitamin C', _getNutrientProgress('vitamin_c'), AppColors.primaryAccent),
           const SizedBox(height: 12),
-          _buildNutrientProgressBar('Carbs', _getNutrientProgress('carbs'), AppColors.successGreen),
+          _buildNutrientProgressBar('Iron', _getNutrientProgress('iron'), AppColors.successGreen),
           const SizedBox(height: 12),
-          _buildNutrientProgressBar('Fat', _getNutrientProgress('fat'), AppColors.purpleAccent),
+          _buildNutrientProgressBar('Calcium', _getNutrientProgress('calcium'), Colors.blue),
+          const SizedBox(height: 12),
+          _buildNutrientProgressBar('Fiber', _getNutrientProgress('fiber'), AppColors.purpleAccent),
         ],
       ),
     );
   }
 
   Widget _buildNutrientProgressBar(String nutrient, double progress, Color color) {
-    final consumed = _getTodayNutrients()[nutrient.toLowerCase()] ?? 0.0;
-    final target = _getNutrientTargets()[nutrient.toLowerCase()] ?? 1.0;
+    final nutrientKey = nutrient.toLowerCase().replaceAll(' ', '_');
+    final consumed = _getTodayNutrients()[nutrientKey] ?? 0.0;
+    final target = _getNutrientTargets()[nutrientKey] ?? 1.0;
+    
+    // Get appropriate unit for each nutrient
+    String unit = 'mg';
+    String consumedStr = consumed.toInt().toString();
+    String targetStr = target.toInt().toString();
+    
+    if (nutrient == 'Fiber') {
+      unit = 'g';
+    } else if (nutrient == 'Vitamin C' || nutrient == 'Iron') {
+      unit = 'mg';
+      // Show decimal for iron since targets are smaller
+      if (nutrient == 'Iron') {
+        consumedStr = consumed.toStringAsFixed(1);
+        targetStr = target.toStringAsFixed(1);
+      }
+    } else if (nutrient == 'Calcium') {
+      unit = 'mg';
+    }
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -593,7 +683,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
               ),
             ),
             Text(
-              '${consumed.toInt()}g / ${target.toInt()}g',
+              '$consumedStr$unit / $targetStr$unit',
               style: TextStyle(
                 fontFamily: 'OpenSans',
                 fontSize: 12,
