@@ -84,6 +84,11 @@ collections:
         fields:
           question_text: string
           posted_at: timestamp
+      saved_questions:
+        documentId: questionId (string, same as qna_questions collection)
+        fields:
+          question_id: reference (→ qna_questions.questionId)
+          saved_at: timestamp
       availability:
         documentId: availabilityId (string)
         fields:

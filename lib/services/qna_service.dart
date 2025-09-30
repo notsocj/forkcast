@@ -147,10 +147,160 @@ class QnAService {
     return answersQuery.count ?? 0;
   }
 
-  /// Get saved questions for current user (placeholder for future implementation)
-  Stream<List<Map<String, dynamic>>> getSavedQuestions() {
-    // This would require additional schema for saving questions
-    // For now, return empty stream
-    return Stream.value([]);
+  /// Save a question to user's saved list
+  Future<void> saveQuestion(String questionId) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('User not authenticated');
+
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('saved_questions')
+        .doc(questionId)
+        .set({
+      'question_id': _firestore.collection('qna_questions').doc(questionId),
+      'saved_at': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// Unsave a question from user's saved list
+  Future<void> unsaveQuestion(String questionId) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('User not authenticated');
+
+    await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('saved_questions')
+        .doc(questionId)
+        .delete();
+  }
+
+  /// Check if a question is saved by current user
+  Future<bool> isQuestionSaved(String questionId) async {
+    final user = _auth.currentUser;
+    if (user == null) return false;
+
+    final doc = await _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('saved_questions')
+        .doc(questionId)
+        .get();
+
+    return doc.exists;
+  }
+
+  /// Get saved questions for current user
+  Stream<List<Map<String, dynamic>>> getSavedQuestions() async* {
+    final user = _auth.currentUser;
+    if (user == null) {
+      yield [];
+      return;
+    }
+
+    await for (var savedSnapshot in _firestore
+        .collection('users')
+        .doc(user.uid)
+        .collection('saved_questions')
+        .orderBy('saved_at', descending: true)
+        .snapshots()) {
+      
+      List<Map<String, dynamic>> questions = [];
+      
+      for (var savedDoc in savedSnapshot.docs) {
+        final questionRef = savedDoc.data()['question_id'] as DocumentReference;
+        final questionDoc = await questionRef.get();
+        
+        if (questionDoc.exists) {
+          final questionData = questionDoc.data() as Map<String, dynamic>;
+          questionData['id'] = questionDoc.id;
+          
+          // Handle Timestamp conversion
+          if (questionData['posted_at'] != null && questionData['posted_at'] is Timestamp) {
+            questionData['posted_at'] = (questionData['posted_at'] as Timestamp).toDate();
+          }
+          
+          // Get answer count
+          final answersCount = await getAnswersCount(questionDoc.id);
+          questionData['answers_count'] = answersCount;
+          
+          questions.add(questionData);
+        }
+      }
+      
+      yield questions;
+    }
+  }
+
+  /// Delete a question (only if user owns it)
+  Future<void> deleteQuestion(String questionId) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('User not authenticated');
+
+    // Check if user owns the question
+    final questionDoc = await _firestore
+        .collection('qna_questions')
+        .doc(questionId)
+        .get();
+
+    if (!questionDoc.exists) {
+      throw Exception('Question not found');
+    }
+
+    final questionData = questionDoc.data();
+    if (questionData?['user_id'] != user.uid) {
+      throw Exception('You can only delete your own questions');
+    }
+
+    // Delete the question
+    await _firestore.collection('qna_questions').doc(questionId).delete();
+
+    // Delete all answers to this question
+    final answersQuery = await _firestore
+        .collection('qna_answers')
+        .where('question_id', isEqualTo: _firestore.collection('qna_questions').doc(questionId))
+        .get();
+
+    final batch = _firestore.batch();
+    for (var doc in answersQuery.docs) {
+      batch.delete(doc.reference);
+    }
+    await batch.commit();
+
+    // Delete from all users' saved questions
+    final usersQuery = await _firestore.collection('users').get();
+    final savedBatch = _firestore.batch();
+    for (var userDoc in usersQuery.docs) {
+      final savedRef = userDoc.reference
+          .collection('saved_questions')
+          .doc(questionId);
+      savedBatch.delete(savedRef);
+    }
+    await savedBatch.commit();
+  }
+
+  /// Delete an answer (only if user owns it)
+  Future<void> deleteAnswer(String answerId) async {
+    final user = _auth.currentUser;
+    if (user == null) throw Exception('User not authenticated');
+
+    // Check if user owns the answer
+    final answerDoc = await _firestore
+        .collection('qna_answers')
+        .doc(answerId)
+        .get();
+
+    if (!answerDoc.exists) {
+      throw Exception('Answer not found');
+    }
+
+    final answerData = answerDoc.data();
+    if (answerData?['expert_id'] != user.uid) {
+      throw Exception('You can only delete your own answers');
+    }
+
+    // Delete the answer
+    await _firestore.collection('qna_answers').doc(answerId).delete();
   }
 }

@@ -375,11 +375,41 @@ applyTo: '**'
     - [x] Fixed bottom input for posting new answers
     - [x] Reply functionality with user feedback
     - [x] Sample answers data with verified nutritionist badges
+    - [x] **Delete Answer Functionality** - Complete implementation
+      - [x] Delete button displayed only for owned answers (user must be answer author)
+      - [x] Firebase Auth integration for current user ID tracking
+      - [x] Delete confirmation dialog with warning message
+      - [x] QnAService.deleteAnswer() method with ownership validation
+      - [x] Real-time UI updates after answer deletion
+      - [x] Success/error feedback with snackbar notifications
   - [x] **Complete Navigation Flow**
     - [x] Question cards in forum page are tappable
     - [x] Navigation from forum to answers page with question data
     - [x] Proper data passing between pages
-    - [x] All UI interactions functional (save, like, reply, report)
+    - [x] All UI interactions functional (save, like, reply, report, delete)
+  - [x] **Save Questions Functionality** - Complete implementation
+    - [x] Firebase saved_questions subcollection under users
+    - [x] QnAService methods: saveQuestion(), unsaveQuestion(), isQuestionSaved(), getSavedQuestions()
+    - [x] Real-time save/unsave toggle with bookmark icon
+    - [x] Visual feedback: filled bookmark for saved, outline for not saved
+    - [x] Success/error notifications with snackbar messages
+    - [x] Saved questions state tracking with Map<String, bool>
+    - [x] **Saved Questions View** - Filter to show only saved questions
+      - [x] Functional "Saved" button in forum header toggles between all/saved view
+      - [x] Dynamic StreamBuilder switches between getAllQuestions() and getSavedQuestions()
+      - [x] Visual feedback: green background when showing saved questions
+      - [x] Button text changes: "Saved" → "Showing Saved" when active
+      - [x] Empty state messages adapted for both views
+      - [x] Bookmark icon fills when in saved view mode
+  - [x] **Delete Questions Functionality** - Complete implementation
+    - [x] Delete button displayed only for owned questions (user must be question author)
+    - [x] Firebase Auth integration for current user ID tracking
+    - [x] Delete confirmation dialog with warning about cascading deletes
+    - [x] QnAService.deleteQuestion() method with ownership validation
+    - [x] Automatic deletion of all related answers when question is deleted
+    - [x] Automatic cleanup of saved questions from all users
+    - [x] Real-time UI updates after question deletion
+    - [x] Success/error feedback with snackbar notifications
 - [x] **Teleconsultation**
   - [x] Consultation page implemented (`book_consultation_page.dart`)
     - [x] **IMPROVED UI**: Enhanced tab segmentation control with better spacing, colors, and styling

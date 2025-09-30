@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/theme/app_colors.dart';
 import '../../services/qna_service.dart';
 
@@ -20,14 +21,25 @@ class _QnaAnswersPageState extends State<QnaAnswersPage> {
   final QnAService _qnaService = QnAService();
   
   bool _isPostingAnswer = false;
+  String? _currentUserId;
 
   @override
   void initState() {
     super.initState();
+    _loadCurrentUser();
     // Debug: Print question data to help identify field names
     print('Answers page - Question data: ${widget.question}');
     print('Answers page - user_name: ${widget.question['user_name']}');
     print('Answers page - question_text: ${widget.question['question_text']}');
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      setState(() {
+        _currentUserId = user.uid;
+      });
+    }
   }
 
   @override
@@ -646,6 +658,18 @@ class _QnaAnswersPageState extends State<QnaAnswersPage> {
                 ),
               ),
               const Spacer(),
+              // Delete button (only for owned answers)
+              if (answer['expert_id'] == _currentUserId) ...[
+                GestureDetector(
+                  onTap: () => _showDeleteAnswerDialog(answer['id'] ?? ''),
+                  child: Icon(
+                    Icons.delete_outline,
+                    size: 18,
+                    color: Colors.red,
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
               // Report button
               GestureDetector(
                 onTap: () {
@@ -841,6 +865,114 @@ class _QnaAnswersPageState extends State<QnaAnswersPage> {
         setState(() {
           _isPostingAnswer = false;
         });
+      }
+    }
+  }
+
+  /// Show delete answer confirmation dialog
+  void _showDeleteAnswerDialog(String answerId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.red,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Delete Answer',
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.blackText,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Are you sure you want to delete this answer? This action cannot be undone.',
+            style: TextStyle(
+              fontFamily: 'OpenSans',
+              color: AppColors.grayText,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  color: AppColors.grayText,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _deleteAnswer(answerId);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Delete',
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  color: AppColors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Delete an answer
+  Future<void> _deleteAnswer(String answerId) async {
+    try {
+      await _qnaService.deleteAnswer(answerId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Answer deleted successfully',
+              style: TextStyle(
+                fontFamily: 'OpenSans',
+                color: AppColors.white,
+              ),
+            ),
+            backgroundColor: AppColors.successGreen,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to delete answer: $e',
+              style: TextStyle(
+                fontFamily: 'OpenSans',
+                color: AppColors.white,
+              ),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }

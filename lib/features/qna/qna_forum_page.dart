@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../core/theme/app_colors.dart';
 import '../../services/qna_service.dart';
 import 'qna_answers_page.dart';
@@ -18,6 +19,30 @@ class _QnaForumPageState extends State<QnaForumPage> {
 
   // Track loading state
   bool _isPostingQuestion = false;
+  
+  // Track saved questions
+  final Map<String, bool> _savedQuestions = {};
+  
+  // Track current user ID
+  String? _currentUserId;
+  
+  // Track view mode: 'all' or 'saved'
+  String _viewMode = 'all';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCurrentUser();
+  }
+
+  Future<void> _loadCurrentUser() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      setState(() {
+        _currentUserId = user.uid;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -61,9 +86,11 @@ class _QnaForumPageState extends State<QnaForumPage> {
                               // Ask question input
                               _buildAskQuestionSection(),
                               const SizedBox(height: 24),
-                              // Questions list from Firebase
+                              // Questions list from Firebase - Dynamic based on view mode
                               StreamBuilder<List<Map<String, dynamic>>>(
-                                stream: _qnaService.getAllQuestions(),
+                                stream: _viewMode == 'all' 
+                                    ? _qnaService.getAllQuestions()
+                                    : _qnaService.getSavedQuestions(),
                                 builder: (context, snapshot) {
                                   if (snapshot.connectionState == ConnectionState.waiting) {
                                     return const Center(
@@ -93,13 +120,17 @@ class _QnaForumPageState extends State<QnaForumPage> {
                                         children: [
                                           const SizedBox(height: 40),
                                           Icon(
-                                            Icons.help_outline,
+                                            _viewMode == 'saved' 
+                                                ? Icons.bookmark_border 
+                                                : Icons.help_outline,
                                             size: 64,
                                             color: AppColors.grayText,
                                           ),
                                           const SizedBox(height: 16),
                                           Text(
-                                            'No questions yet',
+                                            _viewMode == 'saved' 
+                                                ? 'No saved questions yet'
+                                                : 'No questions yet',
                                             style: TextStyle(
                                               fontFamily: 'Lato',
                                               fontSize: 16,
@@ -109,7 +140,9 @@ class _QnaForumPageState extends State<QnaForumPage> {
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
-                                            'Be the first to ask a question!',
+                                            _viewMode == 'saved'
+                                                ? 'Save questions to view them here'
+                                                : 'Be the first to ask a question!',
                                             style: TextStyle(
                                               fontFamily: 'OpenSans',
                                               fontSize: 14,
@@ -286,44 +319,53 @@ class _QnaForumPageState extends State<QnaForumPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              // Enhanced Saved button
-              Container(
-                height: 48,
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(
-                    color: AppColors.white.withOpacity(0.8),
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
+              // Enhanced Saved button - Functional
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _viewMode = _viewMode == 'all' ? 'saved' : 'all';
+                  });
+                },
+                child: Container(
+                  height: 48,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: _viewMode == 'saved' ? AppColors.successGreen : AppColors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: _viewMode == 'saved' 
+                          ? AppColors.successGreen 
+                          : AppColors.white.withOpacity(0.8),
+                      width: 2,
                     ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.bookmark_outline,
-                      color: AppColors.successGreen,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Saved',
-                      style: TextStyle(
-                        fontFamily: 'Lato',
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.blackText,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        _viewMode == 'saved' ? Icons.bookmark : Icons.bookmark_border,
+                        color: _viewMode == 'saved' ? AppColors.white : AppColors.successGreen,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _viewMode == 'saved' ? 'Showing Saved' : 'Saved',
+                        style: TextStyle(
+                          fontFamily: 'Lato',
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: _viewMode == 'saved' ? AppColors.white : AppColors.successGreen,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -574,13 +616,13 @@ class _QnaForumPageState extends State<QnaForumPage> {
                 Row(
                   children: [
                     Icon(
-                      Icons.chat_bubble_outline,
-                      size: 16,
+                      Icons.comment,
+                      size: 20,
                       color: AppColors.grayText,
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '${question['answers_count'] ?? 0} answers',
+                      '${question['answers_count'] ?? 0} Answers',
                       style: TextStyle(
                         fontFamily: 'OpenSans',
                         fontSize: 12,
@@ -590,37 +632,47 @@ class _QnaForumPageState extends State<QnaForumPage> {
                   ],
                 ),
                 const Spacer(),
-                // Save button (disabled for now)
-                GestureDetector(
-                  onTap: () {
-                    // TODO: Implement save functionality
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Save feature coming soon!'),
-                        backgroundColor: AppColors.successGreen,
-                        behavior: SnackBarBehavior.floating,
+                // Save button (functional)
+                FutureBuilder<bool>(
+                  future: _qnaService.isQuestionSaved(question['id'] ?? ''),
+                  builder: (context, snapshot) {
+                    final isSaved = _savedQuestions[question['id']] ?? snapshot.data ?? false;
+                    return GestureDetector(
+                      onTap: () => _toggleSaveQuestion(question['id'] ?? '', isSaved),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            isSaved ? Icons.bookmark : Icons.bookmark_border,
+                            size: 20,
+                            color: isSaved ? AppColors.successGreen : AppColors.grayText,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isSaved ? 'Saved' : 'Save',
+                            style: TextStyle(
+                              fontFamily: 'OpenSans',
+                              fontSize: 12,
+                              color: isSaved ? AppColors.successGreen : AppColors.grayText,
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   },
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.bookmark_outline,
-                        size: 16,
-                        color: AppColors.grayText,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Save',
-                        style: TextStyle(
-                          fontFamily: 'OpenSans',
-                          fontSize: 12,
-                          color: AppColors.grayText,
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
+                // Delete button (only for owned questions)
+                if (question['user_id'] == _currentUserId) ...[
+                  const SizedBox(width: 16),
+                  GestureDetector(
+                    onTap: () => _showDeleteQuestionDialog(question['id'] ?? ''),
+                    child: Icon(
+                      Icons.delete_outline,
+                      size: 20,
+                      color: Colors.red,
+                    ),
+                  ),
+                ],
               ],
             ),
           ],
@@ -695,6 +747,179 @@ class _QnaForumPageState extends State<QnaForumPage> {
         setState(() {
           _isPostingQuestion = false;
         });
+      }
+    }
+  }
+
+  /// Toggle save/unsave question
+  Future<void> _toggleSaveQuestion(String questionId, bool currentlySaved) async {
+    try {
+      if (currentlySaved) {
+        await _qnaService.unsaveQuestion(questionId);
+        setState(() {
+          _savedQuestions[questionId] = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Question removed from saved',
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  color: AppColors.white,
+                ),
+              ),
+              backgroundColor: AppColors.grayText,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        }
+      } else {
+        await _qnaService.saveQuestion(questionId);
+        setState(() {
+          _savedQuestions[questionId] = true;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Question saved!',
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  color: AppColors.white,
+                ),
+              ),
+              backgroundColor: AppColors.successGreen,
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 1),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to save question: $e',
+              style: TextStyle(
+                fontFamily: 'OpenSans',
+                color: AppColors.white,
+              ),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Show delete question confirmation dialog
+  void _showDeleteQuestionDialog(String questionId) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.red,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Delete Question',
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.blackText,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Are you sure you want to delete this question? This will also delete all answers. This action cannot be undone.',
+            style: TextStyle(
+              fontFamily: 'OpenSans',
+              color: AppColors.grayText,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  color: AppColors.grayText,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await _deleteQuestion(questionId);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Delete',
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  color: AppColors.white,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Delete a question
+  Future<void> _deleteQuestion(String questionId) async {
+    try {
+      await _qnaService.deleteQuestion(questionId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Question deleted successfully',
+              style: TextStyle(
+                fontFamily: 'OpenSans',
+                color: AppColors.white,
+              ),
+            ),
+            backgroundColor: AppColors.successGreen,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to delete question: $e',
+              style: TextStyle(
+                fontFamily: 'OpenSans',
+                color: AppColors.white,
+              ),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
