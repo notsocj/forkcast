@@ -8,6 +8,14 @@ import 'recipe_service.dart';
 class PersonalizedMealService {
   final UserService _userService = UserService();
   final RecipeService _recipeService = RecipeService();
+  
+  // Track suggested recipes to ensure variety across meal types
+  final Set<String> _suggestedRecipeIds = <String>{};
+  
+  /// Clear suggested recipes cache (call when starting new suggestion session)
+  void clearSuggestedRecipes() {
+    _suggestedRecipeIds.clear();
+  }
 
   /// Generate daily meal plan with personalized meal suggestions for all meal types
   /// Returns Map with meal types as keys and List<Recipe> as values
@@ -18,14 +26,17 @@ class PersonalizedMealService {
         throw Exception('User not found');
       }
 
+      // Clear previous suggestions to ensure fresh variety
+      clearSuggestedRecipes();
+
       // Get all recipes from Firebase
       final allRecipes = await _recipeService.getAllRecipes();
       
       final mealPlan = <String, List<Recipe>>{};
       
-      // Generate suggestions for each meal type
+      // Generate suggestions for each meal type with variety tracking
       for (final mealType in ['Breakfast', 'Lunch', 'Dinner', 'Snack']) {
-        final suggestions = await generateMealTypeSuggestions(
+        final suggestions = await _generateMealTypeSuggestionsWithVariety(
           userId, 
           mealType, 
           allRecipes,
@@ -42,7 +53,24 @@ class PersonalizedMealService {
 
   /// Generate targeted recommendations for specific meal times
   /// Returns List<Recipe> filtered and scored for the meal type
+  /// This is used for individual meal type suggestions (refresh button)
   Future<List<Recipe>> generateMealTypeSuggestions(
+    String userId, 
+    String mealType, 
+    List<Recipe>? allRecipes,
+  ) async {
+    // Clear cache for fresh suggestions when called individually
+    clearSuggestedRecipes();
+    
+    return await _generateMealTypeSuggestionsWithVariety(
+      userId,
+      mealType,
+      allRecipes,
+    );
+  }
+  
+  /// Internal method to generate meal suggestions with variety tracking
+  Future<List<Recipe>> _generateMealTypeSuggestionsWithVariety(
     String userId, 
     String mealType, 
     List<Recipe>? allRecipes,
@@ -73,27 +101,110 @@ class PersonalizedMealService {
         }
       }).toList();
 
-      // Score and rank recipes based on user profile
-      final scoredRecipes = <Map<String, dynamic>>[];
-      for (final recipe in suitableRecipes) {
-        final score = await _calculateMealScore(recipe, user);
-        scoredRecipes.add({
-          'recipe': recipe,
-          'score': score,
-        });
-      }
-
-      // Sort by score (highest first) and return top 5
-      scoredRecipes.sort((a, b) => b['score'].compareTo(a['score']));
+      // Try to get suggestions with health conditions first
+      List<Recipe> finalSuggestions = await _getSuggestionsWithHealthConditions(
+        suitableRecipes, user, mealType);
       
-      return scoredRecipes
-          .take(5)
-          .map((item) => item['recipe'] as Recipe)
-          .toList();
+      // If no suitable recipes found due to health conditions, use fallback
+      if (finalSuggestions.isEmpty) {
+        print('No recipes found for $mealType with health conditions, using fallback');
+        finalSuggestions = await _getFallbackSuggestions(suitableRecipes, user, mealType);
+      }
+      
+      // Mark suggested recipes as used to avoid repetition
+      for (final recipe in finalSuggestions) {
+        _suggestedRecipeIds.add(recipe.id);
+      }
+      
+      return finalSuggestions;
     } catch (e) {
       print('Error generating meal suggestions: $e');
       return [];
     }
+  }
+
+  /// Get suggestions respecting health conditions and avoiding already suggested recipes
+  Future<List<Recipe>> _getSuggestionsWithHealthConditions(
+    List<Recipe> suitableRecipes, User user, String mealType) async {
+    
+    // Filter out already suggested recipes for variety
+    final availableRecipes = suitableRecipes.where((recipe) => 
+        !_suggestedRecipeIds.contains(recipe.id)).toList();
+    
+    // Filter by health conditions
+    final healthSafeRecipes = availableRecipes.where((recipe) {
+      final healthScore = _calculateHealthConditionScore(recipe, user);
+      return healthScore >= 0.8; // Only use recipes that are very safe
+    }).toList();
+    
+    if (healthSafeRecipes.isEmpty) {
+      return []; // Will trigger fallback
+    }
+    
+    // Score and rank the health-safe recipes
+    final scoredRecipes = <Map<String, dynamic>>[];
+    for (final recipe in healthSafeRecipes) {
+      final score = await _calculateMealScore(recipe, user);
+      scoredRecipes.add({
+        'recipe': recipe,
+        'score': score,
+      });
+    }
+
+    // Sort by score (highest first) and return top 5
+    scoredRecipes.sort((a, b) => b['score'].compareTo(a['score']));
+    
+    return scoredRecipes
+        .take(5)
+        .map((item) => item['recipe'] as Recipe)
+        .toList();
+  }
+  
+  /// Fallback method when no recipes available with health conditions
+  /// Disregards health conditions and suggests any suitable meal
+  Future<List<Recipe>> _getFallbackSuggestions(
+    List<Recipe> suitableRecipes, User user, String mealType) async {
+    
+    // Filter out already suggested recipes for variety (if any left)
+    List<Recipe> availableRecipes = suitableRecipes.where((recipe) => 
+        !_suggestedRecipeIds.contains(recipe.id)).toList();
+    
+    // If no variety left, use all suitable recipes
+    if (availableRecipes.isEmpty) {
+      availableRecipes = suitableRecipes;
+    }
+    
+    // Score recipes but ignore health condition score
+    final scoredRecipes = <Map<String, dynamic>>[];
+    for (final recipe in availableRecipes) {
+      // Calculate score without health condition penalty
+      double score = 0.0;
+      
+      // BMI-based nutrition scoring (50% weight)
+      final nutritionScore = _calculateBMINutritionScore(recipe, user);
+      score += nutritionScore * 0.5;
+
+      // Budget considerations (30% weight)
+      final budgetScore = _calculateBudgetScore(recipe, user);
+      score += budgetScore * 0.3;
+
+      // Variety and preparation factors (20% weight)
+      final varietyScore = _calculateVarietyScore(recipe);
+      score += varietyScore * 0.2;
+      
+      scoredRecipes.add({
+        'recipe': recipe,
+        'score': score,
+      });
+    }
+
+    // Sort by score (highest first) and return top 5
+    scoredRecipes.sort((a, b) => b['score'].compareTo(a['score']));
+    
+    return scoredRecipes
+        .take(5)
+        .map((item) => item['recipe'] as Recipe)
+        .toList();
   }
 
   /// Multi-factor scoring algorithm considering BMI, health conditions, variety, budget

@@ -235,6 +235,24 @@ applyTo: '**'
     - [x] Calorie calculation based on amount, measurement, and PAX adjustments
     - [x] Weekly meal summary with PAX-scaled nutrition calculations
     - [x] Health condition metadata logging for meal safety tracking
+  - [x] **Enhanced PersonalizedMealService** (`lib/services/personalized_meal_service.dart`) UPDATED WITH VARIETY & FALLBACK
+    - [x] **Variety Tracking System** - Prevents duplicate meal suggestions across meal types
+      - [x] `_suggestedRecipeIds` Set to track already suggested recipes during daily planning
+      - [x] `clearSuggestedRecipes()` method to refresh suggestion cache for new planning sessions
+      - [x] `_generateMealTypeSuggestionsWithVariety()` with built-in duplicate prevention
+      - [x] Ensures breakfast, lunch, dinner, and snack suggestions are all different recipes
+    - [x] **Health Condition Fallback System** - Intelligent suggestion when health filters are too restrictive  
+      - [x] `_getSuggestionsWithHealthConditions()` - Primary health-aware recommendation engine
+      - [x] `_getFallbackSuggestions()` - Fallback that disregards health conditions when no suitable meals found
+      - [x] Automatic fallback triggers when health condition filtering leaves no available recipes
+      - [x] Maintains variety tracking even in fallback mode for diverse meal planning
+      - [x] Score weighting adjustment in fallback: BMI nutrition (50%), budget (30%), variety (20%)
+    - [x] **Intelligent Meal Planning Flow**
+      - [x] Daily meal plan generation with variety tracking across all meal types
+      - [x] Individual meal type suggestions with cache clearing for fresh recommendations
+      - [x] Health condition safety validation with 0.8 threshold for strict safety compliance
+      - [x] Multi-factor scoring algorithm: health conditions (40%), BMI nutrition (30%), budget (20%), variety (10%)
+      - [x] Firebase integration with Recipe and User services for real-time personalization
   - [x] **Enhanced Meal Plan Page** (`meal_plan_page.dart`) UPDATED WITH AI FEATURES
     - [x] Firebase integration for Today's Meals display (loads actual logged meals)
     - [x] Real-time meal status with "logged" vs "empty" states
