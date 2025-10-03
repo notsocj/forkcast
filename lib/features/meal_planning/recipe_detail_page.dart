@@ -611,8 +611,15 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
       height: 56,
       child: ElevatedButton(
         onPressed: () {
-          // Show a dialog for logging the meal
-          _showLogMealDialog();
+          // Navigate directly to nutrition facts page
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => NutritionFactsPage(
+                meal: widget.meal,
+              ),
+            ),
+          );
         },
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.successGreen,
@@ -622,14 +629,25 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
             borderRadius: BorderRadius.circular(16),
           ),
         ),
-        child: Text(
-          'Log It!',
-          style: TextStyle(
-            fontFamily: 'Lato',
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.white,
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.restaurant,
+              color: AppColors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'Log It!',
+              style: TextStyle(
+                fontFamily: 'Lato',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.white,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -693,173 +711,4 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
     );
   }
 
-  void _showLogMealDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        String selectedAmount = '1';
-        String selectedMeasurement = 'Metric Cup';
-        
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: AppColors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              title: Text(
-                'Log Meal',
-                style: TextStyle(
-                  fontFamily: 'Lato',
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.blackText,
-                ),
-              ),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'How much did you eat?',
-                    style: TextStyle(
-                      fontFamily: 'OpenSans',
-                      fontSize: 14,
-                      color: AppColors.grayText,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  
-                  // Amount input
-                  Row(
-                    children: [
-                      Text(
-                        'Amount:',
-                        style: TextStyle(
-                          fontFamily: 'OpenSans',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.blackText,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: TextField(
-                          decoration: InputDecoration(
-                            hintText: '1',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: AppColors.grayText.withOpacity(0.3)),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                          keyboardType: TextInputType.number,
-                          onChanged: (value) {
-                            selectedAmount = value.isNotEmpty ? value : '1';
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 16),
-                  
-                  // Measurement dropdown
-                  Row(
-                    children: [
-                      Text(
-                        'Unit:',
-                        style: TextStyle(
-                          fontFamily: 'OpenSans',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.blackText,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          value: selectedMeasurement,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: BorderSide(color: AppColors.grayText.withOpacity(0.3)),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                          items: ['Metric Cup', 'Cup', 'Tablespoon', 'Teaspoon', 'Gram', 'Ounce']
-                              .map((unit) => DropdownMenuItem(
-                                    value: unit,
-                                    child: Text(
-                                      unit,
-                                      style: TextStyle(
-                                        fontFamily: 'OpenSans',
-                                        fontSize: 14,
-                                        color: AppColors.blackText,
-                                      ),
-                                    ),
-                                  ))
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              selectedMeasurement = value!;
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(
-                    'Cancel',
-                    style: TextStyle(
-                      fontFamily: 'OpenSans',
-                      fontSize: 14,
-                      color: AppColors.grayText,
-                    ),
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    // Navigate to nutrition facts page
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => NutritionFactsPage(
-                          meal: widget.meal,
-                          amount: double.tryParse(selectedAmount) ?? 1.0,
-                          measurement: selectedMeasurement,
-                        ),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.successGreen,
-                    foregroundColor: AppColors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: Text(
-                    'Continue',
-                    style: TextStyle(
-                      fontFamily: 'OpenSans',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
 }

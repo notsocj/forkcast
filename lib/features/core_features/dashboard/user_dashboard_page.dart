@@ -59,27 +59,129 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     }
   }
 
-  /// Calculate nutrient density score for today's meals
-  double _getNutrientDensityScore() {
-    if (_todaysMealStatus == null) return 0.0;
+  /// Calculate total calories consumed today
+  int _getTotalCaloriesToday() {
+    if (_todaysMealStatus == null) return 0;
     
-    int mealsLogged = 0;
-    double totalScore = 0.0;
+    int totalCalories = 0;
     
     for (String mealType in ['Breakfast', 'Lunch', 'Dinner', 'Snack']) {
       final mealData = _todaysMealStatus![mealType];
       if (mealData != null && mealData['logged'] == true) {
         final data = mealData['data'] as Map<String, dynamic>?;
         if (data != null) {
-          mealsLogged++;
-          // Score based on balanced nutrition (simplified scoring)
-          totalScore += 85.0; // Each logged meal contributes to nutritional variety
+          totalCalories += (data['scaled_kcal'] as num?)?.toInt() ?? 0;
         }
       }
     }
     
-    return mealsLogged > 0 ? totalScore / mealsLogged : 0.0;
+    return totalCalories;
   }
+
+  /// Calculate Energy Intake percentage based on family needs
+  /// Formula: (Plan kcal ÷ Family Need) × 100
+  /// Family Need = 2000 kcal × household_size
+  Map<String, dynamic> _getEnergyIntakeData() {
+    final householdSize = _currentUser?.householdSize ?? 1;
+    final familyNeed = 2000 * householdSize; // FNRI/DOST PDRI standard
+    final planKcal = _getTotalCaloriesToday();
+    final percentage = familyNeed > 0 ? ((planKcal / familyNeed) * 100).round() : 0;
+    
+    return {
+      'planKcal': planKcal,
+      'familyNeed': familyNeed,
+      'percentage': percentage,
+      'display': '$planKcal / ${familyNeed.toStringAsFixed(0)} kcal ($percentage%)'
+    };
+  }
+
+  /// Calculate Nutrition Score based on FNRI nutrient requirements
+  /// Formula: Average of all nutrient coverage percentages (capped at 100%)
+  Map<String, dynamic> _getNutritionScoreData() {
+    if (_currentUser == null) return {'score': 0, 'rating': 'Unknown'};
+    
+    final householdSize = _currentUser!.householdSize;
+    final todayNutrients = _getTodayNutrients();
+    
+    // FNRI/PDRI daily requirements per person
+    final Map<String, double> dailyRequirements = {
+      'protein': 60.0, // g - adult average
+      'iron': 18.0, // mg - considering higher need for women
+      'calcium': 1000.0, // mg - adult
+      'vitamin_c': 60.0, // mg - FNRI standard
+      'fiber': 25.0, // g - recommended
+    };
+    
+    // Calculate family needs and coverage percentages
+    List<double> coveragePercentages = [];
+    
+    // Energy coverage (separate calculation)
+    final energyData = _getEnergyIntakeData();
+    final energyCoverage = (energyData['percentage'] as int).toDouble();
+    coveragePercentages.add(energyCoverage.clamp(0.0, 100.0));
+    
+    // Add estimated protein from meals
+    double totalProtein = 0.0;
+    for (String mealType in ['Breakfast', 'Lunch', 'Dinner', 'Snack']) {
+      final mealData = _todaysMealStatus?[mealType];
+      if (mealData != null && mealData['logged'] == true) {
+        final data = mealData['data'] as Map<String, dynamic>?;
+        if (data != null) {
+          String mealName = (data['recipe_name'] ?? '').toString().toLowerCase();
+          // Estimate protein based on meal type and ingredients
+          if (mealName.contains('chicken') || mealName.contains('beef') || mealName.contains('pork')) {
+            totalProtein += 25.0; // High protein meat
+          } else if (mealName.contains('fish') || mealName.contains('egg')) {
+            totalProtein += 20.0; // Good protein sources
+          } else if (mealName.contains('tofu') || mealName.contains('beans')) {
+            totalProtein += 15.0; // Plant protein
+          } else {
+            totalProtein += 8.0; // Base protein from other foods
+          }
+        }
+      }
+    }
+    
+    // Calculate coverage for each nutrient
+    final familyProteinNeed = dailyRequirements['protein']! * householdSize;
+    final proteinCoverage = ((totalProtein / familyProteinNeed) * 100).clamp(0.0, 100.0);
+    coveragePercentages.add(proteinCoverage);
+    
+    // Other nutrients (iron, calcium, vitamin C, fiber)
+    for (String nutrient in ['iron', 'calcium', 'vitamin_c', 'fiber']) {
+      final familyNeed = dailyRequirements[nutrient]! * householdSize;
+      final consumed = todayNutrients[nutrient] ?? 0.0;
+      final coverage = ((consumed / familyNeed) * 100).clamp(0.0, 100.0);
+      coveragePercentages.add(coverage);
+    }
+    
+    // Calculate average score
+    final averageScore = coveragePercentages.isNotEmpty 
+        ? (coveragePercentages.reduce((a, b) => a + b) / coveragePercentages.length).round()
+        : 0;
+    
+    // Determine rating based on score
+    String rating;
+    if (averageScore >= 80) {
+      rating = 'Excellent';
+    } else if (averageScore >= 65) {
+      rating = 'Good';
+    } else if (averageScore >= 50) {
+      rating = 'Fair';
+    } else if (averageScore >= 35) {
+      rating = 'Poor';
+    } else {
+      rating = 'Very Poor';
+    }
+    
+    return {
+      'score': averageScore,
+      'rating': rating,
+      'display': '$averageScore% $rating'
+    };
+  }
+
+
 
   /// Get nutritional variety target (number of different food groups consumed)
   int _getNutritionalVarietyTarget() {
@@ -136,22 +238,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     return foodGroups.length;
   }
 
-  /// Get health status based on BMI only
-  String _getHealthStatus() {
-    if (_currentUser == null) return 'Unknown';
-    
-    final bmi = _currentUser!.bmi ?? _currentUser!.calculatedBmi;
-    
-    if (bmi < 18.5) {
-      return 'Underweight';
-    } else if (bmi < 25.0) {
-      return 'Healthy';
-    } else if (bmi < 30.0) {
-      return 'Overweight';
-    } else {
-      return 'Obese';
-    }
-  }
+
 
   /// Get meal data for a specific meal type
   Map<String, dynamic> _getMealDataForType(String mealType) {
@@ -502,6 +589,9 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   }
 
   Widget _buildNutritionalOverviewCard() {
+    final energyData = _getEnergyIntakeData();
+    final nutritionData = _getNutritionScoreData();
+    
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -538,15 +628,17 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                 color: AppColors.successGreen,
               ),
               _buildNutritionalItem(
-                icon: Icons.psychology_outlined,
-                title: 'Quality Score',
-                value: '${_getNutrientDensityScore().toInt()}%',
+                icon: Icons.local_fire_department_outlined,
+                title: 'Energy Intake',
+                value: '${energyData['percentage']}%',
+                subtitle: '${energyData['planKcal']} / ${(energyData['familyNeed'] as double).toInt()} kcal',
                 color: AppColors.primaryAccent,
               ),
               _buildNutritionalItem(
                 icon: Icons.favorite_outline,
-                title: 'Health Status',
-                value: _getHealthStatus(),
+                title: 'Nutrition Score',
+                value: '${nutritionData['score']}%',
+                subtitle: nutritionData['rating'],
                 color: AppColors.purpleAccent,
               ),
             ],
@@ -560,6 +652,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     required IconData icon,
     required String title,
     required String value,
+    String? subtitle,
     required Color color,
   }) {
     // Check if value contains numbers or percentages for styling
@@ -593,16 +686,29 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
               color: AppColors.blackText,
             ),
           ),
-        Text(
-          title,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'OpenSans',
-            fontSize: 12,
-            color: AppColors.grayText,
+          if (subtitle != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'OpenSans',
+                fontSize: 10,
+                color: AppColors.grayText.withOpacity(0.8),
+              ),
+            ),
+          ],
+          const SizedBox(height: 4),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'OpenSans',
+              fontSize: 12,
+              color: AppColors.grayText,
+            ),
           ),
-        ),
-      ],
+        ],
       ),
     );
   }  Widget _buildNutrientBreakdownCard() {

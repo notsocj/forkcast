@@ -7,14 +7,10 @@ import '../../services/user_service.dart';
 
 class NutritionFactsPage extends StatefulWidget {
   final PredefinedMeal meal;
-  final double amount;
-  final String measurement;
 
   const NutritionFactsPage({
     super.key,
     required this.meal,
-    required this.amount,
-    required this.measurement,
   });
 
   @override
@@ -22,8 +18,7 @@ class NutritionFactsPage extends StatefulWidget {
 }
 
 class _NutritionFactsPageState extends State<NutritionFactsPage> {
-  late double _currentAmount;
-  int _selectedPax = 1; // Number of people eating
+  int _userPax = 1; // User's household size
   final MealLoggingService _mealLoggingService = MealLoggingService();
   final UserService _userService = UserService();
   bool _isLoadingUserData = true;
@@ -31,11 +26,10 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
   @override
   void initState() {
     super.initState();
-    _currentAmount = widget.amount;
     _loadUserHouseholdSize();
   }
 
-  // Load user's household size to prefill PAX selector
+  // Load user's household size automatically
   Future<void> _loadUserHouseholdSize() async {
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
@@ -43,7 +37,7 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
         final userData = await _userService.getUser(currentUser.uid);
         if (userData != null && userData.householdSize > 0) {
           setState(() {
-            _selectedPax = userData.householdSize;
+            _userPax = userData.householdSize;
             _isLoadingUserData = false;
           });
           return;
@@ -59,30 +53,32 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
     });
   }
 
-  // Calculate nutrition values based on current amount, meal data, and PAX
+  // Calculate nutrition values based on user's PAX
+  // Formula: (totalCalories / servings) * userPax
   Map<String, double> get _calculatedNutrition {
     final meal = widget.meal;
-    // Scale based on current amount vs base servings, then by PAX
-    final scaledMeal = PredefinedMealsData.scaleRecipeForPax(meal, _selectedPax);
-    final multiplier = _currentAmount / scaledMeal.baseServings;
+    final totalCalories = meal.kcal.toDouble();
+    final servings = meal.baseServings.toDouble();
     
+    // Calculate calories per serving, then multiply by user's PAX
+    final caloriesPerServing = totalCalories / servings;
+    final finalCalories = caloriesPerServing * _userPax;
+    
+    // Calculate other nutrients based on final calories
     // Since PredefinedMeal only has kcal, we'll estimate other nutrients
-    // In a real app, these would come from a nutrition database
-    final baseCalories = scaledMeal.kcal.toDouble();
-    
     return {
-      'calories': baseCalories * multiplier,
-      'fat': (baseCalories * 0.25 / 9) * multiplier, // ~25% of calories from fat (9 cal/g)
-      'carbohydrates': (baseCalories * 0.50 / 4) * multiplier, // ~50% from carbs (4 cal/g)
-      'protein': (baseCalories * 0.25 / 4) * multiplier, // ~25% from protein (4 cal/g)
-      'sodium': (baseCalories * 5) * multiplier, // Rough estimate: 5mg sodium per calorie
-      'vitamin_a': 2.0 * multiplier, // Default values for vitamins (would come from meal data)
-      'vitamin_c': 15.0 * multiplier,
-      'calcium': 4.0 * multiplier,
-      'iron': 8.0 * multiplier,
-      'riboflavin': 15.0 * multiplier,
-      'niacin': 35.0 * multiplier,
-      'thiamin': 5.0 * multiplier,
+      'calories': finalCalories,
+      'fat': (finalCalories * 0.25 / 9), // ~25% of calories from fat (9 cal/g)
+      'carbohydrates': (finalCalories * 0.50 / 4), // ~50% from carbs (4 cal/g)
+      'protein': (finalCalories * 0.25 / 4), // ~25% from protein (4 cal/g)
+      'sodium': (finalCalories * 5), // Rough estimate: 5mg sodium per calorie
+      'vitamin_a': 2.0 * _userPax, // Scale vitamins by PAX
+      'vitamin_c': 15.0 * _userPax,
+      'calcium': 4.0 * _userPax,
+      'iron': 8.0 * _userPax,
+      'riboflavin': 15.0 * _userPax,
+      'niacin': 35.0 * _userPax,
+      'thiamin': 5.0 * _userPax,
     };
   }
 
@@ -104,19 +100,18 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
                 },
                 color: AppColors.successGreen,
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(bottom: 280), // increased to leave room for PAX selector
+                  padding: const EdgeInsets.only(bottom: 100), // room for save button
                   child: Column(
                     children: [
                       _buildNutritionContent(),
-                      const SizedBox(height: 20),
-                      _buildPaxSelector(),
+                      _buildPaxInfo(),
                     ],
                   ),
                 ),
               ),
             ),
-            // Bottom Section with Save Button and Numeric Keypad
-            _buildBottomSection(),
+            // Bottom Section with Save Button only
+            _buildSaveButton(),
           ],
         ),
       ),
@@ -192,7 +187,9 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Amount per serving',
+                  _isLoadingUserData 
+                      ? 'Loading...'
+                      : 'For $_userPax person${_userPax > 1 ? 's' : ''}',
                   style: TextStyle(
                     fontFamily: 'OpenSans',
                     fontSize: 14,
@@ -343,9 +340,9 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
     );
   }
 
-  Widget _buildPaxSelector() {
+  Widget _buildPaxInfo() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.white,
@@ -361,26 +358,34 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Number of People (PAX)',
-            style: TextStyle(
-              fontFamily: 'Lato',
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: AppColors.blackText,
-            ),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.successGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.people,
+                  color: AppColors.successGreen,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                'Household Size',
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.blackText,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
-          Text(
-            'How many people will eat this meal?',
-            style: TextStyle(
-              fontFamily: 'OpenSans',
-              fontSize: 14,
-              color: AppColors.grayText,
-            ),
-          ),
-          if (_isLoadingUserData)
-            const SizedBox(height: 16),
+          const SizedBox(height: 16),
+          
           if (_isLoadingUserData)
             Row(
               children: [
@@ -397,6 +402,31 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
                   'Loading your household size...',
                   style: TextStyle(
                     fontFamily: 'OpenSans',
+                    fontSize: 14,
+                    color: AppColors.grayText,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ],
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '$_userPax person${_userPax > 1 ? 's' : ''}',
+                  style: TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.successGreen,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Nutrition values calculated for your household size',
+                  style: TextStyle(
+                    fontFamily: 'OpenSans',
                     fontSize: 12,
                     color: AppColors.grayText,
                     fontStyle: FontStyle.italic,
@@ -404,242 +434,51 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
                 ),
               ],
             ),
-          const SizedBox(height: 16),
-          
-          // PAX Selection Row
-          Row(
-            children: [
-              // Decrease Button
-              GestureDetector(
-                onTap: () {
-                  if (_selectedPax > 1) {
-                    setState(() {
-                      _selectedPax--;
-                    });
-                  }
-                },
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: _selectedPax > 1 ? AppColors.successGreen : AppColors.grayText.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.remove,
-                    color: _selectedPax > 1 ? AppColors.white : AppColors.grayText,
-                    size: 20,
-                  ),
-                ),
-              ),
-              
-              // PAX Display
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryBackground,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.successGreen.withOpacity(0.3),
-                    ),
-                  ),
-                  child: Text(
-                    '$_selectedPax person${_selectedPax > 1 ? 's' : ''}',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontFamily: 'Lato',
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.blackText,
-                    ),
-                  ),
-                ),
-              ),
-              
-              // Increase Button
-              GestureDetector(
-                onTap: () {
-                  if (_selectedPax < 10) { // Reasonable max limit
-                    setState(() {
-                      _selectedPax++;
-                    });
-                  }
-                },
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: _selectedPax < 10 ? AppColors.successGreen : AppColors.grayText.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.add,
-                    color: _selectedPax < 10 ? AppColors.white : AppColors.grayText,
-                    size: 20,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 12),
-          
-          // Info text
-          Text(
-            _isLoadingUserData 
-                ? 'Nutrition values will be calculated based on the selected number of people.'
-                : 'Pre-filled with your household size. You can adjust as needed.',
-            style: TextStyle(
-              fontFamily: 'OpenSans',
-              fontSize: 12,
-              color: AppColors.grayText,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
         ],
       ),
     );
   }
 
-  Widget _buildBottomSection() {
+  Widget _buildSaveButton() {
     return Container(
       color: AppColors.primaryBackground,
-      child: Column(
-        children: [
-          // Save Button
-          Container(
-            width: double.infinity,
-            margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-            child: ElevatedButton(
-              onPressed: () {
-                // Save the nutrition data and navigate back
-                _saveMealLog();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.successGreen,
-                foregroundColor: AppColors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                elevation: 0,
-              ),
-              child: Text(
-                'Save',
-                style: TextStyle(
-                  fontFamily: 'Lato',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
+      padding: const EdgeInsets.all(20),
+      child: ElevatedButton(
+        onPressed: _isLoadingUserData ? null : () {
+          // Save the nutrition data and navigate back
+          _saveMealLog();
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.successGreen,
+          foregroundColor: AppColors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(25),
           ),
-          
-          // Numeric Keypad
-          Container(
-            height: 200,
-            decoration: BoxDecoration(
-              color: AppColors.blackText.withOpacity(0.9),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(25),
-                topRight: Radius.circular(25),
-              ),
-            ),
-            child: _buildNumericKeypad(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNumericKeypad() {
-    return GridView.count(
-      crossAxisCount: 4,
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      children: [
-        _buildKeypadButton('1'),
-        _buildKeypadButton('2'),
-        _buildKeypadButton('3'),
-        _buildKeypadButton('⌫', isIcon: true),
-        _buildKeypadButton('4'),
-        _buildKeypadButton('5'),
-        _buildKeypadButton('6'),
-        _buildKeypadButton('Done', isAction: true),
-        _buildKeypadButton('7'),
-        _buildKeypadButton('8'),
-        _buildKeypadButton('9'),
-        _buildKeypadButton('.'),
-        _buildKeypadButton('0'),
-      ],
-    );
-  }
-
-  Widget _buildKeypadButton(String text, {bool isIcon = false, bool isAction = false}) {
-    return GestureDetector(
-      onTap: () {
-        if (text == 'Done') {
-          Navigator.pop(context);
-        } else if (text == '⌫') {
-          _handleBackspace();
-        } else {
-          _handleNumberInput(text);
-        }
-      },
-      child: Container(
-        margin: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          color: isAction 
-              ? AppColors.successGreen 
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
+          elevation: 4,
+          disabledBackgroundColor: AppColors.grayText.withOpacity(0.3),
         ),
-        child: Center(
-          child: Text(
-            text,
-            style: TextStyle(
-              fontFamily: 'Lato',
-              fontSize: isAction ? 16 : 20,
-              fontWeight: isAction ? FontWeight.bold : FontWeight.w500,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.save,
               color: AppColors.white,
+              size: 20,
             ),
-          ),
+            const SizedBox(width: 8),
+            Text(
+              _isLoadingUserData ? 'Loading...' : 'Save Meal',
+              style: TextStyle(
+                fontFamily: 'Lato',
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
         ),
       ),
     );
-  }
-
-  void _handleNumberInput(String number) {
-    setState(() {
-      if (number == '.') {
-        if (!_currentAmount.toString().contains('.')) {
-          _currentAmount = double.parse('${_currentAmount.toInt()}.');
-        }
-      } else {
-        final currentStr = _currentAmount.toString();
-        if (currentStr.contains('.')) {
-          final parts = currentStr.split('.');
-          if (parts[1].length < 2) {
-            _currentAmount = double.parse('$currentStr$number');
-          }
-        } else {
-          _currentAmount = double.parse('${_currentAmount.toInt()}$number');
-        }
-      }
-    });
-  }
-
-  void _handleBackspace() {
-    setState(() {
-      final currentStr = _currentAmount.toString();
-      if (currentStr.length > 1) {
-        _currentAmount = double.parse(currentStr.substring(0, currentStr.length - 1));
-      } else {
-        _currentAmount = 0;
-      }
-    });
   }
 
   void _saveMealLog() {
@@ -773,19 +612,25 @@ class _NutritionFactsPageState extends State<NutritionFactsPage> {
 
   Future<void> _logMealToFirebase(String mealType) async {
     try {
+      // Calculate calories using the formula: (totalCalories / servings) * userPax
+      final totalCalories = widget.meal.kcal.toDouble();
+      final servings = widget.meal.baseServings.toDouble();
+      final caloriesPerServing = totalCalories / servings;
+      final finalCalories = caloriesPerServing * _userPax;
+      
       await _mealLoggingService.logMeal(
         meal: widget.meal,
         mealType: mealType,
-        amount: _currentAmount,
-        measurement: widget.measurement,
-        pax: _selectedPax,
+        amount: _userPax.toDouble(), // Use PAX as amount
+        measurement: 'serving${_userPax > 1 ? 's' : ''}', // Auto-set measurement
+        pax: _userPax,
       );
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              '${widget.meal.recipeName} (for $_selectedPax person${_selectedPax > 1 ? 's' : ''}) logged for $mealType!',
+              '${widget.meal.recipeName} (${finalCalories.round()} cal for $_userPax person${_userPax > 1 ? 's' : ''}) logged for $mealType!',
               style: TextStyle(
                 fontFamily: 'OpenSans',
                 color: AppColors.white,
