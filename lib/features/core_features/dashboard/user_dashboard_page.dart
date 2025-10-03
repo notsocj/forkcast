@@ -305,25 +305,48 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     }
   }
 
-  /// Calculate key nutrients consumed today focusing on micronutrients
+  /// Calculate key nutrients consumed today focusing on micronutrients and macronutrients
   Map<String, double> _getTodayNutrients() {
     if (_todaysMealStatus == null) {
-      return {'vitamin_c': 0.0, 'iron': 0.0, 'calcium': 0.0, 'fiber': 0.0};
+      return {
+        'energy': 0.0,
+        'protein': 0.0,
+        'vitamin_c': 0.0,
+        'iron': 0.0,
+        'calcium': 0.0,
+        'fiber': 0.0,
+        'fat': 0.0,
+        'carbs': 0.0,
+      };
     }
     
+    double totalEnergy = 0.0;
+    double totalProtein = 0.0;
     double totalVitaminC = 0.0;
     double totalIron = 0.0;
     double totalCalcium = 0.0;
     double totalFiber = 0.0;
+    double totalFat = 0.0;
+    double totalCarbs = 0.0;
     
     for (String mealType in ['Breakfast', 'Lunch', 'Dinner', 'Snack']) {
       final mealData = _todaysMealStatus![mealType];
       if (mealData != null && mealData['logged'] == true) {
         final data = mealData['data'] as Map<String, dynamic>?;
         if (data != null) {
+          // Get scaled calories directly from logged meal
+          final scaledKcal = (data['scaled_kcal'] ?? data['kcal_min'] ?? 0) as num;
+          totalEnergy += scaledKcal.toDouble();
+          
           String mealName = (data['recipe_name'] ?? '').toString().toLowerCase();
           
-          // Estimate nutrient content based on Filipino food knowledge
+          // Estimate macronutrients based on calories (rough approximation)
+          // Filipino meals typically: 50-60% carbs, 15-20% protein, 25-30% fat
+          totalCarbs += (scaledKcal * 0.55) / 4; // 55% from carbs, 4 kcal per gram
+          totalProtein += (scaledKcal * 0.18) / 4; // 18% from protein, 4 kcal per gram
+          totalFat += (scaledKcal * 0.27) / 9; // 27% from fat, 9 kcal per gram
+          
+          // Estimate micronutrient content based on Filipino food knowledge
           // Vitamin C rich foods
           if (mealName.contains('malunggay') || mealName.contains('guava') || 
               mealName.contains('papaya') || mealName.contains('citrus')) {
@@ -362,29 +385,44 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     }
     
     return {
+      'energy': totalEnergy,
+      'protein': totalProtein,
       'vitamin_c': totalVitaminC,
       'iron': totalIron,
       'calcium': totalCalcium,
       'fiber': totalFiber,
+      'fat': totalFat,
+      'carbs': totalCarbs,
     };
   }
 
-  /// Get daily nutrient targets for key micronutrients
+  /// Get daily nutrient targets for key micronutrients and macronutrients
   Map<String, double> _getNutrientTargets() {
     if (_currentUser == null) {
       return {
+        'energy': 2000.0, // kcal - FNRI standard
+        'protein': 60.0, // g - RDA for adults
         'vitamin_c': 65.0, // mg - RDA for adults
         'iron': 8.0, // mg - RDA for adults (varies by gender)
         'calcium': 1000.0, // mg - RDA for adults
         'fiber': 25.0, // g - recommended daily intake
+        'fat': 65.0, // g - AMDR (20-35% of 2000 kcal)
+        'carbs': 275.0, // g - AMDR (45-65% of 2000 kcal)
       };
     }
     
+    // Base on household size for family needs (2000 kcal per adult - FNRI/PDRI)
+    final householdSize = _currentUser!.householdSize;
+    double energyTarget = 2000.0 * householdSize;
+    
     // Adjust targets based on user profile
+    double proteinTarget = 60.0 * householdSize; // ~1g per kg body weight
     double vitaminCTarget = 65.0; // Base RDA
     double ironTarget = 8.0; // Base for males
     double calciumTarget = 1000.0; // Base for adults
     double fiberTarget = 25.0; // Base recommendation
+    double fatTarget = (energyTarget * 0.30) / 9; // 30% of energy from fat
+    double carbsTarget = (energyTarget * 0.55) / 4; // 55% of energy from carbs
     
     // Adjust based on gender
     if (_currentUser!.gender.toLowerCase() == 'female') {
@@ -402,10 +440,14 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     }
     
     return {
+      'energy': energyTarget,
+      'protein': proteinTarget,
       'vitamin_c': vitaminCTarget,
       'iron': ironTarget,
       'calcium': calciumTarget,
       'fiber': fiberTarget,
+      'fat': fatTarget,
+      'carbs': carbsTarget,
     };
   }
 
@@ -728,95 +770,132 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Key Nutrients Today',
-            style: TextStyle(
-              fontFamily: 'Lato',
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.blackText,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Key Nutrients Today',
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.blackText,
+                ),
+              ),
+              Icon(
+                Icons.swipe_left_outlined,
+                size: 16,
+                color: AppColors.grayText.withOpacity(0.5),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
-          _buildNutrientProgressBar('Vitamin C', _getNutrientProgress('vitamin_c'), AppColors.primaryAccent),
-          const SizedBox(height: 12),
-          _buildNutrientProgressBar('Iron', _getNutrientProgress('iron'), AppColors.successGreen),
-          const SizedBox(height: 12),
-          _buildNutrientProgressBar('Calcium', _getNutrientProgress('calcium'), Colors.blue),
-          const SizedBox(height: 12),
-          _buildNutrientProgressBar('Fiber', _getNutrientProgress('fiber'), AppColors.purpleAccent),
+          // Horizontal scrollable nutrient list
+          SizedBox(
+            height: 80, // Fixed height for horizontal scroll
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _buildCompactNutrientCard('Energy', _getNutrientProgress('energy'), AppColors.primaryAccent, 'kcal'),
+                const SizedBox(width: 12),
+                _buildCompactNutrientCard('Protein', _getNutrientProgress('protein'), AppColors.successGreen, 'g'),
+                const SizedBox(width: 12),
+                _buildCompactNutrientCard('Vitamin C', _getNutrientProgress('vitamin_c'), Colors.orange, 'mg'),
+                const SizedBox(width: 12),
+                _buildCompactNutrientCard('Iron', _getNutrientProgress('iron'), Colors.red, 'mg'),
+                const SizedBox(width: 12),
+                _buildCompactNutrientCard('Calcium', _getNutrientProgress('calcium'), Colors.blue, 'mg'),
+                const SizedBox(width: 12),
+                _buildCompactNutrientCard('Fiber', _getNutrientProgress('fiber'), AppColors.purpleAccent, 'g'),
+                const SizedBox(width: 12),
+                _buildCompactNutrientCard('Fat', _getNutrientProgress('fat'), Colors.amber, 'g'),
+                const SizedBox(width: 12),
+                _buildCompactNutrientCard('Carbs', _getNutrientProgress('carbs'), Colors.teal, 'g'),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildNutrientProgressBar(String nutrient, double progress, Color color) {
+  Widget _buildCompactNutrientCard(String nutrient, double progress, Color color, String unit) {
     final nutrientKey = nutrient.toLowerCase().replaceAll(' ', '_');
     final consumed = _getTodayNutrients()[nutrientKey] ?? 0.0;
     final target = _getNutrientTargets()[nutrientKey] ?? 1.0;
     
-    // Get appropriate unit for each nutrient
-    String unit = 'mg';
-    String consumedStr = consumed.toInt().toString();
-    String targetStr = target.toInt().toString();
+    // Format consumed and target values
+    String consumedStr = consumed >= 100 ? consumed.toInt().toString() : consumed.toStringAsFixed(1);
+    String targetStr = target >= 100 ? target.toInt().toString() : target.toStringAsFixed(1);
     
-    if (nutrient == 'Fiber') {
-      unit = 'g';
-    } else if (nutrient == 'Vitamin C' || nutrient == 'Iron') {
-      unit = 'mg';
-      // Show decimal for iron since targets are smaller
-      if (nutrient == 'Iron') {
-        consumedStr = consumed.toStringAsFixed(1);
-        targetStr = target.toStringAsFixed(1);
-      }
-    } else if (nutrient == 'Calcium') {
-      unit = 'mg';
-    }
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              nutrient,
-              style: TextStyle(
-                fontFamily: 'OpenSans',
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: AppColors.blackText,
-              ),
-            ),
-            Text(
-              '$consumedStr$unit / $targetStr$unit',
-              style: TextStyle(
-                fontFamily: 'OpenSans',
-                fontSize: 12,
-                color: AppColors.grayText,
-              ),
-            ),
-          ],
+    return Container(
+      width: 140,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: color.withOpacity(0.2),
+          width: 1,
         ),
-        const SizedBox(height: 8),
-        Container(
-          height: 8,
-          decoration: BoxDecoration(
-            color: AppColors.lightGray,
-            borderRadius: BorderRadius.circular(4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                nutrient,
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.blackText,
+                ),
+              ),
+              Text(
+                '${(progress * 100).toInt()}%',
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
           ),
-          child: FractionallySizedBox(
-            alignment: Alignment.centerLeft,
-            widthFactor: progress,
-            child: Container(
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(4),
+          const SizedBox(height: 8),
+          // Progress bar
+          Container(
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.lightGray.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(2),
+            ),
+            child: FractionallySizedBox(
+              alignment: Alignment.centerLeft,
+              widthFactor: progress,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 6),
+          Text(
+            '$consumedStr / $targetStr $unit',
+            style: TextStyle(
+              fontFamily: 'OpenSans',
+              fontSize: 10,
+              color: AppColors.grayText,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

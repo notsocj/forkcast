@@ -746,31 +746,73 @@ class _MealPlanPageState extends State<MealPlanPage> {
       );
     }
 
-    // If meal has data, try to get the image from predefined meals
-    if (meal['data'] != null && meal['data']['recipe_id'] != null) {
-      final mealId = meal['data']['recipe_id'];
-      final predefinedMeal = PredefinedMealsData.getMealById(mealId);
+    // If meal has data, check for image_url from Firebase (Cloudinary)
+    if (meal['data'] != null) {
+      final imageUrl = meal['data']['image_url'] as String?;
       
-      if (predefinedMeal != null && predefinedMeal.imageUrl.isNotEmpty) {
-        return Image.asset(
-          'assets/images/${predefinedMeal.imageUrl}',
-          width: 60,
-          height: 60,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            // Fallback to icon if image fails to load
-            return Container(
-              color: meal['color'].withOpacity(0.1),
-              child: Center(
-                child: Icon(
-                  _getMealIcon(meal['type']),
-                  color: meal['color'],
-                  size: 24,
+      // If we have a Cloudinary URL, use it
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        // Check if it's a network URL (Cloudinary)
+        if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+          return Image.network(
+            imageUrl,
+            width: 60,
+            height: 60,
+            fit: BoxFit.cover,
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                color: meal['color'].withOpacity(0.1),
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                          : null,
+                      strokeWidth: 2,
+                      color: meal['color'],
+                    ),
+                  ),
                 ),
-              ),
-            );
-          },
-        );
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              // Fallback to icon if image fails to load
+              return Container(
+                color: meal['color'].withOpacity(0.1),
+                child: Center(
+                  child: Icon(
+                    _getMealIcon(meal['type']),
+                    color: meal['color'],
+                    size: 24,
+                  ),
+                ),
+              );
+            },
+          );
+        } else {
+          // Local asset path
+          return Image.asset(
+            'assets/images/$imageUrl',
+            width: 60,
+            height: 60,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: meal['color'].withOpacity(0.1),
+                child: Center(
+                  child: Icon(
+                    _getMealIcon(meal['type']),
+                    color: meal['color'],
+                    size: 24,
+                  ),
+                ),
+              );
+            },
+          );
+        }
       }
     }
 
