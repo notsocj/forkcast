@@ -482,7 +482,7 @@ applyTo: '**'
       - [x] Admin activity logging and audit trail
       - [x] Concurrent data operations for optimal performance
   - [x] **Content Management**
-    - [x] `manage_recipes_page.dart` - **Complete Firebase Migration with Subcollections**
+    - [x] `manage_recipes_page.dart` - **Complete Firebase Migration with Subcollections & Image Upload**
       - [x] Migrated from PredefinedMealsData to Firebase RecipeService
       - [x] Real-time recipe loading with loading states and CircularProgressIndicator
       - [x] Search functionality with Firebase recipe queries (name, description, tags, ingredients)
@@ -492,6 +492,16 @@ applyTo: '**'
       - [x] Complete recipe details modal with ingredients, health conditions, and cooking instructions
       - [x] Statistics dashboard showing total recipes from Firebase Firestore
       - [x] Automatic tag generation from health conditions and meal timing data
+      - [x] **Cloudinary Image Upload Integration** - Complete implementation
+        - [x] CloudinaryService created (`lib/services/cloudinary_service.dart`)
+        - [x] Unsigned upload preset for secure client-side uploads
+        - [x] Image picker functionality (gallery and camera selection)
+        - [x] Network URL support for uploaded recipe images
+        - [x] Add/Edit recipe forms with image upload functionality
+        - [x] Real-time image preview before upload
+        - [x] Error handling and user feedback for upload operations
+        - [x] Complete documentation in CLOUDINARY_SETUP.md
+        - [x] Cloud Name: du6eemdlu, Upload Preset: meal_app_upload
       - [x] **Enhanced Firebase Structure Integration**
         - [x] RecipeService loads ingredients subcollection (ingredient_0, ingredient_1, etc.)
         - [x] RecipeService loads health_conditions subcollection (fixed doc ID: "conditions")

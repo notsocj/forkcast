@@ -134,44 +134,93 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: widget.meal.imageUrl.isNotEmpty
-                ? Image.asset(
-                    'assets/images/${widget.meal.imageUrl}',
-                    height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      // Fallback to placeholder if image fails to load
-                      return Container(
+                ? (widget.meal.imageUrl.startsWith('http://') || widget.meal.imageUrl.startsWith('https://'))
+                    // Network image (from Imgur)
+                    ? Image.network(
+                        widget.meal.imageUrl,
                         height: 200,
                         width: double.infinity,
-                        color: AppColors.successGreen.withOpacity(0.1),
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.restaurant,
-                                size: 48,
-                                color: AppColors.successGreen.withOpacity(0.5),
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            height: 200,
+                            width: double.infinity,
+                            color: AppColors.successGreen.withOpacity(0.1),
+                            child: const Center(child: CircularProgressIndicator()),
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 200,
+                            width: double.infinity,
+                            color: AppColors.successGreen.withOpacity(0.1),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.restaurant,
+                                    size: 48,
+                                    color: AppColors.successGreen.withOpacity(0.5),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    widget.meal.recipeName,
+                                    style: TextStyle(
+                                      fontFamily: 'OpenSans',
+                                      fontSize: 12,
+                                      color: AppColors.successGreen,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 8),
-                              Text(
-                                widget.meal.recipeName,
-                                style: TextStyle(
-                                  fontFamily: 'OpenSans',
-                                  fontSize: 12,
-                                  color: AppColors.successGreen,
-                                ),
-                                textAlign: TextAlign.center,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                            ),
+                          );
+                        },
+                      )
+                    // Local asset image
+                    : Image.asset(
+                        'assets/images/${widget.meal.imageUrl}',
+                        height: 200,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          // Fallback to placeholder if image fails to load
+                          return Container(
+                            height: 200,
+                            width: double.infinity,
+                            color: AppColors.successGreen.withOpacity(0.1),
+                            child: Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.restaurant,
+                                    size: 48,
+                                    color: AppColors.successGreen.withOpacity(0.5),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    widget.meal.recipeName,
+                                    style: TextStyle(
+                                      fontFamily: 'OpenSans',
+                                      fontSize: 12,
+                                      color: AppColors.successGreen,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  )
+                            ),
+                          );
+                        },
+                      )
                 : Container(
                     height: 200,
                     width: double.infinity,
