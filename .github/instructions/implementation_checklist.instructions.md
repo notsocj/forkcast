@@ -493,7 +493,15 @@ applyTo: '**'
       - [x] Category filtering (All, Filipino, Healthy, Vegetarian, Low Sodium, Diabetes-Friendly)
       - [x] Recipe display with health condition tags and meal timing indicators
       - [x] Updated to use Recipe model with RecipeIngredient, RecipeHealthConditions, RecipeMealTiming
-      - [x] Complete recipe details modal with ingredients, health conditions, and cooking instructions
+      - [x] **Recipe Detail Full Page View** - Converted from modal dialog to dedicated page
+        - [x] Created `recipe_detail_page.dart` - Full-screen recipe detail page
+        - [x] SliverAppBar with recipe image and expandable header
+        - [x] Comprehensive recipe information display (description, fun fact, ingredients, instructions)
+        - [x] Health conditions and meal timing sections with visual indicators
+        - [x] Tags section with color-coded chips
+        - [x] Modern scrollable UI with sections and cards
+        - [x] Navigation via MaterialPageRoute from manage recipes page
+        - [x] Removed old dialog-based view and helper methods
       - [x] Statistics dashboard showing total recipes from Firebase Firestore
       - [x] Automatic tag generation from health conditions and meal timing data
       - [x] **Cloudinary Image Upload Integration** - Complete implementation
@@ -515,6 +523,44 @@ applyTo: '**'
         - [x] Complete CRUD operations support subcollections (add, update, delete)
         - [x] Batch operations for atomic subcollection updates
         - [x] Proper ingredient sorting by document ID (ingredient_0, ingredient_1, etc.)
+      - [x] **Edit Recipe Full Page** - Complete Firebase-connected implementation
+        - [x] Created `edit_recipe_page.dart` - Full-screen edit/add recipe page
+        - [x] Green background with white content area (30px rounded corners)
+        - [x] SliverAppBar with dynamic title ("Edit Recipe" / "Add Recipe")
+        - [x] Close button (X) and Save button (✓) with loading states
+        - [x] **Image Upload Section**
+          - [x] Image picker with gallery selection integration
+          - [x] Cloudinary upload with loading state and preview
+          - [x] 180px framed image with 16px rounded corners
+          - [x] Required field validation for image URL
+        - [x] **Form Sections** (all card-based with icons and proper styling)
+          - [x] Basic Information (name, description, prep time, servings, calories, difficulty)
+          - [x] Ingredients (dynamic list with add/remove, minimum 1 required)
+          - [x] Cooking Instructions (multi-line text area)
+          - [x] Fun Fact (optional multi-line text)
+          - [x] Health Conditions (8 checkboxes: diabetes, hypertension, obesity, etc.)
+          - [x] Meal Timing (4 checkboxes: breakfast, lunch, dinner, snack)
+          - [x] Tags (dynamic list with add/remove chips)
+        - [x] **Firebase Integration**
+          - [x] Pre-fills all fields when editing existing recipe
+          - [x] Calls RecipeService.addRecipe() for new recipes
+          - [x] Calls RecipeService.updateRecipe() for existing recipes
+          - [x] Properly saves all subcollections (ingredients, health_conditions, meal_timing)
+          - [x] Returns true on successful save to trigger parent page refresh
+          - [x] Shows success/error SnackBar messages
+        - [x] **Data Propagation**
+          - [x] Manage Recipes page auto-refreshes after save
+          - [x] RecipeService cache cleared to ensure fresh data
+          - [x] Changes reflect throughout app:
+            * User meal plan page
+            * Recipe search results
+            * AI meal suggestions
+            * Nutrition facts display
+            * Meal logging
+        - [x] Form validation (all required fields, image required)
+        - [x] Loading states prevent multiple submissions
+        - [x] Navigation via MaterialPageRoute from manage_recipes_page
+        - [x] Complete documentation in EDIT_RECIPE_FIREBASE_INTEGRATION.md
   - [x] Price data validation pages
   - [x] **Forum Management & Moderation** (Complete Firebase Implementation)
     - [x] `ForumManagementService` created (`lib/services/forum_management_service.dart`)

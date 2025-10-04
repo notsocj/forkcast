@@ -2,6 +2,11 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/recipe.dart';
 
 class RecipeService {
+  // Singleton pattern to ensure same instance across the app
+  static final RecipeService _instance = RecipeService._internal();
+  factory RecipeService() => _instance;
+  RecipeService._internal();
+
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'recipes';
 
@@ -437,10 +442,15 @@ class RecipeService {
         healthConditions: healthConditions, mealTiming: mealTiming);
   }
 
-  /// Clear the cache
+  /// Clear the cache (private method for internal use)
   void _clearCache() {
     _cachedRecipes = null;
     _lastCacheTime = null;
+  }
+
+  /// Force clear the cache (public method for manual refresh)
+  void clearCache() {
+    _clearCache();
   }
 
   /// Helper method to check if prep time matches the specified range

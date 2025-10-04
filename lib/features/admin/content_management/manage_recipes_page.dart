@@ -6,6 +6,8 @@ import '../../../core/constants.dart';
 import '../../../services/recipe_service.dart';
 import '../../../services/cloudinary_service.dart';
 import '../../../models/recipe.dart';
+import 'recipe_detail_page.dart';
+import 'edit_recipe_page.dart';
 
 class ManageRecipesPage extends StatefulWidget {
   const ManageRecipesPage({super.key});
@@ -34,6 +36,9 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
     });
     
     try {
+      // Force clear cache to ensure fresh data from Firebase
+      _recipeService.clearCache();
+      
       final recipes = await _recipeService.getAllRecipes();
       setState(() {
         _allRecipes = recipes;
@@ -129,36 +134,67 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Search Bar
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.successGreen.withOpacity(0.3)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.search, color: AppColors.grayText.withOpacity(0.7)),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) {
-                      setState(() {});
-                    },
-                    decoration: const InputDecoration(
-                      hintText: 'Search recipes by name or ingredients...',
-                      hintStyle: TextStyle(
-                        fontFamily: AppConstants.primaryFont,
-                        color: AppColors.grayText,
+          // Search Bar with Refresh Button
+          Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.successGreen.withOpacity(0.3)),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.search, color: AppColors.grayText.withOpacity(0.7)),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            setState(() {});
+                          },
+                          decoration: const InputDecoration(
+                            hintText: 'Search recipes by name or ingredients...',
+                            hintStyle: TextStyle(
+                              fontFamily: AppConstants.primaryFont,
+                              color: AppColors.grayText,
+                            ),
+                            border: InputBorder.none,
+                          ),
+                        ),
                       ),
-                      border: InputBorder.none,
-                    ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(width: 12),
+              // Refresh Button
+              IconButton(
+                onPressed: _isLoading ? null : () async {
+                  setState(() {
+                    _isLoading = true;
+                  });
+                  await _loadRecipes();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Recipes refreshed successfully'),
+                        backgroundColor: AppColors.successGreen,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
+                icon: Icon(
+                  Icons.refresh_rounded,
+                  color: _isLoading ? AppColors.grayText : AppColors.successGreen,
+                  size: 28,
+                ),
+                tooltip: 'Refresh recipes',
+              ),
+            ],
           ),
           
           const SizedBox(height: 24),
@@ -563,382 +599,50 @@ class _ManageRecipesPageState extends State<ManageRecipesPage> {
     }
   }
   
-  void _showRecipeDetails(Recipe meal) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            width: MediaQuery.of(context).size.width * 0.9,
-            height: MediaQuery.of(context).size.height * 0.8,
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              children: [
-                // Header
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: const BoxDecoration(
-                    color: AppColors.successGreen,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(16),
-                      topRight: Radius.circular(16),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              meal.recipeName,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                fontFamily: AppConstants.headingFont,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '${meal.kcal} kcal • ${meal.baseServings} servings • ${meal.prepTimeMinutes} min',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.9),
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.close, color: Colors.white),
-                      ),
-                    ],
-                  ),
-                ),
-                // Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Description
-                        _buildDetailSection(
-                          'Description',
-                          Icons.description,
-                          meal.description,
-                        ),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Fun Fact
-                        _buildDetailSection(
-                          'Fun Fact',
-                          Icons.lightbulb_outline,
-                          meal.funFact,
-                        ),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Ingredients
-                        _buildIngredientsSection(meal.ingredients),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Cooking Instructions
-                        _buildDetailSection(
-                          'Cooking Instructions',
-                          Icons.restaurant_menu,
-                          meal.cookingInstructions,
-                        ),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Health Conditions
-                        _buildHealthConditionsSection(meal.healthConditions),
-                        
-                        const SizedBox(height: 20),
-                        
-                        // Meal Timing
-                        _buildMealTimingSection(meal.mealTiming),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+  void _showRecipeDetails(Recipe meal) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RecipeDetailPage(recipe: meal),
+      ),
     );
-  }
-  
-  Widget _buildDetailSection(String title, IconData icon, String content) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(icon, color: AppColors.successGreen, size: 20),
-            const SizedBox(width: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontFamily: AppConstants.headingFont,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.blackText,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.primaryBackground,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.successGreen.withOpacity(0.2)),
-          ),
-          child: Text(
-            content,
-            style: const TextStyle(
-              fontFamily: AppConstants.primaryFont,
-              fontSize: 14,
-              color: AppColors.grayText,
-              height: 1.5,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildIngredientsSection(List<RecipeIngredient> ingredients) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Row(
-          children: [
-            Icon(Icons.shopping_cart, color: AppColors.successGreen, size: 20),
-            SizedBox(width: 8),
-            Text(
-              'Ingredients',
-              style: TextStyle(
-                fontFamily: AppConstants.headingFont,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.blackText,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.primaryBackground,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.successGreen.withOpacity(0.2)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: ingredients.map((ingredient) => Padding(
-              padding: const EdgeInsets.only(bottom: 4),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '• ',
-                    style: TextStyle(
-                      color: AppColors.successGreen,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      '${ingredient.quantity} ${ingredient.unit} ${ingredient.ingredientName}',
-                      style: const TextStyle(
-                        fontFamily: AppConstants.primaryFont,
-                        fontSize: 14,
-                        color: AppColors.grayText,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            )).toList(),
-          ),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildHealthConditionsSection(RecipeHealthConditions healthConditions) {
-    List<String> suitableConditions = [];
     
-    if (healthConditions.diabetes) suitableConditions.add('Diabetes');
-    if (healthConditions.hypertension) suitableConditions.add('Hypertension');
-    if (healthConditions.obesityOverweight) suitableConditions.add('Obesity/Overweight');
-    if (healthConditions.underweightMalnutrition) suitableConditions.add('Underweight/Malnutrition');
-    if (healthConditions.heartDiseaseChol) suitableConditions.add('Heart Disease/High Cholesterol');
-    if (healthConditions.anemia) suitableConditions.add('Anemia');
-    if (healthConditions.osteoporosis) suitableConditions.add('Osteoporosis');
-    if (healthConditions.none) suitableConditions.add('Healthy Individuals');
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Row(
-          children: [
-            Icon(Icons.health_and_safety, color: AppColors.successGreen, size: 20),
-            SizedBox(width: 8),
-            Text(
-              'Suitable Health Conditions',
-              style: TextStyle(
-                fontFamily: AppConstants.headingFont,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.blackText,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: suitableConditions.map((condition) => Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.successGreen.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.successGreen.withOpacity(0.3)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.check_circle,
-                  color: AppColors.successGreen,
-                  size: 16,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  condition,
-                  style: const TextStyle(
-                    fontFamily: AppConstants.primaryFont,
-                    fontSize: 12,
-                    color: AppColors.successGreen,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          )).toList(),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildMealTimingSection(RecipeMealTiming mealTiming) {
-    List<String> suitableTimes = [];
-    
-    if (mealTiming.breakfast) suitableTimes.add('Breakfast');
-    if (mealTiming.lunch) suitableTimes.add('Lunch');
-    if (mealTiming.dinner) suitableTimes.add('Dinner');
-    if (mealTiming.snack) suitableTimes.add('Snack');
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Row(
-          children: [
-            Icon(Icons.schedule, color: AppColors.successGreen, size: 20),
-            SizedBox(width: 8),
-            Text(
-              'Meal Timing',
-              style: TextStyle(
-                fontFamily: AppConstants.headingFont,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.blackText,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: suitableTimes.map((time) => Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppColors.primaryAccent.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppColors.primaryAccent.withOpacity(0.3)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  _getMealTimeIcon(time),
-                  color: AppColors.primaryAccent,
-                  size: 16,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  time,
-                  style: const TextStyle(
-                    fontFamily: AppConstants.primaryFont,
-                    fontSize: 12,
-                    color: AppColors.primaryAccent,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          )).toList(),
-        ),
-      ],
-    );
-  }
-  
-  IconData _getMealTimeIcon(String mealTime) {
-    switch (mealTime.toLowerCase()) {
-      case 'breakfast':
-        return Icons.wb_sunny;
-      case 'lunch':
-        return Icons.wb_sunny_outlined;
-      case 'dinner':
-        return Icons.nights_stay;
-      case 'snack':
-        return Icons.local_cafe;
-      default:
-        return Icons.restaurant;
+    // Reload recipes if recipe was updated from detail page
+    if (result == true) {
+      await _loadRecipes();
     }
-  }
-
-  // ==================== ADD RECIPE FUNCTIONALITY ====================
-  
-  void _showAddRecipeDialog() {
-    _showRecipeFormDialog(context, null);
   }
 
   // ==================== EDIT RECIPE FUNCTIONALITY ====================
   
-  void _showEditRecipeDialog(Recipe recipe) {
-    _showRecipeFormDialog(context, recipe);
+  void _showAddRecipeDialog() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const EditRecipePage(),
+      ),
+    );
+
+    // Reload recipes if recipe was added
+    if (result == true) {
+      await _loadRecipes();
+    }
+  }
+
+  // ==================== EDIT RECIPE FUNCTIONALITY ====================
+  
+  void _showEditRecipeDialog(Recipe recipe) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditRecipePage(recipe: recipe),
+      ),
+    );
+
+    // Reload recipes if recipe was updated
+    if (result == true) {
+      await _loadRecipes();
+    }
   }
 
   // ==================== DELETE RECIPE FUNCTIONALITY ====================
