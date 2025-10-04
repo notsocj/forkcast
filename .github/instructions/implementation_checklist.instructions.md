@@ -121,14 +121,18 @@ applyTo: '**'
  - [x] **Auth Features**
    - [x] `splash_screen.dart` (simple splash screen)
    - [x] `get_started_page.dart` (social login options)
+     - [x] Google and Facebook login buttons displayed
+     - [x] **Removed Apple and X (Twitter) login buttons** - Streamlined social login options
    - [x] `sign_in_page.dart` (Firebase Auth, navigation to profile setup)
      - [x] **Professional Login Toggle** - Added _isProfessionalLogin boolean with toggle UI
      - [x] Dynamic title/subtitle: "Professional Login 🩺" vs "Welcome Back! 👋"
      - [x] Toggle container with GestureDetector for User/Professional selection
+     - [x] **Removed Apple and X social login icons** - Only Google and Facebook remain
    - [x] `sign_up_page.dart` (validated)
      - [x] **Professional Signup Toggle** - Added _isProfessionalSignup boolean with toggle UI
      - [x] Dynamic title/subtitle: "Join as Professional! 🩺" vs "Join Forkcast Today! ⭐"
      - [x] Matching toggle design with sign-in page for consistency
+     - [x] **Removed Apple and X social login icons** - Only Google and Facebook remain
    - [x] `forgot_password_flow` (OTP → Reset → Confirmation)
      - [x] `forgot_password_page.dart`
      - [x] `otp_code_page.dart`

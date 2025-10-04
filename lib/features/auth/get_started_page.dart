@@ -17,14 +17,14 @@ class GetStartedPage extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Column(
               children: [
-                const SizedBox(height: 60),
+                const SizedBox(height: 80),
                 // ForkCast Logo
                 Image.asset(
                   AppConstants.logoPath,
                   width: 80,
                   height: 80,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
                 // App Name
                 Text(
                   AppConstants.appName.toUpperCase(),
@@ -36,7 +36,7 @@ class GetStartedPage extends StatelessWidget {
                     letterSpacing: 2.0,
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 56),
                 // Main Heading
                 Text(
                   "Let's Get Started!",
@@ -48,7 +48,7 @@ class GetStartedPage extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 16),
                 // Subtitle
                 Text(
                   "Let's dive in into your account",
@@ -59,7 +59,7 @@ class GetStartedPage extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 56),
                 // Social Login Buttons
                 _buildSocialButton(
                   context,
@@ -69,7 +69,7 @@ class GetStartedPage extends StatelessWidget {
                     // TODO: Implement Google login
                   },
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 _buildSocialButton(
                   context,
                   icon: Icons.facebook,
@@ -78,25 +78,7 @@ class GetStartedPage extends StatelessWidget {
                     // TODO: Implement Facebook login
                   },
                 ),
-                const SizedBox(height: 16),
-                _buildSocialButton(
-                  context,
-                  icon: Icons.apple,
-                  text: "Continue with Apple",
-                  onTap: () {
-                    // TODO: Implement Apple login
-                  },
-                ),
-                const SizedBox(height: 16),
-                _buildSocialButton(
-                  context,
-                  icon: Icons.close, // Using close icon as X placeholder
-                  text: "Continue with X",
-                  onTap: () {
-                    // TODO: Implement X (Twitter) login
-                  },
-                ),
-                const SizedBox(height: 32),
+                const SizedBox(height: 40),
                 // Sign Up Button
                 SizedBox(
                   width: double.infinity,
@@ -125,7 +107,7 @@ class GetStartedPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 // Sign In Button
                 SizedBox(
                   width: double.infinity,
@@ -154,7 +136,7 @@ class GetStartedPage extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
                 // Privacy Policy and Terms of Service
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,

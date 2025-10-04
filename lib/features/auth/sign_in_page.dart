@@ -428,14 +428,6 @@ class _SignInPageState extends State<SignInPage> {
                       _buildSocialIcon(Icons.facebook, () {
                         // TODO: Implement Facebook login
                       }),
-                      const SizedBox(width: 16),
-                      _buildSocialIcon(Icons.apple, () {
-                        // TODO: Implement Apple login
-                      }),
-                      const SizedBox(width: 16),
-                      _buildSocialIcon(Icons.close, () {
-                        // TODO: Implement X (Twitter) login
-                      }),
                     ],
                   ),
                   

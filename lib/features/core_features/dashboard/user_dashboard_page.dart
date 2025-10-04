@@ -522,8 +522,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                       _buildDailyMealPlanSection(),
                       const SizedBox(height: 20),
                       
-                      // Weekly Progress Card
-                      _buildWeeklyProgressCard(),
+                      // Weekly Progress Card removed per design
                     ],
                   ),
                 ),
@@ -1063,112 +1062,13 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
               ],
             ),
           ),
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.add,
-                  color: color,
-                  size: 16,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryAccent.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.delete_outline,
-                  color: AppColors.primaryAccent,
-                  size: 16,
-                ),
-              ),
-            ],
-          ),
+          const SizedBox(width: 8),
         ],
       ),
     );
   }
 
-  Widget _buildWeeklyProgressCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Weekly Progress',
-            style: TextStyle(
-              fontFamily: 'Lato',
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppColors.blackText,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.successGreen.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.trending_up,
-                  color: AppColors.successGreen,
-                  size: 24,
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'This week, you lost 1.2 kg',
-                        style: TextStyle(
-                          fontFamily: 'Lato',
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.blackText,
-                        ),
-                      ),
-                      Text(
-                        'You are well on track for your 4.5 kg current weight goal',
-                        style: TextStyle(
-                          fontFamily: 'OpenSans',
-                          fontSize: 12,
-                          color: AppColors.grayText,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  // Weekly progress card removed as requested.
 
   String _getUserInitials(String fullName) {
     if (fullName.isEmpty) return 'U';
