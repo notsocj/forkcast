@@ -261,6 +261,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
           'calories': '${data['scaled_kcal']?.toInt() ?? 0} kcal',
           'hasData': true,
           'source': source,
+          'image_url': data['image_url'], // Add image URL from Firebase
         };
       }
     }
@@ -270,6 +271,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       'calories': '0 kcal',
       'hasData': false,
       'source': 'none',
+      'image_url': null,
     };
   }
 
@@ -950,6 +952,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                 color: _getMealColor(mealType.toUpperCase()),
                 hasData: mealData['hasData'],
                 source: mealData['source'],
+                imageUrl: mealData['image_url'], // Pass image URL from Firebase
               ),
               const SizedBox(height: 12),
             ],
@@ -967,6 +970,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     required Color color,
     required bool hasData,
     String source = 'none',
+    String? imageUrl,
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -984,20 +988,8 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       ),
       child: Row(
         children: [
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Center(
-              child: Text(
-                icon,
-                style: const TextStyle(fontSize: 24),
-              ),
-            ),
-          ),
+          // Meal image or icon
+          _buildDashboardMealImage(hasData, imageUrl, icon, color),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -1069,6 +1061,104 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
   }
 
   // Weekly progress card removed as requested.
+
+  Widget _buildDashboardMealImage(bool hasData, String? imageUrl, String icon, Color color) {
+    // If no data or no image URL, show emoji icon
+    if (!hasData || imageUrl == null || imageUrl.isEmpty) {
+      return Container(
+        width: 50,
+        height: 50,
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Center(
+          child: Text(
+            icon,
+            style: const TextStyle(fontSize: 24),
+          ),
+        ),
+      );
+    }
+
+    // Check if it's a Cloudinary URL (network image)
+    if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: Image.network(
+          imageUrl,
+          width: 50,
+          height: 50,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: CircularProgressIndicator(
+                  value: loadingProgress.expectedTotalBytes != null
+                      ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                      : null,
+                  strokeWidth: 2,
+                  color: color,
+                ),
+              ),
+            );
+          },
+          errorBuilder: (context, error, stackTrace) {
+            // Fallback to emoji icon on error
+            return Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Text(
+                  icon,
+                  style: const TextStyle(fontSize: 24),
+                ),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
+    // Local asset image
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10),
+      child: Image.asset(
+        'assets/images/$imageUrl',
+        width: 50,
+        height: 50,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          // Fallback to emoji icon on error
+          return Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Center(
+              child: Text(
+                icon,
+                style: const TextStyle(fontSize: 24),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   String _getUserInitials(String fullName) {
     if (fullName.isEmpty) return 'U';

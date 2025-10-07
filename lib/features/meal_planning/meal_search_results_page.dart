@@ -565,80 +565,50 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
               ),
               child: Stack(
                 children: [
-                  // Recipe image
+                  // Recipe image with Cloudinary support
                   ClipRRect(
                     borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(20),
                       topRight: Radius.circular(20),
                     ),
                     child: recipe.imageUrl.isNotEmpty
-                        ? Image.asset(
-                            'assets/images/${recipe.imageUrl}',
-                            height: 200,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              // Fallback to placeholder if image fails to load
-                              return Container(
+                        ? (recipe.imageUrl.startsWith('http://') || recipe.imageUrl.startsWith('https://'))
+                            ? Image.network(
+                                recipe.imageUrl,
                                 height: 200,
                                 width: double.infinity,
-                                color: AppColors.successGreen.withOpacity(0.1),
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        Icons.restaurant,
-                                        size: 48,
-                                        color: AppColors.successGreen.withOpacity(0.5),
+                                fit: BoxFit.cover,
+                                loadingBuilder: (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Container(
+                                    height: 200,
+                                    width: double.infinity,
+                                    color: AppColors.successGreen.withOpacity(0.1),
+                                    child: Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                            : null,
+                                        strokeWidth: 2,
+                                        color: AppColors.successGreen,
                                       ),
-                                      const SizedBox(height: 8),
-                                      Text(
-                                        recipe.recipeName,
-                                        style: TextStyle(
-                                          fontFamily: 'OpenSans',
-                                          fontSize: 12,
-                                          color: AppColors.successGreen,
-                                        ),
-                                        textAlign: TextAlign.center,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          )
-                        : Container(
-                            height: 200,
-                            width: double.infinity,
-                            color: AppColors.successGreen.withOpacity(0.1),
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.restaurant,
-                                    size: 48,
-                                    color: AppColors.successGreen.withOpacity(0.5),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    recipe.recipeName,
-                                    style: TextStyle(
-                                      fontFamily: 'OpenSans',
-                                      fontSize: 12,
-                                      color: AppColors.successGreen,
                                     ),
-                                    textAlign: TextAlign.center,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return _buildPlaceholderImage(recipe.recipeName);
+                                },
+                              )
+                            : Image.asset(
+                                'assets/images/${recipe.imageUrl}',
+                                height: 200,
+                                width: double.infinity,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return _buildPlaceholderImage(recipe.recipeName);
+                                },
+                              )
+                        : _buildPlaceholderImage(recipe.recipeName),
                   ),
                   // Favorite button
                   Positioned(
@@ -771,6 +741,41 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
           fontSize: 11,
           fontWeight: FontWeight.w500,
           color: AppColors.grayText,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceholderImage(String recipeName) {
+    return Container(
+      height: 200,
+      width: double.infinity,
+      color: AppColors.successGreen.withOpacity(0.1),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.restaurant,
+              size: 48,
+              color: AppColors.successGreen.withOpacity(0.5),
+            ),
+            const SizedBox(height: 8),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                recipeName,
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  fontSize: 12,
+                  color: AppColors.successGreen,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ),
     );
