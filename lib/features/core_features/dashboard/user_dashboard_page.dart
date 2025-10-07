@@ -674,7 +674,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                 icon: Icons.local_fire_department_outlined,
                 title: 'Energy Intake',
                 value: '${energyData['percentage']}%',
-                subtitle: '${energyData['planKcal']} / ${(energyData['familyNeed'] as double).toInt()} kcal',
+                subtitle: '${energyData['planKcal']} / ${energyData['familyNeed']} kcal',
                 color: AppColors.primaryAccent,
               ),
               _buildNutritionalItem(
