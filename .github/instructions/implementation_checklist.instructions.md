@@ -368,6 +368,36 @@ applyTo: '**'
     - [x] Price trends section with custom chart painter
     - [x] Integrated into navigation wrapper at index 2 (Price Monitoring tab)
   - [x] Price alerts & trends functional (sample data implementation)
+  - [x] **Firebase Structure Redesign** (Complete implementation)
+    - [x] `market_prices` collection with composite document IDs ({category}_{product_name}_{market_name})
+    - [x] Real-time price tracking fields (category, product_name, unit, price_min, market_name)
+    - [x] Market metadata (collected_at, source_type, is_imported, last_updated)
+    - [x] `price_history` subcollection for historical prices and forecasts
+    - [x] Price history entry fields (date, price, market_name, is_forecasted, model_version, forecast_confidence)
+    - [x] `forecast_models` collection for ML model versioning and tracking
+    - [x] Forecast model fields (model_name, model_version, trained_at, accuracy, features_used, deployed)
+  - [x] **Market Price Service** (`lib/services/market_price_service.dart`) - Complete implementation
+    - [x] `getLatestPrice()` - Get current price for specific product
+    - [x] `getPricesByCategory()` - Stream all prices in a category
+    - [x] `getAllCategories()` - Get list of all available product categories
+    - [x] `searchProducts()` - Search products by name across categories
+    - [x] `updateMarketPrice()` - Add/update market price with automatic history tracking
+    - [x] `getPriceHistory()` - Get historical prices for trend analysis
+    - [x] `getPriceHistoryStream()` - Real-time price history updates
+    - [x] `addForecastedPrices()` - Add ML-generated price predictions
+    - [x] `getPriceChangePercentage()` - Calculate price change over time
+    - [x] `getPriceAlerts()` - Get products with significant price changes
+    - [x] `createForecastModel()` - Register new forecasting model
+    - [x] `getAllForecastModels()` - Get all registered ML models
+    - [x] `getDeployedModel()` - Get currently active forecasting model
+    - [x] `batchUpdatePrices()` - Bulk price import/migration support
+  - [x] **Market Price Models** (`lib/models/market_price.dart`) - Complete implementation
+    - [x] `MarketPrice` model with Firebase serialization
+    - [x] `PriceHistoryEntry` model for historical data points
+    - [x] `ForecastModel` model for ML model metadata
+    - [x] `PriceAlert` model for price change notifications
+    - [x] Helper methods: formattedPrice, categoryIcon, sourceTypeIcon
+    - [x] Alert severity calculation and display formatting
 - [x] **Q&A Forum**
   - [x] Forum page implemented (`qna_forum_page.dart`)
     - [x] Green header with search bar and "Saved" button
