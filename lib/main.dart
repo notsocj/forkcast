@@ -9,6 +9,7 @@ import 'debug/debug_screen_switcher.dart';
 import 'providers/profile_setup_provider.dart';
 import 'providers/professional_setup_provider.dart';
 import 'features/admin/market_data/manage_market_prices_page.dart';
+import 'features/market_prices/user_market_prices_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +40,7 @@ class ForkCastApp extends StatelessWidget {
             : const SplashScreen(),
         routes: {
           '/admin/manage-market-prices': (context) => const ManageMarketPricesPage(),
+          '/user/market-prices': (context) => const UserMarketPricesPage(),
         },
       ),
     );
