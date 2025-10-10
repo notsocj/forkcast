@@ -6,8 +6,10 @@ import '../../models/recipe.dart';
 import '../../services/meal_logging_service.dart';
 import '../../services/personalized_meal_service.dart';
 import '../../services/search_history_service.dart';
+import '../../services/recipe_service.dart';
 import 'meal_search_results_page.dart';
 import 'recipe_detail_page.dart';
+import 'meal_view_details_page.dart';
 
 class MealPlanPage extends StatefulWidget {
   const MealPlanPage({super.key});
@@ -21,6 +23,7 @@ class _MealPlanPageState extends State<MealPlanPage> {
   final MealLoggingService _mealLoggingService = MealLoggingService();
   final PersonalizedMealService _personalizedMealService = PersonalizedMealService();
   final SearchHistoryService _searchHistoryService = SearchHistoryService();
+  final RecipeService _recipeService = RecipeService();
   
   // Recent searches loaded from Firebase
   List<String> _recentSearches = [];
@@ -981,36 +984,162 @@ class _MealPlanPageState extends State<MealPlanPage> {
     );
   }
 
-  void _viewMealDetails(Map<String, dynamic> meal) {
-    // Find the predefined meal by ID if available
-    if (meal['data'] != null && meal['data']['recipe_id'] != null) {
-      final mealId = meal['data']['recipe_id'];
-      final predefinedMeal = PredefinedMealsData.getMealById(mealId);
+  Future<void> _viewMealDetails(Map<String, dynamic> meal) async {
+    // Debug: Print the meal data structure
+    print('═══════════════════════════════════════');
+    print('DEBUG: Viewing meal details');
+    print('DEBUG: Full meal object: $meal');
+    print('DEBUG: meal[isEmpty]: ${meal['isEmpty']}');
+    print('DEBUG: meal[data]: ${meal['data']}');
+    if (meal['data'] != null) {
+      print('DEBUG: meal[data].keys: ${meal['data'].keys}');
+      print('DEBUG: meal[data][recipe_id]: ${meal['data']['recipe_id']}');
+    }
+    print('═══════════════════════════════════════');
+    
+    // Check if meal is empty/not logged
+    if (meal['isEmpty'] == true || meal['data'] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('No meal logged for ${meal['type'].toLowerCase()}'),
+          backgroundColor: AppColors.primaryAccent,
+        ),
+      );
+      return;
+    }
+    
+    // Get recipe_id from Firebase meal data
+    String? recipeId;
+    
+    if (meal['data']['recipe_id'] != null) {
+      recipeId = meal['data']['recipe_id'].toString();
+    }
+    
+    if (recipeId == null || recipeId.isEmpty) {
+      print('DEBUG: ❌ No recipe_id found in meal data');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to load meal details. Recipe ID not found.'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+      return;
+    }
+    
+    print('DEBUG: Fetching recipe from Firebase with ID: $recipeId');
+    
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: AppColors.successGreen),
+              const SizedBox(height: 16),
+              Text('Loading meal details...'),
+            ],
+          ),
+        ),
+      ),
+    );
+    
+    try {
+      // Fetch recipe from Firebase
+      final Recipe? recipe = await _recipeService.getRecipeById(recipeId);
       
-      if (predefinedMeal != null) {
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+      
+      if (recipe == null) {
+        print('DEBUG: ❌ Recipe not found in Firebase for ID: $recipeId');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Recipe not found. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+      
+      print('DEBUG: ✅ Recipe fetched successfully: ${recipe.recipeName}');
+      
+      // Convert Recipe to PredefinedMeal for the view page
+      final predefinedMeal = _convertRecipeToPredefinedMeal(recipe);
+      
+      // Navigate to MealViewDetailsPage
+      if (mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => RecipeDetailPage(meal: predefinedMeal),
+            builder: (context) => MealViewDetailsPage(meal: predefinedMeal),
           ),
         );
-        return;
+      }
+      
+    } catch (e) {
+      print('DEBUG: ❌ Error fetching recipe: $e');
+      
+      // Close loading dialog if still open
+      if (mounted) Navigator.pop(context);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading meal details: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
     }
-
-    // Fallback: show a simple dialog with available info
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(meal['name']),
-        content: Text('Calories: ${meal['calories']}\nMeal Type: ${meal['type']}'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
+  }
+  
+  /// Convert Firebase Recipe to PredefinedMeal for compatibility with view page
+  PredefinedMeal _convertRecipeToPredefinedMeal(Recipe recipe) {
+    return PredefinedMeal(
+      id: recipe.id,
+      recipeName: recipe.recipeName,
+      description: recipe.description,
+      baseServings: recipe.baseServings,
+      kcal: recipe.kcal,
+      funFact: recipe.funFact,
+      ingredients: recipe.ingredients.map((ingredient) => MealIngredient(
+        ingredientName: ingredient.ingredientName,
+        quantity: ingredient.quantity,
+        unit: ingredient.unit,
+      )).toList(),
+      cookingInstructions: recipe.cookingInstructions,
+      healthConditions: HealthConditions(
+        diabetes: recipe.healthConditions.diabetes,
+        hypertension: recipe.healthConditions.hypertension,
+        obesityOverweight: recipe.healthConditions.obesityOverweight,
+        underweightMalnutrition: recipe.healthConditions.underweightMalnutrition,
+        heartDiseaseChol: recipe.healthConditions.heartDiseaseChol,
+        anemia: recipe.healthConditions.anemia,
+        osteoporosis: recipe.healthConditions.osteoporosis,
+        none: recipe.healthConditions.none,
       ),
+      mealTiming: MealTiming(
+        breakfast: recipe.mealTiming.breakfast,
+        lunch: recipe.mealTiming.lunch,
+        dinner: recipe.mealTiming.dinner,
+        snack: recipe.mealTiming.snack,
+      ),
+      tags: recipe.tags,
+      difficulty: recipe.difficulty,
+      prepTimeMinutes: recipe.prepTimeMinutes,
+      imageUrl: recipe.imageUrl,
     );
   }
 

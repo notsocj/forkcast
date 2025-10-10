@@ -290,6 +290,11 @@ applyTo: '**'
       - [x] PAX-aware meal suggestions with proper scaling for household size
     - [x] Meal action buttons (Add meal, View details, Replace meal)
     - [x] Modal bottom sheet with meal options (View Details, Replace, Remove)
+    - [x] **View Details Navigation** - Updated to use dedicated meal view page
+      - [x] Created `meal_view_details_page.dart` for comprehensive meal viewing
+      - [x] Full-page view replaces simple popup dialog
+      - [x] Read-only display without "Log It" button (already logged meals)
+      - [x] Shows complete meal information with PAX scaling
     - [x] Search functionality with text input (integrated with FNRI meals)
     - [x] Recent searches section using FNRI predefined data
     - [x] Rotating nutrition tips from FNRI research data
@@ -332,6 +337,30 @@ applyTo: '**'
     - [x] Health condition safety validation before meal logging
     - [x] Firebase meal logging with PAX metadata and scaled nutrition (success/error messages)
     - [x] Complete navigation flow back to meal plan dashboard with updated data
+  - [x] **Meal View Details Page** (`meal_view_details_page.dart`) NEW READ-ONLY VIEW
+    - [x] Created dedicated full-page meal details viewer for logged meals
+    - [x] Read-only display without "Log It" button (for already-logged meals)
+    - [x] **Comprehensive Meal Information Display**
+      - [x] Meal image with network loading and placeholder fallback
+      - [x] Meal description with optional "Did you know?" fun facts section
+      - [x] PAX selector with automatic prefilling from user's household size
+      - [x] Complete nutrition facts with calorie and nutrient breakdown
+      - [x] Ingredients list with PAX-scaled quantities
+      - [x] Cooking instructions with prep time, difficulty, and servings info
+      - [x] Health information with safety badges for 8 conditions
+      - [x] Meal timing information with best-time-to-eat badges
+    - [x] **PAX Scaling Integration**
+      - [x] All nutrition values dynamically calculated based on PAX selection
+      - [x] Ingredient quantities automatically scale with PAX changes
+      - [x] Macronutrients (fat, carbs, protein) and micronutrients scale correctly
+      - [x] Real-time UI updates when PAX selector changes
+    - [x] **Professional UI Design**
+      - [x] Consistent with app theme (AppColors.successGreen, white cards)
+      - [x] Section-based layout with icons and headers
+      - [x] Color-coded health condition badges
+      - [x] Meal timing chips with appropriate icons
+      - [x] Smooth scrolling with proper spacing and padding
+    - [x] Navigation integrated into meal plan page "View Details" option
   - [x] **Complete FNRI Integration & AI User Flow Implementation**
     - [x] Meal Plan Page → AI Suggestions → Search Results → Recipe Details → Nutrition Facts (PAX Selection) → Meal Type Selection → Firebase Logging
     - [x] AI-powered meal recommendations with health condition filtering and PAX awareness
