@@ -201,44 +201,92 @@ class ProfessionalService {
     }
   }
 
-  /// Get patient notes for professional
+  /// Get patient notes for professional (showing all consultations grouped by patient)
   Future<List<Map<String, dynamic>>> getPatientNotes({String? searchQuery}) async {
     final currentUser = _auth.currentUser;
     if (currentUser == null) return [];
 
     try {
-      Query query = _firestore
-          .collection('patient_notes')
+      // Get all consultations for this professional
+      final consultationsSnapshot = await _firestore
+          .collection('consultations')
           .where('professional_id', isEqualTo: currentUser.uid)
-          .orderBy('updated_at', descending: true);
+          .orderBy('consultation_date', descending: true)
+          .get();
 
-      final querySnapshot = await query.get();
+      // Group consultations by patient
+      Map<String, Map<String, dynamic>> patientConsultations = {};
 
-      var notes = querySnapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        return {
+      for (var doc in consultationsSnapshot.docs) {
+        final data = doc.data();
+        final patientId = data['patient_id'] as String;
+        final patientName = data['patient_name'] as String? ?? 'Unknown Patient';
+
+        if (!patientConsultations.containsKey(patientId)) {
+          // Fetch patient details
+          try {
+            final patientDoc = await _firestore.collection('users').doc(patientId).get();
+            final patientData = patientDoc.data();
+            
+            patientConsultations[patientId] = {
+              'patient_id': patientId,
+              'patient_name': patientName,
+              'patient_phone': patientData?['phone_number'] ?? '',
+              'health_conditions': patientData?['health_conditions'] ?? [],
+              'consultations': [],
+              'consultation_count': 0,
+              'latest_consultation': null,
+              'created_at': data['created_at'] ?? Timestamp.now(),
+            };
+          } catch (e) {
+            print('Error fetching patient data: $e');
+            patientConsultations[patientId] = {
+              'patient_id': patientId,
+              'patient_name': patientName,
+              'patient_phone': '',
+              'health_conditions': [],
+              'consultations': [],
+              'consultation_count': 0,
+              'latest_consultation': null,
+              'created_at': data['created_at'] ?? Timestamp.now(),
+            };
+          }
+        }
+
+        // Add consultation to patient's list
+        patientConsultations[patientId]!['consultations'].add({
           'id': doc.id,
-          ...data,
-        };
-      }).toList();
+          'consultation_date': data['consultation_date'],
+          'consultation_time': data['consultation_time'],
+          'status': data['status'],
+          'topic': data['topic'] ?? '',
+          'reference_no': data['reference_no'] ?? '',
+        });
+
+        patientConsultations[patientId]!['consultation_count']++;
+        
+        // Update latest consultation
+        if (patientConsultations[patientId]!['latest_consultation'] == null) {
+          patientConsultations[patientId]!['latest_consultation'] = {
+            'date': data['consultation_date'],
+            'topic': data['topic'] ?? 'No topic specified',
+          };
+        }
+      }
+
+      // Convert to list
+      var patientList = patientConsultations.values.toList();
 
       // Apply client-side search if query provided
       if (searchQuery != null && searchQuery.isNotEmpty) {
         final query = searchQuery.toLowerCase();
-        notes = notes.where((note) {
-          final patientName = (note['patient_name'] as String? ?? '').toLowerCase();
-          final noteText = (note['note_text'] as String? ?? '').toLowerCase();
-          final tags = (note['tags'] as List<dynamic>? ?? [])
-              .map((tag) => tag.toString().toLowerCase())
-              .toList();
-          
-          return patientName.contains(query) || 
-                 noteText.contains(query) ||
-                 tags.any((tag) => tag.contains(query));
+        patientList = patientList.where((patient) {
+          final patientName = (patient['patient_name'] as String? ?? '').toLowerCase();
+          return patientName.contains(query);
         }).toList();
       }
 
-      return notes;
+      return patientList;
     } catch (e) {
       print('Error getting patient notes: $e');
       return [];
@@ -271,6 +319,82 @@ class ProfessionalService {
       });
     } catch (e) {
       throw Exception('Failed to add patient note: $e');
+    }
+  }
+
+  /// Get consultation history for a specific patient
+  Future<List<Map<String, dynamic>>> getPatientConsultationHistory(String patientId) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) return [];
+
+    try {
+      final consultationsSnapshot = await _firestore
+          .collection('consultations')
+          .where('professional_id', isEqualTo: currentUser.uid)
+          .where('patient_id', isEqualTo: patientId)
+          .orderBy('consultation_date', descending: true)
+          .get();
+
+      List<Map<String, dynamic>> consultations = [];
+
+      for (var doc in consultationsSnapshot.docs) {
+        final data = doc.data();
+        
+        // Get associated notes for this consultation
+        final notesSnapshot = await _firestore
+            .collection('patient_notes')
+            .where('consultation_id', isEqualTo: doc.id)
+            .get();
+
+        consultations.add({
+          'id': doc.id,
+          'consultation_date': data['consultation_date'],
+          'consultation_time': data['consultation_time'],
+          'status': data['status'],
+          'topic': data['topic'] ?? 'No topic specified',
+          'reference_no': data['reference_no'] ?? '',
+          'notes': notesSnapshot.docs.map((noteDoc) {
+            final noteData = noteDoc.data();
+            return {
+              'id': noteDoc.id,
+              'note_text': noteData['note_text'],
+              'tags': noteData['tags'] ?? [],
+              'created_at': noteData['created_at'],
+            };
+          }).toList(),
+        });
+      }
+
+      return consultations;
+    } catch (e) {
+      print('Error getting patient consultation history: $e');
+      return [];
+    }
+  }
+
+  /// Get all notes for a specific patient
+  Future<List<Map<String, dynamic>>> getPatientAllNotes(String patientId) async {
+    final currentUser = _auth.currentUser;
+    if (currentUser == null) return [];
+
+    try {
+      final notesSnapshot = await _firestore
+          .collection('patient_notes')
+          .where('professional_id', isEqualTo: currentUser.uid)
+          .where('patient_id', isEqualTo: patientId)
+          .orderBy('created_at', descending: true)
+          .get();
+
+      return notesSnapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          ...data,
+        };
+      }).toList();
+    } catch (e) {
+      print('Error getting patient notes: $e');
+      return [];
     }
   }
 

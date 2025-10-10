@@ -53,11 +53,12 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
     return patientName[0].toUpperCase();
   }
 
-  String _formatNoteDate(Map<String, dynamic> note) {
-    if (note['created_at'] == null) return 'Recently';
+  String _formatNoteDate(Map<String, dynamic> patient) {
+    if (patient['latest_consultation'] == null) return 'No consultations';
     
     try {
-      final timestamp = note['created_at'] as Timestamp;
+      final consultation = patient['latest_consultation'] as Map<String, dynamic>;
+      final timestamp = consultation['date'] as Timestamp;
       final date = timestamp.toDate();
       return '${date.month}/${date.day}/${date.year}';
     } catch (e) {
@@ -199,17 +200,6 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: "add_note_fab",
-        onPressed: () {
-          _showAddNoteDialog();
-        },
-        backgroundColor: AppColors.successGreen,
-        child: Icon(
-          Icons.add,
-          color: AppColors.white,
-        ),
-      ),
     );
   }
 
@@ -281,9 +271,9 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
           ),
           Expanded(
             child: _buildStatItem(
-              icon: Icons.note_alt,
-              title: 'Total Notes',
-              value: '${_patientNotes.fold(0, (sum, patient) => sum + (patient['consultationCount'] as int))}',
+              icon: Icons.event,
+              title: 'Consultations',
+              value: '${_patientNotes.fold(0, (sum, patient) => sum + (patient['consultation_count'] as int? ?? 0))}',
               color: AppColors.successGreen,
             ),
           ),
@@ -295,8 +285,8 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
           Expanded(
             child: _buildStatItem(
               icon: Icons.today,
-              title: 'Recent Updates',
-              value: '2',
+              title: 'This Week',
+              value: '${_patientNotes.fold(0, (sum, patient) => sum + (patient['consultation_count'] as int? ?? 0))}',
               color: AppColors.purpleAccent,
             ),
           ),
@@ -367,12 +357,15 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
         else
           ..._patientNotes.map((note) => 
             _buildPatientNoteCard(note)
-          ).toList(),
+          ),
       ],
     );
   }
 
-  Widget _buildPatientNoteCard(Map<String, dynamic> note) {
+  Widget _buildPatientNoteCard(Map<String, dynamic> patient) {
+    final latestConsultation = patient['latest_consultation'] as Map<String, dynamic>?;
+    final consultationCount = patient['consultation_count'] as int? ?? 0;
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -402,7 +395,7 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
                 ),
                 child: Center(
                   child: Text(
-                    _getPatientInitial(note['patient_name']),
+                    _getPatientInitial(patient['patient_name']),
                     style: TextStyle(
                       fontFamily: 'Lato',
                       fontSize: 16,
@@ -421,28 +414,38 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          note['patient_name'] ?? 'Unknown Patient',
-                          style: TextStyle(
-                            fontFamily: 'Lato',
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.blackText,
+                        Expanded(
+                          child: Text(
+                            patient['patient_name'] ?? 'Unknown Patient',
+                            style: TextStyle(
+                              fontFamily: 'Lato',
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.blackText,
+                            ),
                           ),
                         ),
-                        Text(
-                          'Notes available',
-                          style: TextStyle(
-                            fontFamily: 'OpenSans',
-                            fontSize: 12,
-                            color: AppColors.grayText,
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: AppColors.successGreen.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            '$consultationCount consultation${consultationCount != 1 ? 's' : ''}',
+                            style: TextStyle(
+                              fontFamily: 'OpenSans',
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.successGreen,
+                            ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Created: ${_formatNoteDate(note)}',
+                      'Last visit: ${_formatNoteDate(patient)}',
                       style: TextStyle(
                         fontFamily: 'OpenSans',
                         fontSize: 12,
@@ -457,13 +460,13 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
           const SizedBox(height: 16),
           
           // Health Conditions
-          if (note['health_conditions'] != null && (note['health_conditions'] as List).isNotEmpty) ...[
+          if (patient['health_conditions'] != null && (patient['health_conditions'] as List).isNotEmpty) ...[
             Align(
               alignment: Alignment.centerLeft,
               child: Wrap(
                 spacing: 8,
                 runSpacing: 4,
-                children: (note['health_conditions'] as List).map((condition) => 
+                children: (patient['health_conditions'] as List).take(3).map((condition) => 
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
@@ -471,7 +474,7 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Text(
-                      condition,
+                      condition is Map ? condition['condition_name'] ?? '' : condition.toString(),
                       style: TextStyle(
                         fontFamily: 'OpenSans',
                         fontSize: 10,
@@ -486,64 +489,37 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
             const SizedBox(height: 12),
           ],
           
-          // Latest Note
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.primaryBackground,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Latest Note:',
-                  style: TextStyle(
-                    fontFamily: 'OpenSans',
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.grayText,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  note['note_text'] ?? 'No notes available',
-                  style: TextStyle(
-                    fontFamily: 'OpenSans',
-                    fontSize: 13,
-                    color: AppColors.blackText,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          
-          // Tags
-          if (note['tags'] != null && (note['tags'] as List).isNotEmpty) ...[
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Wrap(
-                spacing: 6,
-                runSpacing: 4,
-                children: (note['tags'] as List).map((tag) => 
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: AppColors.successGreen.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(8),
+          // Latest Consultation Topic
+          if (latestConsultation != null) ...[
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primaryBackground,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Latest Consultation:',
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.grayText,
                     ),
-                    child: Text(
-                      tag,
-                      style: TextStyle(
-                        fontFamily: 'OpenSans',
-                        fontSize: 10,
-                        color: AppColors.successGreen,
-                      ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    latestConsultation['topic'] ?? 'No topic specified',
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      fontSize: 13,
+                      color: AppColors.blackText,
                     ),
-                  )
-                ).toList(),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 12),
@@ -553,10 +529,24 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
           Row(
             children: [
               Expanded(
-                child: OutlinedButton(
+                child: OutlinedButton.icon(
                   onPressed: () {
-                    _viewPatientHistory(note);
+                    _viewPatientHistory(patient);
                   },
+                  icon: Icon(
+                    Icons.history,
+                    size: 16,
+                    color: AppColors.grayText,
+                  ),
+                  label: Text(
+                    'History',
+                    style: TextStyle(
+                      fontFamily: 'Lato',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.grayText,
+                    ),
+                  ),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(
                       color: AppColors.grayText.withOpacity(0.5),
@@ -565,36 +555,62 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: Text(
-                    'View History',
-                    style: TextStyle(
-                      fontFamily: 'Lato',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.grayText,
-                    ),
-                  ),
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
               Expanded(
-                child: ElevatedButton(
+                child: OutlinedButton.icon(
                   onPressed: () {
-                    _addNote(note);
+                    _viewPatientNotes(patient);
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.successGreen,
+                  icon: Icon(
+                    Icons.note,
+                    size: 16,
+                    color: AppColors.primaryAccent,
+                  ),
+                  label: Text(
+                    'Notes',
+                    style: TextStyle(
+                      fontFamily: 'Lato',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primaryAccent,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                      color: AppColors.primaryAccent.withOpacity(0.5),
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: Text(
-                    'Add Note',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    _addNote(patient);
+                  },
+                  icon: Icon(
+                    Icons.add,
+                    size: 16,
+                    color: AppColors.white,
+                  ),
+                  label: Text(
+                    'Add',
                     style: TextStyle(
                       fontFamily: 'Lato',
-                      fontSize: 14,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: AppColors.white,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.successGreen,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
                   ),
                 ),
@@ -641,135 +657,317 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
     );
   }
 
-  void _viewPatientHistory(Map<String, dynamic> note) {
-    showModalBottomSheet(
+  void _viewPatientNotes(Map<String, dynamic> patient) async {
+    // Show loading dialog
+    showDialog(
       context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: CircularProgressIndicator(color: AppColors.successGreen),
       ),
-      builder: (context) => DraggableScrollableSheet(
-        initialChildSize: 0.7,
-        maxChildSize: 0.9,
-        minChildSize: 0.5,
-        expand: false,
-        builder: (context, scrollController) => Container(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                '${note['patientName']} - History',
-                style: TextStyle(
-                  fontFamily: 'Lato',
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.blackText,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Expanded(
-                child: ListView(
-                  controller: scrollController,
+    );
+
+    // Fetch all notes for this patient
+    final notes = await _professionalService.getPatientAllNotes(
+      patient['patient_id'],
+    );
+
+    // Close loading dialog
+    if (mounted) Navigator.pop(context);
+
+    // Show notes modal
+    if (mounted) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (context) => DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          maxChildSize: 0.9,
+          minChildSize: 0.5,
+          expand: false,
+          builder: (context, scrollController) => Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    // Sample consultation history
-                    _buildHistoryItem(
-                      date: 'Sep 20, 2025',
-                      note: 'Patient showing good progress with weight management. Recommended increasing protein intake.',
-                      tags: ['Weight Management', 'Protein'],
+                    Icon(
+                      Icons.note_alt,
+                      color: AppColors.primaryAccent,
+                      size: 24,
                     ),
-                    _buildHistoryItem(
-                      date: 'Sep 10, 2025',
-                      note: 'Initial assessment completed. Starting with calorie-controlled diet plan.',
-                      tags: ['Initial Assessment', 'Diet Plan'],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${patient['patient_name']}',
+                            style: TextStyle(
+                              fontFamily: 'Lato',
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.blackText,
+                            ),
+                          ),
+                          Text(
+                            'All Notes',
+                            style: TextStyle(
+                              fontFamily: 'OpenSans',
+                              fontSize: 14,
+                              color: AppColors.grayText,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    _buildHistoryItem(
-                      date: 'Sep 1, 2025',
-                      note: 'Patient consultation booking. Discussed health goals and expectations.',
-                      tags: ['Booking', 'Goals'],
+                    IconButton(
+                      icon: Icon(Icons.close, color: AppColors.grayText),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ],
                 ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.successGreen,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryAccent.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    'Close',
-                    style: TextStyle(
-                      fontFamily: 'Lato',
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.white,
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.note,
+                        size: 16,
+                        color: AppColors.primaryAccent,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${notes.length} note${notes.length != 1 ? 's' : ''} recorded',
+                        style: TextStyle(
+                          fontFamily: 'OpenSans',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryAccent,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: notes.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.note_alt_outlined,
+                                size: 48,
+                                color: AppColors.grayText.withOpacity(0.5),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No notes found',
+                                style: TextStyle(
+                                  fontFamily: 'Lato',
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.grayText,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Start adding notes for this patient',
+                                style: TextStyle(
+                                  fontFamily: 'OpenSans',
+                                  color: AppColors.grayText,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: scrollController,
+                          itemCount: notes.length,
+                          itemBuilder: (context, index) {
+                            final note = notes[index];
+                            return _buildNoteItem(note);
+                          },
+                        ),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _addNote(patient);
+                        },
+                        icon: Icon(Icons.add, color: AppColors.white, size: 18),
+                        label: Text(
+                          'Add Note',
+                          style: TextStyle(
+                            fontFamily: 'Lato',
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.white,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.successGreen,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
                     ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: AppColors.grayText.withOpacity(0.5)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        child: Text(
+                          'Close',
+                          style: TextStyle(
+                            fontFamily: 'Lato',
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.grayText,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildNoteItem(Map<String, dynamic> note) {
+    String formatDate(Timestamp? timestamp) {
+      if (timestamp == null) return 'Date not available';
+      try {
+        final date = timestamp.toDate();
+        return '${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.month - 1]} ${date.day}, ${date.year}';
+      } catch (e) {
+        return 'Date error';
+      }
+    }
+
+    final tags = note['tags'] as List<dynamic>? ?? [];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primaryAccent.withOpacity(0.2),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryAccent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  Icons.edit_note,
+                  size: 16,
+                  color: AppColors.primaryAccent,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  formatDate(note['created_at']),
+                  style: TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.blackText,
                   ),
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHistoryItem({
-    required String date,
-    required String note,
-    required List<String> tags,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.primaryBackground,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            date,
-            style: TextStyle(
-              fontFamily: 'OpenSans',
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: AppColors.grayText,
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primaryBackground,
+              borderRadius: BorderRadius.circular(8),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            note,
-            style: TextStyle(
-              fontFamily: 'OpenSans',
-              fontSize: 13,
-              color: AppColors.blackText,
+            child: Text(
+              note['note_text'] ?? 'No note text',
+              style: TextStyle(
+                fontFamily: 'OpenSans',
+                fontSize: 13,
+                color: AppColors.blackText,
+                height: 1.4,
+              ),
             ),
           ),
           if (tags.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 10),
             Wrap(
               spacing: 6,
+              runSpacing: 6,
               children: tags.map((tag) => 
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: AppColors.successGreen.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    tag,
-                    style: TextStyle(
-                      fontFamily: 'OpenSans',
-                      fontSize: 9,
-                      color: AppColors.successGreen,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.label,
+                        size: 10,
+                        color: AppColors.successGreen,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        tag.toString(),
+                        style: TextStyle(
+                          fontFamily: 'OpenSans',
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.successGreen,
+                        ),
+                      ),
+                    ],
                   ),
                 )
               ).toList(),
@@ -780,120 +978,512 @@ class _PatientNotesPageState extends State<PatientNotesPage> {
     );
   }
 
-  void _addNote(Map<String, dynamic> patient) {
-    final TextEditingController noteController = TextEditingController();
-    
+  void _viewPatientHistory(Map<String, dynamic> patient) async {
+    // Show loading dialog
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: CircularProgressIndicator(color: AppColors.successGreen),
+      ),
+    );
+
+    // Fetch consultation history
+    final consultations = await _professionalService.getPatientConsultationHistory(
+      patient['patient_id'],
+    );
+
+    // Close loading dialog
+    if (mounted) Navigator.pop(context);
+
+    // Show history modal
+    if (mounted) {
+      showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        title: Text(
-          'Add Note for ${patient['patientName']}',
-          style: TextStyle(
-            fontFamily: 'Lato',
-            fontWeight: FontWeight.bold,
-            color: AppColors.blackText,
-          ),
-        ),
-        content: TextField(
-          controller: noteController,
-          maxLines: 4,
-          decoration: InputDecoration(
-            hintText: 'Enter consultation notes...',
-            hintStyle: TextStyle(color: AppColors.grayText),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
+        builder: (context) => DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          maxChildSize: 0.9,
+          minChildSize: 0.5,
+          expand: false,
+          builder: (context, scrollController) => Container(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${patient['patient_name']} - History',
+                        style: TextStyle(
+                          fontFamily: 'Lato',
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.blackText,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.close, color: AppColors.grayText),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${consultations.length} consultation${consultations.length != 1 ? 's' : ''} recorded',
+                  style: TextStyle(
+                    fontFamily: 'OpenSans',
+                    fontSize: 14,
+                    color: AppColors.grayText,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: consultations.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.event_note,
+                                size: 48,
+                                color: AppColors.grayText.withOpacity(0.5),
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No consultation history',
+                                style: TextStyle(
+                                  fontFamily: 'OpenSans',
+                                  color: AppColors.grayText,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          controller: scrollController,
+                          itemCount: consultations.length,
+                          itemBuilder: (context, index) {
+                            final consultation = consultations[index];
+                            return _buildHistoryItem(consultation);
+                          },
+                        ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.successGreen,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: Text(
+                      'Close',
+                      style: TextStyle(
+                        fontFamily: 'Lato',
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.white,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-          style: TextStyle(
-            fontFamily: 'OpenSans',
-            color: AppColors.blackText,
-          ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
+      );
+    }
+  }
+
+  Widget _buildHistoryItem(Map<String, dynamic> consultation) {
+    String formatDate(Timestamp? timestamp) {
+      if (timestamp == null) return 'Date not available';
+      try {
+        final date = timestamp.toDate();
+        return '${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][date.month - 1]} ${date.day}, ${date.year}';
+      } catch (e) {
+        return 'Date error';
+      }
+    }
+
+    final notes = consultation['notes'] as List<dynamic>? ?? [];
+    final hasNotes = notes.isNotEmpty;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.primaryBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.successGreen.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.successGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Icon(
+                  Icons.event,
+                  size: 14,
+                  color: AppColors.successGreen,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      formatDate(consultation['consultation_date']),
+                      style: TextStyle(
+                        fontFamily: 'Lato',
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.blackText,
+                      ),
+                    ),
+                    Text(
+                      consultation['consultation_time'] ?? 'Time not specified',
+                      style: TextStyle(
+                        fontFamily: 'OpenSans',
+                        fontSize: 11,
+                        color: AppColors.grayText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _getStatusColor(consultation['status']).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  consultation['status'] ?? 'Unknown',
+                  style: TextStyle(
+                    fontFamily: 'OpenSans',
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                    color: _getStatusColor(consultation['status']),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            consultation['topic'] ?? 'No topic specified',
+            style: TextStyle(
+              fontFamily: 'OpenSans',
+              fontSize: 12,
+              color: AppColors.blackText,
+            ),
+          ),
+          if (consultation['reference_no'] != null && consultation['reference_no'].toString().isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Ref: ${consultation['reference_no']}',
               style: TextStyle(
                 fontFamily: 'OpenSans',
+                fontSize: 10,
                 color: AppColors.grayText,
               ),
             ),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (noteController.text.isNotEmpty) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Note added for ${patient['patientName']}',
-                      style: TextStyle(color: AppColors.white),
-                    ),
-                    backgroundColor: AppColors.successGreen,
-                  ),
-                );
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.successGreen,
-            ),
-            child: Text(
-              'Save Note',
-              style: TextStyle(
-                fontFamily: 'Lato',
-                fontWeight: FontWeight.w600,
+          ],
+          if (hasNotes) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
                 color: AppColors.white,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.note_alt,
+                        size: 12,
+                        color: AppColors.successGreen,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Notes:',
+                        style: TextStyle(
+                          fontFamily: 'OpenSans',
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.successGreen,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  ...notes.map((note) => Padding(
+                    padding: const EdgeInsets.only(top: 4),
+                    child: Text(
+                      '• ${note['note_text'] ?? ''}',
+                      style: TextStyle(
+                        fontFamily: 'OpenSans',
+                        fontSize: 11,
+                        color: AppColors.blackText,
+                      ),
+                    ),
+                  )),
+                ],
               ),
             ),
-          ),
+          ],
         ],
       ),
     );
   }
 
-  void _showAddNoteDialog() {
+  Color _getStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'completed':
+        return AppColors.successGreen;
+      case 'scheduled':
+      case 'confirmed':
+        return AppColors.primaryAccent;
+      case 'cancelled':
+        return Colors.red;
+      default:
+        return AppColors.grayText;
+    }
+  }
+
+  void _addNote(Map<String, dynamic> patient) {
+    final TextEditingController noteController = TextEditingController();
+    final TextEditingController tagsController = TextEditingController();
+    
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: Text(
-          'Quick Add Note',
-          style: TextStyle(
-            fontFamily: 'Lato',
-            fontWeight: FontWeight.bold,
-            color: AppColors.blackText,
-          ),
-        ),
-        content: Text(
-          'Select a patient from the list to add consultation notes.',
-          style: TextStyle(
-            fontFamily: 'OpenSans',
-            color: AppColors.grayText,
-          ),
-        ),
-        actions: [
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.successGreen,
+      builder: (context) {
+        bool isSaving = false;
+        return StatefulBuilder(
+          builder: (context, setState) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
             ),
-            child: Text(
-              'OK',
-              style: TextStyle(
-                fontFamily: 'Lato',
-                fontWeight: FontWeight.w600,
-                color: AppColors.white,
+            title: Row(
+              children: [
+                Icon(Icons.note_add, color: AppColors.successGreen),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Add Note for ${patient['patient_name']}',
+                    style: TextStyle(
+                      fontFamily: 'Lato',
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppColors.blackText,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Consultation Note',
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.grayText,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: noteController,
+                    maxLines: 5,
+                    decoration: InputDecoration(
+                      hintText: 'Enter consultation notes, observations, recommendations...',
+                      hintStyle: TextStyle(
+                        fontFamily: 'OpenSans',
+                        color: AppColors.grayText,
+                        fontSize: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: AppColors.grayText.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: AppColors.successGreen, width: 2),
+                      ),
+                    ),
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      color: AppColors.blackText,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Tags (optional)',
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.grayText,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: tagsController,
+                    decoration: InputDecoration(
+                      hintText: 'e.g., Weight Management, Diabetes, Follow-up',
+                      hintStyle: TextStyle(
+                        fontFamily: 'OpenSans',
+                        color: AppColors.grayText,
+                        fontSize: 12,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: AppColors.grayText.withOpacity(0.3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide(color: AppColors.successGreen, width: 2),
+                      ),
+                    ),
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      color: AppColors.blackText,
+                    ),
+                  ),
+                ],
               ),
             ),
+            actions: [
+              TextButton(
+                onPressed: isSaving ? null : () => Navigator.pop(context),
+                child: Text(
+                  'Cancel',
+                  style: TextStyle(
+                    fontFamily: 'OpenSans',
+                    color: isSaving ? AppColors.grayText : AppColors.blackText,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: isSaving ? null : () async {
+                  if (noteController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Please enter a note'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                    return;
+                  }
+
+                  setState(() => isSaving = true);
+
+                  try {
+                    // Parse tags
+                    List<String> tags = tagsController.text
+                        .split(',')
+                        .map((tag) => tag.trim())
+                        .where((tag) => tag.isNotEmpty)
+                        .toList();
+
+                    // Get health conditions from patient data
+                    List<String> healthConditions = [];
+                    if (patient['health_conditions'] != null) {
+                      final conditions = patient['health_conditions'] as List;
+                      healthConditions = conditions.map((c) {
+                        if (c is Map && c.containsKey('condition_name')) {
+                          return c['condition_name'].toString();
+                        }
+                        return c.toString();
+                      }).toList();
+                    }
+
+                    await _professionalService.addPatientNote(
+                      patientId: patient['patient_id'],
+                      patientName: patient['patient_name'],
+                      noteText: noteController.text,
+                      tags: tags,
+                      healthConditions: healthConditions,
+                    );
+
+                    if (mounted) {
+                      Navigator.pop(context);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Note added successfully for ${patient['patient_name']}',
+                            style: TextStyle(color: AppColors.white),
+                          ),
+                          backgroundColor: AppColors.successGreen,
+                        ),
+                      );
+                      // Reload patient notes
+                      _loadPatientNotes();
+                    }
+                  } catch (e) {
+                    setState(() => isSaving = false);
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Failed to add note: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isSaving ? AppColors.grayText : AppColors.successGreen,
+                ),
+                child: isSaving
+                    ? SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(
+                          color: AppColors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : Text(
+                        'Save Note',
+                        style: TextStyle(
+                          fontFamily: 'Lato',
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.white,
+                        ),
+                      ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
