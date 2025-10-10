@@ -591,6 +591,73 @@ applyTo: '**'
         - [x] Loading states prevent multiple submissions
         - [x] Navigation via MaterialPageRoute from manage_recipes_page
         - [x] Complete documentation in EDIT_RECIPE_FIREBASE_INTEGRATION.md
+  - [x] **Market Data Management** (Complete Firebase Implementation)
+    - [x] **Market Prices Overview** - Added to Analytics Dashboard
+      - [x] _buildMarketPricesOverview() method in app_analytics_page.dart
+      - [x] Overview section displays 3 stat cards: 100+ products, 8 markets, Last Updated
+      - [x] Navigate button routes to '/admin/manage-market-prices'
+      - [x] Integrated at bottom of analytics dashboard with proper spacing
+    - [x] **Manage Market Prices Page** (`manage_market_prices_page.dart`)
+      - [x] **Complete Data Structure** - 9 categories, 100+ products from Quezon City markets
+        - [x] LocalCommercialRice (9 products): Regular Milled, Premium, Fancy/Extra Fancy
+        - [x] LivestockAndPoultry (22 products): Pork, Chicken, Beef, Eggs, Hotdog
+        - [x] HighlandVegetables (10 products): Ampalaya, Beans Baguio, Cabbage, Carrot, Cauliflower, Potato, Tomato
+        - [x] ImportedCommercialRice (6 products): Regular, Premium, Special, Well Milled
+        - [x] Fish (12 products): Tilapia, Galunggong, Bangus, Alumahan, Tulingan, Maya-maya, Lapu-lapu, Pusit
+        - [x] Corn (7 products): Yellow, White from various markets
+        - [x] LowlandVegetables (18 products): Ampalaya, Beans Sitao, Cabbage, Eggplant, Garlic, Ginger, Onion, etc.
+        - [x] Fruits (11 products): Banana varieties, Calamansi, Dalandan, Mango, Papaya, Pineapple, Watermelon
+        - [x] OtherCommodities (10 products): Bottled Water, Cooking Oil, Refined Sugar
+      - [x] **Expandable Category UI** - Non-overcrowded interface with toggle functionality
+        - [x] ExpansionTile-based category cards with dynamic expand/collapse
+        - [x] Category icons (basket, fish, leaf, grain, etc.) for visual identification
+        - [x] Category display names (e.g., "Local Commercial Rice", "Livestock & Poultry")
+        - [x] Smooth animation with green accent colors
+      - [x] **Product Management Table**
+        - [x] 4 columns: Product Name, Unit, Price (PHP), Actions
+        - [x] Edit button for each product with price editing dialog
+        - [x] History button for viewing price trends (placeholder for ML data)
+        - [x] Responsive table design with proper alignment
+      - [x] **Date-Based Price Editing** - Critical for ML forecasting
+        - [x] Edit dialog displays current date: "Price will be saved for today: October 8, 2025"
+        - [x] Price saved with DateTime.now() timestamp via _savePriceToFirebase()
+        - [x] Next day edit creates new entry: October 9 → new price_history document
+        - [x] Automatic date tracking for time-series ML training data
+      - [x] **Firebase Integration**
+        - [x] MarketPriceService.updateMarketPrice() integration
+        - [x] Saves to market_prices/{category}_{product}_{market} documents
+        - [x] Creates price_history subcollection entries with dates
+        - [x] Success/error handling with SnackBar feedback
+      - [x] **Search Functionality**
+        - [x] Real-time search bar filters products and categories
+        - [x] Search by product name across all categories
+        - [x] Dynamic UI updates based on search query
+      - [x] **Help System**
+        - [x] Help dialog with usage instructions
+        - [x] Explains expandable categories, editing, and price history
+        - [x] Accessible via help icon button in AppBar
+      - [x] **Route Registration**
+        - [x] Added '/admin/manage-market-prices' route to main.dart
+        - [x] Import ManageMarketPricesPage in main.dart
+        - [x] Navigation from analytics dashboard working
+    - [x] **ML Forecasting Documentation** (`ML_PRICE_FORECASTING_README.md`)
+      - [x] Complete guide for training machine learning models
+      - [x] Firebase data structure explanation (market_prices, price_history, forecast_models)
+      - [x] All 9 product categories documented with examples
+      - [x] Date-based price tracking workflow explained
+      - [x] Python code examples for data access (Firebase Admin SDK)
+      - [x] Feature engineering techniques (time-based, lag, rolling features)
+      - [x] 4 recommended ML models with complete code:
+        - [x] ARIMA - For short-term forecasting and seasonal patterns
+        - [x] Prophet - For handling seasonality and holidays
+        - [x] LSTM - For complex patterns and non-linear relationships
+        - [x] XGBoost - For multiple features and feature importance
+      - [x] Model evaluation metrics (MAE, RMSE, MAPE, R2)
+      - [x] Saving forecasts back to Firebase (price_history with is_forecasted: true)
+      - [x] Model registration in forecast_models collection
+      - [x] Production pipeline with automated daily forecasting
+      - [x] Best practices for data quality, model selection, validation, deployment
+      - [x] Complete workflow example and troubleshooting guide
   - [x] Price data validation pages
   - [x] **Forum Management & Moderation** (Complete Firebase Implementation)
     - [x] `ForumManagementService` created (`lib/services/forum_management_service.dart`)

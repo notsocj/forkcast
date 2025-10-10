@@ -1,8 +1,6 @@
 ---
 applyTo: '**'
 ---
-applyTo: '**'
-
 # ForkCast Firestore Schema Instructions
 # AI must follow this schema when generating queries, functions, or database-related code.
 # Do not invent collections or fields outside this structure, unless explicitly instructed.

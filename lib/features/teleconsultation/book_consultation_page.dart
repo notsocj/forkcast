@@ -267,7 +267,7 @@ class _BookConsultationPageState extends State<BookConsultationPage>
                   ),
                   dividerColor: Colors.transparent,
                   splashFactory: NoSplash.splashFactory,
-                  overlayColor: MaterialStateProperty.all(Colors.transparent),
+                  overlayColor: WidgetStateProperty.all(Colors.transparent),
                   tabs: const [
                     Tab(text: 'Book Consultation'),
                     Tab(text: 'My Appointments'),
@@ -385,7 +385,7 @@ class _BookConsultationPageState extends State<BookConsultationPage>
                         // Professionals list
                         ..._professionals.map((professional) => 
                           _buildProfessionalCard(professional)
-                        ).toList(),
+                        ),
                       ],
                     ),
                 ],
@@ -423,7 +423,7 @@ class _BookConsultationPageState extends State<BookConsultationPage>
                   else
                     ..._appointments.map((appointment) => 
                       _buildAppointmentCard(appointment)
-                    ).toList(),
+                    ),
                 ],
               ),
             ),
@@ -822,7 +822,7 @@ class _BookConsultationPageState extends State<BookConsultationPage>
                 ],
               ),
             );
-          }).toList(),
+          }),
       ],
     );
   }
@@ -943,7 +943,7 @@ class _BookConsultationPageState extends State<BookConsultationPage>
                               ],
                             ),
                           );
-                        }).toList(),
+                        }),
                     ],
                   ),
                 ),
@@ -1155,34 +1155,6 @@ class _BookConsultationPageState extends State<BookConsultationPage>
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              // Consult Now button
-              Expanded(
-                child: SizedBox(
-                  height: 40,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      _startConsultation(appointment);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.successGreen,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Text(
-                      'Consult Now',
-                      style: TextStyle(
-                        fontFamily: 'Lato',
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
             ],
           ),
         ],
@@ -1345,98 +1317,5 @@ class _BookConsultationPageState extends State<BookConsultationPage>
         ),
       );
     }
-  }
-
-  void _startConsultation(Map<String, dynamic> appointment) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Row(
-            children: [
-              Icon(
-                Icons.video_call,
-                color: AppColors.successGreen,
-                size: 24,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Start Consultation',
-                style: TextStyle(
-                  fontFamily: 'Lato',
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.blackText,
-                ),
-              ),
-            ],
-          ),
-          content: Text(
-            'Starting your consultation with ${appointment['professionalName']}. You will be connected shortly.',
-            style: TextStyle(
-              fontFamily: 'OpenSans',
-              fontSize: 14,
-              color: AppColors.grayText,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text(
-                'Not Now',
-                style: TextStyle(
-                  fontFamily: 'Lato',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.grayText,
-                ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                // Here you would integrate with video call functionality
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Connecting to consultation...',
-                      style: TextStyle(
-                        fontFamily: 'OpenSans',
-                        color: AppColors.white,
-                      ),
-                    ),
-                    backgroundColor: AppColors.successGreen,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.successGreen,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Text(
-                'Connect',
-                style: TextStyle(
-                  fontFamily: 'Lato',
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.white,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
   }
 }

@@ -163,13 +163,38 @@ class ProfessionalService {
           .orderBy('consultation_date', descending: false)
           .get();
 
-      return querySnapshot.docs.map((doc) {
+      List<Map<String, dynamic>> consultations = [];
+      
+      for (var doc in querySnapshot.docs) {
         final data = doc.data();
-        return {
+        final consultationData = {
           'id': doc.id,
           ...data,
         };
-      }).toList();
+        
+        // Fetch patient phone number from user document
+        try {
+          final patientId = data['patient_id'];
+          if (patientId != null) {
+            final patientDoc = await _firestore
+                .collection('users')
+                .doc(patientId)
+                .get();
+            
+            if (patientDoc.exists) {
+              final patientData = patientDoc.data();
+              consultationData['patient_phone'] = patientData?['phone_number'] ?? '';
+            }
+          }
+        } catch (e) {
+          print('Error fetching patient phone number: $e');
+          consultationData['patient_phone'] = '';
+        }
+        
+        consultations.add(consultationData);
+      }
+      
+      return consultations;
     } catch (e) {
       print('Error getting upcoming consultations: $e');
       return [];

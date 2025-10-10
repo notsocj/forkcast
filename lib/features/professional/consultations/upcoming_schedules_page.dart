@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/professional_service.dart';
 
@@ -663,6 +664,76 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
           // Action Buttons
           Row(
             children: [
+              // Call Button
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    final phoneNumber = appointment['patient_phone'] ?? '';
+                    _makePhoneCall(phoneNumber);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                      color: AppColors.successGreen.withOpacity(0.5),
+                      width: 1.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  icon: Icon(
+                    Icons.phone,
+                    size: 18,
+                    color: AppColors.successGreen,
+                  ),
+                  label: Text(
+                    'Call',
+                    style: TextStyle(
+                      fontFamily: 'Lato',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.successGreen,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Message Button
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    final phoneNumber = appointment['patient_phone'] ?? '';
+                    _sendMessage(phoneNumber);
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                      color: Colors.blue.withOpacity(0.5),
+                      width: 1.5,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  icon: Icon(
+                    Icons.message,
+                    size: 18,
+                    color: Colors.blue,
+                  ),
+                  label: Text(
+                    'Message',
+                    style: TextStyle(
+                      fontFamily: 'Lato',
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
               Expanded(
                 child: OutlinedButton(
                   onPressed: () {
@@ -811,7 +882,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Contact: ${appointment['contactInfo']}',
+              'Phone: ${appointment['patient_phone'] ?? 'Not available'}',
               style: TextStyle(
                 fontFamily: 'OpenSans',
                 fontSize: 14,
@@ -820,7 +891,7 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Consultation Topic: ${appointment['topic']}',
+              'Consultation Topic: ${appointment['topic'] ?? 'General consultation'}',
               style: TextStyle(
                 fontFamily: 'OpenSans',
                 fontSize: 14,
@@ -916,5 +987,89 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
         ],
       ),
     );
+  }
+
+  // Launch phone call
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    if (phoneNumber.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Patient phone number not available'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final Uri launchUri = Uri(
+        scheme: 'tel',
+        path: phoneNumber,
+      );
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not launch phone app'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error making phone call: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to make call. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // Launch SMS app
+  Future<void> _sendMessage(String phoneNumber) async {
+    if (phoneNumber.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Patient phone number not available'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final Uri launchUri = Uri(
+        scheme: 'sms',
+        path: phoneNumber,
+      );
+      if (await canLaunchUrl(launchUri)) {
+        await launchUrl(launchUri);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Could not launch messaging app'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print('Error sending message: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to open messaging app. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

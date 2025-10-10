@@ -205,6 +205,11 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
           const SizedBox(height: 16),
           
           _buildRecentActivityList(),
+          
+          const SizedBox(height: 32),
+          
+          // Market Prices Management Section
+          _buildMarketPricesOverview(),
         ],
       ),
     );
@@ -531,5 +536,167 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
       default:
         return Icons.circle;
     }
+  }
+
+  Widget _buildMarketPricesOverview() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.successGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.trending_up,
+                      color: AppColors.successGreen,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  const Text(
+                    'Market Prices Management',
+                    style: TextStyle(
+                      fontFamily: AppConstants.headingFont,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.blackText,
+                    ),
+                  ),
+                ],
+              ),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/admin/manage-market-prices');
+                },
+                icon: const Icon(Icons.arrow_forward, size: 18),
+                label: const Text('Manage Prices'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.successGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Monitor and manage market prices from Quezon City for budget-aware meal planning and ML forecasting',
+            style: TextStyle(
+              fontFamily: AppConstants.primaryFont,
+              fontSize: 14,
+              color: AppColors.grayText,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _buildPriceOverviewCard(
+                  icon: Icons.inventory_2_outlined,
+                  title: 'Total Products',
+                  value: '50+',
+                  subtitle: 'Across 9 categories',
+                  color: AppColors.successGreen,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildPriceOverviewCard(
+                  icon: Icons.store_outlined,
+                  title: 'Active Markets',
+                  value: '8',
+                  subtitle: 'Quezon City markets',
+                  color: AppColors.primaryAccent,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildPriceOverviewCard(
+                  icon: Icons.update_outlined,
+                  title: 'Last Updated',
+                  value: 'Today',
+                  subtitle: 'Oct 8, 2025',
+                  color: AppColors.purpleAccent,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceOverviewCard({
+    required IconData icon,
+    required String title,
+    required String value,
+    required String subtitle,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 28),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: TextStyle(
+              fontFamily: AppConstants.headingFont,
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: const TextStyle(
+              fontFamily: AppConstants.primaryFont,
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.blackText,
+            ),
+          ),
+          Text(
+            subtitle,
+            style: const TextStyle(
+              fontFamily: AppConstants.primaryFont,
+              fontSize: 11,
+              color: AppColors.grayText,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
