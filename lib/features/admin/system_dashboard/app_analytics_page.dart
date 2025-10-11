@@ -540,7 +540,7 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
 
   Widget _buildMarketPricesOverview() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
@@ -555,8 +555,9 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          // Header section - responsive layout
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
@@ -573,35 +574,43 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const Text(
-                    'Market Prices Management',
-                    style: TextStyle(
-                      fontFamily: AppConstants.headingFont,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.blackText,
+                  const Expanded(
+                    child: Text(
+                      'Market Prices Management',
+                      style: TextStyle(
+                        fontFamily: AppConstants.headingFont,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.blackText,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/admin/manage-market-prices');
-                },
-                icon: const Icon(Icons.arrow_forward, size: 18),
-                label: const Text('Manage Prices'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.successGreen,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/admin/manage-market-prices');
+                  },
+                  icon: const Icon(Icons.arrow_forward, size: 18),
+                  label: const Text('Manage Prices'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.successGreen,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           const Text(
             'Monitor and manage market prices from Quezon City for budget-aware meal planning and ML forecasting',
             style: TextStyle(
@@ -610,39 +619,75 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
               color: AppColors.grayText,
             ),
           ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _buildPriceOverviewCard(
-                  icon: Icons.inventory_2_outlined,
-                  title: 'Total Products',
-                  value: '50+',
-                  subtitle: 'Across 9 categories',
-                  color: AppColors.successGreen,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildPriceOverviewCard(
-                  icon: Icons.store_outlined,
-                  title: 'Active Markets',
-                  value: '8',
-                  subtitle: 'Quezon City markets',
-                  color: AppColors.primaryAccent,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildPriceOverviewCard(
-                  icon: Icons.update_outlined,
-                  title: 'Last Updated',
-                  value: 'Today',
-                  subtitle: 'Oct 8, 2025',
-                  color: AppColors.purpleAccent,
-                ),
-              ),
-            ],
+          const SizedBox(height: 16),
+          // Cards section - responsive grid layout
+          LayoutBuilder(
+            builder: (context, constraints) {
+              // Use single column layout on very small screens
+              if (constraints.maxWidth < 400) {
+                return Column(
+                  children: [
+                    _buildPriceOverviewCard(
+                      icon: Icons.inventory_2_outlined,
+                      title: 'Total Products',
+                      value: '50+',
+                      subtitle: 'Across 9 categories',
+                      color: AppColors.successGreen,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildPriceOverviewCard(
+                      icon: Icons.store_outlined,
+                      title: 'Active Markets',
+                      value: '8',
+                      subtitle: 'Quezon City markets',
+                      color: AppColors.primaryAccent,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildPriceOverviewCard(
+                      icon: Icons.update_outlined,
+                      title: 'Last Updated',
+                      value: 'Today',
+                      subtitle: 'Oct 8, 2025',
+                      color: AppColors.purpleAccent,
+                    ),
+                  ],
+                );
+              }
+              // Use row layout for larger screens
+              return Row(
+                children: [
+                  Expanded(
+                    child: _buildPriceOverviewCard(
+                      icon: Icons.inventory_2_outlined,
+                      title: 'Total Products',
+                      value: '50+',
+                      subtitle: 'Across 9 categories',
+                      color: AppColors.successGreen,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildPriceOverviewCard(
+                      icon: Icons.store_outlined,
+                      title: 'Active Markets',
+                      value: '8',
+                      subtitle: 'Quezon City markets',
+                      color: AppColors.primaryAccent,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildPriceOverviewCard(
+                      icon: Icons.update_outlined,
+                      title: 'Last Updated',
+                      value: 'Today',
+                      subtitle: 'Oct 8, 2025',
+                      color: AppColors.purpleAccent,
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),
@@ -657,7 +702,7 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
     required Color color,
   }) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withOpacity(0.05),
         borderRadius: BorderRadius.circular(10),
@@ -666,34 +711,40 @@ class _AppAnalyticsPageState extends State<AppAnalyticsPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 28),
-          const SizedBox(height: 12),
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
           Text(
             value,
             style: TextStyle(
               fontFamily: AppConstants.headingFont,
-              fontSize: 24,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
               color: color,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 4),
           Text(
             title,
             style: const TextStyle(
               fontFamily: AppConstants.primaryFont,
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w600,
               color: AppColors.blackText,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
           Text(
             subtitle,
             style: const TextStyle(
               fontFamily: AppConstants.primaryFont,
-              fontSize: 11,
+              fontSize: 10,
               color: AppColors.grayText,
             ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
