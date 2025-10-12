@@ -10,6 +10,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../core_features/main_navigation_wrapper.dart';
 import '../professional/professional_navigation_wrapper.dart';
 import '../admin/admin_navigation_wrapper.dart';
+import '../profile_setup/name_entry_page.dart';
+import '../professional/setup/professional_name_entry_page.dart';
 
 class SignInPage extends StatefulWidget {
   const SignInPage({super.key});
@@ -421,9 +423,7 @@ class _SignInPageState extends State<SignInPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildSocialIcon(Icons.g_mobiledata, () {
-                        // TODO: Implement Google login
-                      }),
+                      _buildSocialIcon(Icons.g_mobiledata, _handleGoogleSignIn),
                       const SizedBox(width: 16),
                       _buildSocialIcon(Icons.facebook, () {
                         // TODO: Implement Facebook login
@@ -618,6 +618,138 @@ class _SignInPageState extends State<SignInPage> {
             _isLoading = false;
           });
         }
+      }
+    }
+  }
+
+  // Handle Google Sign-In
+  void _handleGoogleSignIn() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final authService = AuthService();
+      final userCredential = await authService.signInWithGoogle();
+
+      if (userCredential == null) {
+        // User cancelled the sign-in
+        setState(() {
+          _isLoading = false;
+        });
+        return;
+      }
+
+      if (userCredential.user != null) {
+        final userId = userCredential.user!.uid;
+        
+        // Check if user has completed profile setup
+        final hasProfile = await authService.hasCompletedProfile(userId);
+        
+        if (!hasProfile) {
+          // New Google user - redirect to profile setup
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Welcome! Please complete your profile setup.'),
+              backgroundColor: AppColors.successGreen,
+            ),
+          );
+          
+          // Navigate to appropriate profile setup based on login type
+          if (!mounted) return;
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => _isProfessionalLogin 
+                  ? const ProfessionalNameEntryPage()
+                  : const NameEntryPage(),
+            ),
+            (route) => false,
+          );
+          return;
+        }
+
+        // Existing user - check role and navigate
+        final userService = UserService();
+        final userData = await userService.getUser(userId);
+
+        if (userData != null) {
+          // Save remember me state
+          await PersistentAuthService.saveRememberMeState(
+            rememberMe: true,
+            email: userCredential.user!.email ?? '',
+            userRole: userData.role,
+          );
+
+          // Validate login type against user role
+          final userRole = userData.role;
+          final isUserProfessional = userRole == 'professional';
+          final isUserAdmin = userRole == 'admin';
+          final isUserRegular = userRole == 'user';
+          
+          if (_isProfessionalLogin && !isUserProfessional) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('This account is not registered as a professional. Please use regular login.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            await authService.signOut();
+            setState(() {
+              _isLoading = false;
+            });
+            return;
+          }
+          
+          if (!_isProfessionalLogin && !isUserRegular && !isUserAdmin) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('This is a professional account. Please use professional login.'),
+                backgroundColor: Colors.orange,
+              ),
+            );
+            await authService.signOut();
+            setState(() {
+              _isLoading = false;
+            });
+            return;
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Sign in successful!'),
+              backgroundColor: AppColors.successGreen,
+            ),
+          );
+
+          // Navigate based on role
+          Widget navigationWrapper;
+          if (isUserAdmin) {
+            navigationWrapper = const AdminNavigationWrapper();
+          } else if (isUserProfessional) {
+            navigationWrapper = const ProfessionalNavigationWrapper();
+          } else {
+            navigationWrapper = const MainNavigationWrapper();
+          }
+
+          if (!mounted) return;
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => navigationWrapper),
+            (route) => false,
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Google Sign-In failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
   }

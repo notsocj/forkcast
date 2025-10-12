@@ -1,9 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'analytics_service.dart';
 import 'user_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   Future<UserCredential> signUp(String email, String password) async {
     final userCredential = await _auth.createUserWithEmailAndPassword(email: email, password: password);
@@ -59,6 +61,90 @@ class AuthService {
 
   Future<void> signOut() async {
     await _auth.signOut();
+    await _googleSignIn.signOut();
+  }
+
+  // Google Sign-In method
+  Future<UserCredential?> signInWithGoogle() async {
+    try {
+      // Trigger the Google authentication flow
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      
+      // If user cancels the sign-in
+      if (googleUser == null) {
+        return null;
+      }
+
+      // Obtain the auth details from the request
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      // Create a new credential
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      // Sign in to Firebase with the Google credential
+      final userCredential = await _auth.signInWithCredential(credential);
+      
+      // Record login activity for analytics
+      if (userCredential.user != null) {
+        try {
+          await AnalyticsService.updateUserLastLogin(userCredential.user!.uid);
+          
+          // Check if user data exists in Firestore
+          final userService = UserService();
+          final userData = await userService.getUser(userCredential.user!.uid);
+          
+          if (userData != null) {
+            await AnalyticsService.recordUserActivity(
+              userId: userCredential.user!.uid,
+              userName: userData.fullName,
+              action: 'User login via Google',
+            );
+          }
+        } catch (e) {
+          print('Error recording Google login activity: $e');
+        }
+      }
+      
+      return userCredential;
+    } catch (e) {
+      print('Error signing in with Google: $e');
+      rethrow;
+    }
+  }
+
+  // Check if user has completed profile setup
+  Future<bool> hasCompletedProfile(String userId) async {
+    try {
+      final userService = UserService();
+      final userData = await userService.getUser(userId);
+      
+      // If user data doesn't exist or fullName is empty, profile is incomplete
+      if (userData == null || userData.fullName.isEmpty) {
+        return false;
+      }
+      
+      // Check if essential fields are filled
+      return userData.fullName.isNotEmpty && 
+             userData.email.isNotEmpty;
+    } catch (e) {
+      print('Error checking profile completion: $e');
+      return false;
+    }
+  }
+
+  // Get user role from Firestore
+  Future<String> getUserRole(String userId) async {
+    try {
+      final userService = UserService();
+      final userData = await userService.getUser(userId);
+      return userData?.role ?? 'user';
+    } catch (e) {
+      print('Error getting user role: $e');
+      return 'user';
+    }
   }
 
   // Change password functionality

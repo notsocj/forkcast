@@ -400,9 +400,7 @@ class _SignUpPageState extends State<SignUpPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      _buildSocialIcon(Icons.g_mobiledata, () {
-                        // TODO: Implement Google login
-                      }),
+                      _buildSocialIcon(Icons.g_mobiledata, _handleGoogleSignUp),
                       const SizedBox(width: 16),
                       _buildSocialIcon(Icons.facebook, () {
                         // TODO: Implement Facebook login
@@ -545,6 +543,99 @@ class _SignUpPageState extends State<SignUpPage> {
           ),
         );
       }
+    }
+  }
+
+  // Handle Google Sign-Up
+  void _handleGoogleSignUp() async {
+    try {
+      final authService = AuthService();
+      final userCredential = await authService.signInWithGoogle();
+
+      if (userCredential == null) {
+        // User cancelled the sign-in
+        return;
+      }
+
+      if (userCredential.user != null) {
+        final userId = userCredential.user!.uid;
+        final email = userCredential.user!.email ?? '';
+        
+        // Check if user already has a profile
+        final hasProfile = await authService.hasCompletedProfile(userId);
+        
+        if (hasProfile) {
+          // User already exists - navigate to appropriate dashboard
+          final userService = UserService();
+          final userData = await userService.getUser(userId);
+          
+          if (userData != null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Welcome back! Logging you in...'),
+                backgroundColor: AppColors.successGreen,
+              ),
+            );
+            
+            // Navigate based on role (handled by sign-in logic)
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const SignInPage()),
+            );
+            return;
+          }
+        }
+
+        // New user - create Firestore document and redirect to profile setup
+        final userService = UserService();
+        await userService.createUser(
+          userId: userId,
+          fullName: userCredential.user!.displayName ?? '', // Use Google display name
+          email: email,
+          passwordHash: '', // Google auth doesn't need password hash
+          gender: '',
+          birthdate: DateTime.now(),
+          heightCm: 0,
+          weightKg: 0,
+          householdSize: 1,
+          weeklyBudgetMin: 0,
+          weeklyBudgetMax: 0,
+          role: _isProfessionalSignup ? 'professional' : 'user',
+          specialization: _isProfessionalSignup ? 'Nutritionist' : null,
+          createdAt: DateTime.now(),
+          phoneNumber: null,
+        );
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_isProfessionalSignup 
+                ? 'Professional account created! Please complete your profile.' 
+                : 'Account created! Please complete your profile.'),
+            backgroundColor: AppColors.successGreen,
+          ),
+        );
+
+        // Navigate to appropriate setup flow based on user type
+        if (!mounted) return;
+        if (_isProfessionalSignup) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const ProfessionalNameEntryPage()),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const NameEntryPage()),
+          );
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Google Sign-Up failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }
