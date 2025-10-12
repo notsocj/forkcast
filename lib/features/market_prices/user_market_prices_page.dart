@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/constants.dart';
+import '../../services/market_price_service.dart';
+import '../../widgets/price_trend_chart.dart';
 
 class UserMarketPricesPage extends StatefulWidget {
   const UserMarketPricesPage({super.key});
@@ -12,6 +14,7 @@ class UserMarketPricesPage extends StatefulWidget {
 
 class _UserMarketPricesPageState extends State<UserMarketPricesPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final MarketPriceService _marketPriceService = MarketPriceService();
   
   // Track which categories are expanded
   final Map<String, bool> _expandedCategories = {};
@@ -22,45 +25,107 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
   bool _isLoading = true;
   String _searchQuery = '';
   
-  // Mock price alerts and trends data
-  final List<Map<String, dynamic>> _priceAlerts = [
-    {
-      'product': 'Galunggong, Local',
-      'change': '+8.3%',
-      'isIncrease': true,
-      'category': 'Fish',
-      'newPrice': 250.00,
-      'oldPrice': 230.00,
-    },
-    {
-      'product': 'Tomato',
-      'change': '-15.0%',
-      'isIncrease': false,
-      'category': 'Lowland Vegetables',
-      'newPrice': 45.00,
-      'oldPrice': 53.00,
-    },
-    {
-      'product': 'Chicken Egg, White Medium',
-      'change': '+5.2%',
-      'isIncrease': true,
-      'category': 'Livestock & Poultry',
-      'newPrice': 7.83,
-      'oldPrice': 7.44,
-    },
+  // AI Forecasting data
+  List<Map<String, dynamic>> _priceAlerts = [];
+  Map<String, List<Map<String, dynamic>>> _forecastData = {};
+  
+  // Category filtering for Trends and Alerts tabs
+  String _selectedCategory = 'All'; // 'All' or specific category
+  final List<String> _availableCategories = [
+    'All',
+    'corn',
+    'fish',
+    'fruits',
+    'livestock_and_poultry',
+    'rice',
+    'vegetables_highland',
+    'vegetables_lowland',
   ];
+  
+  // Cache for loaded categories to minimize Firebase reads
+  final Map<String, Map<String, List<Map<String, dynamic>>>> _categoryCache = {};
+  bool _isForecastLoading = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _initializeMarketPrices();
+    _loadForecastingData();
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadForecastingData() async {
+    setState(() {
+      _isForecastLoading = true;
+    });
+    
+    try {
+      // Check cache first to minimize Firebase reads
+      if (_categoryCache.isEmpty) {
+        // Initial load - load all categories at once
+        final forecasts = await _marketPriceService.getForecastedPrices();
+        _categoryCache['all'] = forecasts;
+        
+        setState(() {
+          _forecastData = forecasts;
+          _isForecastLoading = false;
+        });
+        
+        // Load top movers for alerts tab
+        await _loadTopMovers();
+      } else if (_selectedCategory == 'All') {
+        // Use cached data for 'All'
+        setState(() {
+          _forecastData = _categoryCache['all'] ?? {};
+          _isForecastLoading = false;
+        });
+      } else {
+        // Load specific category only if not cached
+        if (!_categoryCache.containsKey(_selectedCategory)) {
+          final categoryData = await _marketPriceService.getForecastsByCategory(_selectedCategory);
+          _categoryCache[_selectedCategory] = {_selectedCategory: categoryData};
+        }
+        
+        setState(() {
+          _forecastData = _categoryCache[_selectedCategory] ?? {};
+          _isForecastLoading = false;
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading forecasting data: $e');
+      setState(() {
+        _isForecastLoading = false;
+      });
+    }
+  }
+  
+  Future<void> _loadTopMovers() async {
+    try {
+      final topMovers = await _marketPriceService.getTopPriceMovers(limit: 15);
+      setState(() {
+        _priceAlerts = topMovers;
+      });
+    } catch (e) {
+      print('❌ Error loading top movers: $e');
+    }
+  }
+  
+  // Called when category filter changes
+  void _onCategoryChanged(String category) {
+    if (_selectedCategory == category) return;
+    
+    setState(() {
+      _selectedCategory = category;
+    });
+    
+    // Reload data for selected category
+    _loadForecastingData();
   }
 
   void _initializeMarketPrices() {
@@ -111,6 +176,15 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
 
   String _getCategoryDisplayName(String key) {
     final Map<String, String> displayNames = {
+      "All": "All Categories",
+      "corn": "Corn",
+      "fish": "Fish",
+      "fruits": "Fruits",
+      "livestock_and_poultry": "Livestock & Poultry",
+      "rice": "Rice",
+      "vegetables_highland": "Highland Vegetables",
+      "vegetables_lowland": "Lowland Vegetables",
+      // Legacy display names for Prices tab
       "LocalCommercialRice": "Local Commercial Rice",
       "LivestockAndPoultry": "Livestock & Poultry",
       "HighlandVegetables": "Highland Vegetables",
@@ -562,6 +636,80 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
   }
 
   Widget _buildTrendsTab() {
+    if (_isForecastLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(AppColors.successGreen),
+        ),
+      );
+    }
+    
+    if (_forecastData.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_off,
+              size: 64,
+              color: AppColors.grayText.withOpacity(0.5),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'No forecast data available',
+              style: TextStyle(
+                fontFamily: AppConstants.headingFont,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.grayText,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'AI forecasts will be generated weekly',
+              style: TextStyle(
+                fontFamily: AppConstants.primaryFont,
+                fontSize: 13,
+                color: AppColors.grayText,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Flatten forecasts based on selected category
+    final List<Map<String, dynamic>> displayForecasts = [];
+    
+    if (_selectedCategory == 'All') {
+      _forecastData.forEach((category, products) {
+        for (final product in products) {
+          displayForecasts.add({
+            ...product,
+            'category': category,
+          });
+        }
+      });
+    } else {
+      // Show only selected category
+      final categoryProducts = _forecastData[_selectedCategory] ?? [];
+      for (final product in categoryProducts) {
+        displayForecasts.add({
+          ...product,
+          'category': _selectedCategory,
+        });
+      }
+    }
+
+    // Sort by absolute price change and take top 10
+    displayForecasts.sort((a, b) {
+      final aChange = ((a['forecasted_price'] ?? 0.0) - (a['current_price'] ?? 0.0)).abs();
+      final bChange = ((b['forecasted_price'] ?? 0.0) - (b['current_price'] ?? 0.0)).abs();
+      return bChange.compareTo(aChange);
+    });
+
+    final topForecasts = displayForecasts.take(10).toList();
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -578,64 +726,91 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
           ),
           const SizedBox(height: 8),
           const Text(
-            'View historical price changes and 7-day forecasts',
+            'AI-powered 7-day price forecasts',
             style: TextStyle(
               fontFamily: AppConstants.primaryFont,
               fontSize: 14,
               color: AppColors.grayText,
             ),
           ),
+          const SizedBox(height: 16),
+          
+          // Category filter chips
+          _buildCategoryFilterChips(),
+          
           const SizedBox(height: 24),
           
-          _buildTrendCard(
-            'Galunggong, Local',
-            'Fish',
-            250.00,
-            268.00,
-            '+7.2%',
-            true,
-          ),
-          _buildTrendCard(
-            'Tomato',
-            'Lowland Vegetables',
-            45.00,
-            40.50,
-            '-10.0%',
-            false,
-          ),
-          _buildTrendCard(
-            'Pork Belly, Liempo',
-            'Livestock & Poultry',
-            396.67,
-            415.00,
-            '+4.6%',
-            true,
-          ),
-          _buildTrendCard(
-            'Mango, Carabao',
-            'Fruits',
-            190.00,
-            175.00,
-            '-7.9%',
-            false,
-          ),
+          // Display forecast charts
+          if (topForecasts.isEmpty)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.filter_list_off,
+                      size: 48,
+                      color: AppColors.grayText.withOpacity(0.5),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No forecasts for ${_getCategoryDisplayName(_selectedCategory)}',
+                      style: const TextStyle(
+                        fontFamily: AppConstants.primaryFont,
+                        fontSize: 14,
+                        color: AppColors.grayText,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ...topForecasts.map((forecast) {
+              final productName = forecast['product_name'] ?? 'Unknown Product';
+              final currentPrice = (forecast['current_price'] ?? 0.0).toDouble();
+              final forecastedPrice = (forecast['forecasted_price'] ?? 0.0).toDouble();
+              final trend = forecast['trend'] ?? 'stable';
+              
+              return PriceTrendChart(
+                productName: productName,
+                currentPrice: currentPrice,
+                forecastedPrice: forecastedPrice,
+                trend: trend,
+              );
+            }).toList(),
           
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: AppColors.primaryAccent.withOpacity(0.1),
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.successGreen.withOpacity(0.1),
+                  AppColors.primaryAccent.withOpacity(0.1),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppColors.primaryAccent.withOpacity(0.3),
+                color: AppColors.successGreen.withOpacity(0.3),
               ),
             ),
             child: Row(
               children: [
-                Icon(
-                  Icons.info_outline,
-                  color: AppColors.primaryAccent,
-                  size: 24,
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.successGreen.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.auto_awesome,
+                    color: AppColors.successGreen,
+                    size: 24,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -648,12 +823,12 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
                           fontFamily: AppConstants.headingFont,
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: AppColors.primaryAccent,
+                          color: AppColors.blackText,
                         ),
                       ),
                       SizedBox(height: 4),
                       Text(
-                        'Predictions are based on historical data and market trends',
+                        'Predictions based on 6 weeks of historical data and GPT-4 AI analysis',
                         style: TextStyle(
                           fontFamily: AppConstants.primaryFont,
                           fontSize: 11,
@@ -670,15 +845,177 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
       ),
     );
   }
+  
+  Widget _buildCategoryFilterChips() {
+    return SizedBox(
+      height: 40,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: _availableCategories.length,
+        itemBuilder: (context, index) {
+          final category = _availableCategories[index];
+          final isSelected = _selectedCategory == category;
+          
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: Text(
+                _getCategoryDisplayName(category),
+                style: TextStyle(
+                  fontFamily: AppConstants.primaryFont,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? AppColors.white : AppColors.blackText,
+                ),
+              ),
+              selected: isSelected,
+              onSelected: (selected) {
+                if (selected) {
+                  _onCategoryChanged(category);
+                }
+              },
+              selectedColor: AppColors.successGreen,
+              backgroundColor: AppColors.white,
+              checkmarkColor: AppColors.white,
+              side: BorderSide(
+                color: isSelected 
+                  ? AppColors.successGreen 
+                  : AppColors.grayText.withOpacity(0.3),
+                width: 1,
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
-  Widget _buildTrendCard(
-    String product,
-    String category,
-    double currentPrice,
-    double forecastPrice,
-    String changePercent,
-    bool isIncrease,
-  ) {
+  Widget _buildAlertsTab() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'Top Price Movers',
+                      style: TextStyle(
+                        fontFamily: AppConstants.headingFont,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.blackText,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text(
+                      'Products with biggest forecasted price changes',
+                      style: TextStyle(
+                        fontFamily: AppConstants.primaryFont,
+                        fontSize: 14,
+                        color: AppColors.grayText,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryAccent.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.trending_up,
+                  color: AppColors.primaryAccent,
+                  size: 24,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          
+          // Category filter chips
+          _buildCategoryFilterChips(),
+          
+          const SizedBox(height: 24),
+          
+          if (_isForecastLoading)
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(40),
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.successGreen),
+                ),
+              ),
+            )
+          else if (_getFilteredAlerts().isEmpty)
+            Center(
+              child: Column(
+                children: [
+                  const SizedBox(height: 40),
+                  Icon(
+                    Icons.filter_list_off,
+                    size: 64,
+                    color: AppColors.grayText.withOpacity(0.5),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    _priceAlerts.isEmpty ? 'No price movers yet' : 'No price movers for ${_getCategoryDisplayName(_selectedCategory)}',
+                    style: const TextStyle(
+                      fontFamily: AppConstants.headingFont,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.grayText,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'AI forecasts will be generated weekly',
+                    style: TextStyle(
+                      fontFamily: AppConstants.primaryFont,
+                      fontSize: 13,
+                      color: AppColors.grayText,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            )
+          else
+            ..._getFilteredAlerts().map((alert) => _buildAlertCard(alert)).toList(),
+        ],
+      ),
+    );
+  }
+  
+  List<Map<String, dynamic>> _getFilteredAlerts() {
+    if (_selectedCategory == 'All') {
+      return _priceAlerts;
+    }
+    
+    // Filter alerts by selected category
+    return _priceAlerts.where((alert) {
+      final category = alert['category'] as String? ?? '';
+      return category == _selectedCategory;
+    }).toList();
+  }
+
+  Widget _buildAlertCard(Map<String, dynamic> alert) {
+    final isIncrease = alert['isIncrease'] as bool? ?? false;
+    final percentChange = (alert['percent_change'] as num?)?.toDouble() ?? 0.0;
+    final currentPrice = (alert['current_price'] as num?)?.toDouble() ?? 0.0;
+    final forecastedPrice = (alert['forecasted_price'] as num?)?.toDouble() ?? 0.0;
+    final product = alert['product'] as String? ?? 'Unknown Product';
+    final category = alert['category'] as String? ?? '';
+    final confidence = alert['confidence'] as String? ?? 'medium';
+    
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -688,7 +1025,7 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
         border: Border.all(
           color: isIncrease 
             ? Colors.red.withOpacity(0.3) 
-            : AppColors.successGreen.withOpacity(0.3),
+            : Colors.blue.withOpacity(0.3),
           width: 1.5,
         ),
         boxShadow: [
@@ -700,10 +1037,24 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
         ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: isIncrease 
+                    ? Colors.red.withOpacity(0.1) 
+                    : Colors.blue.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  isIncrease ? Icons.trending_up : Icons.trending_down,
+                  color: isIncrease ? Colors.red : Colors.blue,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -716,293 +1067,147 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
                         fontWeight: FontWeight.bold,
                         color: AppColors.blackText,
                       ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      category,
-                      style: const TextStyle(
-                        fontFamily: AppConstants.primaryFont,
-                        fontSize: 12,
-                        color: AppColors.grayText,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            category,
+                            style: const TextStyle(
+                              fontFamily: AppConstants.primaryFont,
+                              fontSize: 12,
+                              color: AppColors.grayText,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: _getConfidenceColor(confidence).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            confidence.toUpperCase(),
+                            style: TextStyle(
+                              fontFamily: AppConstants.primaryFont,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              color: _getConfidenceColor(confidence),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 12),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: isIncrease 
                     ? Colors.red.withOpacity(0.1) 
-                    : AppColors.successGreen.withOpacity(0.1),
+                    : Colors.blue.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Row(
-                  children: [
-                    Icon(
-                      isIncrease ? Icons.trending_up : Icons.trending_down,
-                      size: 16,
-                      color: isIncrease ? Colors.red : AppColors.successGreen,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      changePercent,
-                      style: TextStyle(
-                        fontFamily: AppConstants.headingFont,
-                        fontSize: 13,
-                        fontWeight: FontWeight.bold,
-                        color: isIncrease ? Colors.red : AppColors.successGreen,
-                      ),
-                    ),
-                  ],
+                child: Text(
+                  '${isIncrease ? '+' : ''}${percentChange.toStringAsFixed(1)}%',
+                  style: TextStyle(
+                    fontFamily: AppConstants.headingFont,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: isIncrease ? Colors.red : Colors.blue,
+                  ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _buildPriceBox(
-                  'Current',
-                  currentPrice,
-                  AppColors.successGreen,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Icon(
-                Icons.arrow_forward,
-                color: AppColors.grayText,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildPriceBox(
-                  '7-Day Forecast',
-                  forecastPrice,
-                  isIncrease ? Colors.red : AppColors.successGreen,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPriceBox(String label, double price, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontFamily: AppConstants.primaryFont,
-              fontSize: 11,
-              color: AppColors.grayText,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            '₱${price.toStringAsFixed(2)}',
-            style: TextStyle(
-              fontFamily: AppConstants.headingFont,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAlertsTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Price Alerts',
-            style: TextStyle(
-              fontFamily: AppConstants.headingFont,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.blackText,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Significant price changes in the last 7 days',
-            style: TextStyle(
-              fontFamily: AppConstants.primaryFont,
-              fontSize: 14,
-              color: AppColors.grayText,
-            ),
-          ),
-          const SizedBox(height: 24),
-          
-          ..._priceAlerts.map((alert) => _buildAlertCard(alert)).toList(),
-          
-          if (_priceAlerts.isEmpty)
-            Center(
-              child: Column(
-                children: [
-                  const SizedBox(height: 40),
-                  Icon(
-                    Icons.notifications_off_outlined,
-                    size: 64,
-                    color: AppColors.grayText.withOpacity(0.5),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'No price alerts',
-                    style: TextStyle(
-                      fontFamily: AppConstants.headingFont,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.grayText,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'We\'ll notify you of significant price changes',
-                    style: TextStyle(
-                      fontFamily: AppConstants.primaryFont,
-                      fontSize: 13,
-                      color: AppColors.grayText,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAlertCard(Map<String, dynamic> alert) {
-    final isIncrease = alert['isIncrease'] as bool;
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isIncrease 
-            ? Colors.red.withOpacity(0.3) 
-            : AppColors.successGreen.withOpacity(0.3),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: isIncrease 
-                ? Colors.red.withOpacity(0.1) 
-                : AppColors.successGreen.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
+              color: AppColors.primaryBackground,
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              isIncrease ? Icons.arrow_upward : Icons.arrow_downward,
-              color: isIncrease ? Colors.red : AppColors.successGreen,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  alert['product'],
-                  style: const TextStyle(
-                    fontFamily: AppConstants.headingFont,
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.blackText,
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Current',
+                        style: TextStyle(
+                          fontFamily: AppConstants.primaryFont,
+                          fontSize: 10,
+                          color: AppColors.grayText,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '₱${currentPrice.toStringAsFixed(2)}',
+                        style: const TextStyle(
+                          fontFamily: AppConstants.headingFont,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.blackText,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  alert['category'],
-                  style: const TextStyle(
-                    fontFamily: AppConstants.primaryFont,
-                    fontSize: 12,
-                    color: AppColors.grayText,
-                  ),
+                Icon(
+                  Icons.arrow_forward,
+                  size: 16,
+                  color: AppColors.grayText,
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Text(
-                      '₱${alert['oldPrice'].toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontFamily: AppConstants.primaryFont,
-                        fontSize: 13,
-                        color: AppColors.grayText,
-                        decoration: TextDecoration.lineThrough,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      const Text(
+                        'Forecast',
+                        style: TextStyle(
+                          fontFamily: AppConstants.primaryFont,
+                          fontSize: 10,
+                          color: AppColors.grayText,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(
-                      Icons.arrow_forward,
-                      size: 12,
-                      color: AppColors.grayText,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      '₱${alert['newPrice'].toStringAsFixed(2)}',
-                      style: TextStyle(
-                        fontFamily: AppConstants.headingFont,
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: isIncrease ? Colors.red : AppColors.successGreen,
+                      const SizedBox(height: 4),
+                      Text(
+                        '₱${forecastedPrice.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontFamily: AppConstants.headingFont,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isIncrease ? Colors.red : Colors.blue,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: isIncrease 
-                ? Colors.red.withOpacity(0.1) 
-                : AppColors.successGreen.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Text(
-              alert['change'],
-              style: TextStyle(
-                fontFamily: AppConstants.headingFont,
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: isIncrease ? Colors.red : AppColors.successGreen,
-              ),
-            ),
-          ),
         ],
       ),
     );
+  }
+
+  Color _getConfidenceColor(String confidence) {
+    switch (confidence.toLowerCase()) {
+      case 'high':
+        return AppColors.successGreen;
+      case 'medium':
+        return Colors.orange;
+      case 'low':
+        return Colors.red;
+      default:
+        return AppColors.grayText;
+    }
   }
 }

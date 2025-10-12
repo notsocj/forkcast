@@ -9,6 +9,7 @@ class MarketPriceService {
   // Collection references
   CollectionReference get _marketPricesRef => _firestore.collection('market_prices');
   CollectionReference get _forecastModelsRef => _firestore.collection('forecast_models');
+  CollectionReference get _forecastedPricesRef => _firestore.collection('forecasted_market_prices');
 
   /// Get the latest price for a specific product
   /// Returns the market_prices document with the lowest recorded price
@@ -424,6 +425,249 @@ class MarketPriceService {
     } catch (e) {
       print('Error batch updating prices: $e');
       return false;
+    }
+  }
+
+  // ============================================================================
+  // AI FORECASTING METHODS
+  // ============================================================================
+
+  /// Get the next Monday date (forecast date)
+  /// If today is Monday, returns today. Otherwise returns the upcoming Monday.
+  DateTime _getNextMonday() {
+    final now = DateTime.now();
+    final currentWeekday = now.weekday; // Monday = 1, Tuesday = 2, ..., Sunday = 7
+    
+    // Calculate days until next Monday
+    // If today is Monday (1), daysToAdd = 0
+    // If today is Tuesday (2), daysToAdd = 6 (to next Monday)
+    // If today is Sunday (7), daysToAdd = 1 (to next Monday)
+    int daysToAdd;
+    if (currentWeekday == DateTime.monday) {
+      daysToAdd = 0; // Today is Monday
+    } else {
+      daysToAdd = (DateTime.monday - currentWeekday + 7) % 7;
+    }
+    
+    final nextMonday = now.add(Duration(days: daysToAdd));
+    return DateTime(nextMonday.year, nextMonday.month, nextMonday.day);
+  }
+
+  /// Get all forecasted prices for the next Monday
+  Future<Map<String, List<Map<String, dynamic>>>> getForecastedPrices() async {
+    try {
+      final nextMonday = _getNextMonday();
+      final dateStr = '${nextMonday.year}-${nextMonday.month.toString().padLeft(2, '0')}-${nextMonday.day.toString().padLeft(2, '0')}';
+      
+      print('🔍 DEBUG: Fetching forecasts for date: $dateStr');
+      
+      // NOTE: Parent document doesn't need to exist in Firestore for subcollections to exist
+      // We query subcollections directly
+      final Map<String, List<Map<String, dynamic>>> forecasts = {};
+      
+      // Categories from backend: livestock_and_poultry, rice, vegetables_highland, vegetables_lowland, fruits, fish, corn
+      final categories = ['livestock_and_poultry', 'rice', 'vegetables_highland', 'vegetables_lowland', 'fruits', 'fish', 'corn'];
+      
+      for (final category in categories) {
+        final categorySnapshot = await _forecastedPricesRef
+            .doc(dateStr)
+            .collection(category)
+            .get();
+        
+        print('🔍 DEBUG: Category "$category" has ${categorySnapshot.docs.length} products');
+        
+        if (categorySnapshot.docs.isNotEmpty) {
+          final products = categorySnapshot.docs.map((doc) {
+            final data = doc.data();
+            print('🔍 DEBUG: Product "${doc.id}" data: $data');
+            return {
+              'id': doc.id,
+              ...data,
+            };
+          }).toList();
+          
+          forecasts[category] = products;
+        }
+      }
+      
+      print('🔍 DEBUG: Total forecasts loaded: ${forecasts.length} categories');
+      return forecasts;
+    } catch (e) {
+      print('❌ ERROR getting forecasted prices: $e');
+      return {};
+    }
+  }
+
+  /// Get top price movers (products with highest % change) for alerts
+  Future<List<Map<String, dynamic>>> getTopPriceMovers({int limit = 10}) async {
+    try {
+      print('🔍 DEBUG: Starting getTopPriceMovers...');
+      final forecasts = await getForecastedPrices();
+      print('🔍 DEBUG: Forecasts loaded: ${forecasts.length} categories');
+      
+      final List<Map<String, dynamic>> movers = [];
+      
+      for (final categoryEntry in forecasts.entries) {
+        final category = categoryEntry.key;
+        final products = categoryEntry.value;
+        
+        print('🔍 DEBUG: Processing category "$category" with ${products.length} products');
+        
+        for (final product in products) {
+          print('🔍 DEBUG: Product data: $product');
+          
+          final productName = product['product_name'] as String?;
+          final forecastedPrice = (product['forecasted_price'] as num?)?.toDouble();
+          final trend = product['trend'] as String?;
+          
+          if (productName == null) {
+            print('⚠️ WARNING: Product has no product_name field, using id: ${product['id']}');
+            // Use document ID as product name if product_name field is missing
+            final idAsName = (product['id'] as String?)?.replaceAll('_', ' ').split(' ').map((word) => 
+              word.isEmpty ? '' : word[0].toUpperCase() + word.substring(1)
+            ).join(' ');
+            
+            if (idAsName == null || forecastedPrice == null) continue;
+            
+            product['product_name'] = idAsName;
+          }
+          
+          if (forecastedPrice == null) {
+            print('⚠️ WARNING: Product "${product['product_name']}" has no forecasted_price');
+            continue;
+          }
+          
+          // Get current price for comparison
+          final currentPriceData = await _findCurrentPrice(category, product['product_name'] as String);
+          if (currentPriceData == null) {
+            print('⚠️ WARNING: No current price found for "${product['product_name']}"');
+            continue;
+          }
+          
+          final currentPrice = currentPriceData['price_min'] as double;
+          final priceChange = forecastedPrice - currentPrice;
+          final percentChange = (priceChange / currentPrice) * 100;
+          
+          print('✅ Added mover: ${product['product_name']} - ${percentChange.toStringAsFixed(1)}% change');
+          
+          movers.add({
+            'product': product['product_name'],
+            'category': _formatCategoryName(category),
+            'current_price': currentPrice,
+            'forecasted_price': forecastedPrice,
+            'price_change': priceChange,
+            'percent_change': percentChange,
+            'trend': trend ?? 'stable',
+            'confidence': product['confidence'] ?? 'medium',
+            'isIncrease': percentChange > 0,
+          });
+        }
+      }
+      
+      print('🔍 DEBUG: Total movers found: ${movers.length}');
+      
+      // Sort by absolute percent change
+      movers.sort((a, b) => 
+        (b['percent_change'] as double).abs().compareTo((a['percent_change'] as double).abs())
+      );
+      
+      print('✅ Returning top ${limit} movers');
+      return movers.take(limit).toList();
+    } catch (e) {
+      print('❌ ERROR getting top price movers: $e');
+      return [];
+    }
+  }
+
+  /// Get forecasted prices for specific category
+  Future<List<Map<String, dynamic>>> getForecastsByCategory(String category) async {
+    try {
+      final nextMonday = _getNextMonday();
+      final dateStr = '${nextMonday.year}-${nextMonday.month.toString().padLeft(2, '0')}-${nextMonday.day.toString().padLeft(2, '0')}';
+      
+      final categorySnapshot = await _forecastedPricesRef
+          .doc(dateStr)
+          .collection(category)
+          .get();
+      
+      final List<Map<String, dynamic>> forecasts = [];
+      
+      for (final doc in categorySnapshot.docs) {
+        final data = doc.data();
+        final productName = data['product_name'] as String?;
+        final forecastedPrice = (data['forecasted_price'] as num?)?.toDouble();
+        
+        if (productName == null || forecastedPrice == null) continue;
+        
+        // Get current price for comparison
+        final currentPriceData = await _findCurrentPrice(category, productName);
+        
+        forecasts.add({
+          'id': doc.id,
+          'product_name': productName,
+          'forecasted_price': forecastedPrice,
+          'current_price': currentPriceData?['price_min'] ?? 0.0,
+          'trend': data['trend'] ?? 'stable',
+          'confidence': data['confidence'] ?? 'medium',
+          'forecast_date': data['forecast_date'] ?? dateStr,
+          'last_updated': data['last_updated'],
+          'model_version': data['model_version'],
+        });
+      }
+      
+      return forecasts;
+    } catch (e) {
+      print('Error getting forecasts by category: $e');
+      return [];
+    }
+  }
+
+  /// Helper: Find current price for a product in a category
+  Future<Map<String, dynamic>?> _findCurrentPrice(String category, String productName) async {
+    try {
+      final snapshot = await _marketPricesRef
+          .where('category', isEqualTo: _formatCategoryName(category))
+          .get();
+      
+      for (final doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final docProductName = data['product_name'] as String?;
+        
+        if (docProductName != null && 
+            docProductName.toLowerCase().contains(productName.toLowerCase())) {
+          return {
+            'id': doc.id,
+            ...data,
+          };
+        }
+      }
+      
+      return null;
+    } catch (e) {
+      print('Error finding current price: $e');
+      return null;
+    }
+  }
+
+  /// Helper: Format backend category names to display names
+  String _formatCategoryName(String category) {
+    switch (category) {
+      case 'livestock_and_poultry':
+        return 'Livestock & Poultry';
+      case 'vegetables_highland':
+        return 'Highland Vegetables';
+      case 'vegetables_lowland':
+        return 'Lowland Vegetables';
+      case 'rice':
+        return 'Rice';
+      case 'fruits':
+        return 'Fruits';
+      case 'fish':
+        return 'Fish';
+      case 'corn':
+        return 'Corn';
+      default:
+        return category;
     }
   }
 }
