@@ -28,6 +28,9 @@ class _QnaForumPageState extends State<QnaForumPage> {
   
   // Track view mode: 'all' or 'saved'
   String _viewMode = 'all';
+  
+  // Track search query
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -114,23 +117,44 @@ class _QnaForumPageState extends State<QnaForumPage> {
                                   
                                   final questions = snapshot.data ?? [];
                                   
-                                  if (questions.isEmpty) {
+                                  // Filter questions based on search query
+                                  final query = _searchQuery.toLowerCase();
+                                  final filteredQuestions = query.isEmpty
+                                      ? questions
+                                      : questions.where((question) {
+                                          final questionText = (question['question_text'] ?? '').toString().toLowerCase();
+                                          final userName = (question['user_name'] ?? '').toString().toLowerCase();
+                                          final specialization = (question['user_specialization'] ?? '').toString().toLowerCase();
+                                          final tags = (question['tags'] as List<dynamic>?) ?? const [];
+                                          final matchesTag = tags.any((tag) => tag.toString().toLowerCase().contains(query));
+                                          
+                                          return questionText.contains(query) || 
+                                                 userName.contains(query) || 
+                                                 specialization.contains(query) || 
+                                                 matchesTag;
+                                        }).toList();
+                                  
+                                  if (filteredQuestions.isEmpty) {
                                     return Center(
                                       child: Column(
                                         children: [
                                           const SizedBox(height: 40),
                                           Icon(
-                                            _viewMode == 'saved' 
-                                                ? Icons.bookmark_border 
-                                                : Icons.help_outline,
+                                            query.isEmpty
+                                                ? (_viewMode == 'saved' 
+                                                    ? Icons.bookmark_border 
+                                                    : Icons.help_outline)
+                                                : Icons.search_off,
                                             size: 64,
                                             color: AppColors.grayText,
                                           ),
                                           const SizedBox(height: 16),
                                           Text(
-                                            _viewMode == 'saved' 
-                                                ? 'No saved questions yet'
-                                                : 'No questions yet',
+                                            query.isEmpty
+                                                ? (_viewMode == 'saved' 
+                                                    ? 'No saved questions yet'
+                                                    : 'No questions yet')
+                                                : 'No questions found',
                                             style: TextStyle(
                                               fontFamily: 'Lato',
                                               fontSize: 16,
@@ -140,9 +164,11 @@ class _QnaForumPageState extends State<QnaForumPage> {
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
-                                            _viewMode == 'saved'
-                                                ? 'Save questions to view them here'
-                                                : 'Be the first to ask a question!',
+                                            query.isEmpty
+                                                ? (_viewMode == 'saved'
+                                                    ? 'Save questions to view them here'
+                                                    : 'Be the first to ask a question!')
+                                                : 'Try a different search term',
                                             style: TextStyle(
                                               fontFamily: 'OpenSans',
                                               fontSize: 14,
@@ -155,7 +181,7 @@ class _QnaForumPageState extends State<QnaForumPage> {
                                   }
                                   
                                   return Column(
-                                    children: questions.map((question) => 
+                                    children: filteredQuestions.map((question) => 
                                       _buildQuestionCard(question)
                                     ).toList(),
                                   );
@@ -272,6 +298,11 @@ class _QnaForumPageState extends State<QnaForumPage> {
                   ),
                   child: TextField(
                     controller: _searchController,
+                    onChanged: (value) {
+                      setState(() {
+                        _searchQuery = value.trim();
+                      });
+                    },
                     style: TextStyle(
                       fontFamily: 'OpenSans',
                       fontSize: 16,
@@ -297,7 +328,9 @@ class _QnaForumPageState extends State<QnaForumPage> {
                           ? GestureDetector(
                               onTap: () {
                                 _searchController.clear();
-                                setState(() {});
+                                setState(() {
+                                  _searchQuery = '';
+                                });
                               },
                               child: Container(
                                 padding: const EdgeInsets.all(12),
