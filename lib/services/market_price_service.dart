@@ -133,6 +133,108 @@ class MarketPriceService {
     }
   }
 
+  /// Update market price with market name change (handles document migration)
+  /// This method copies price history from old document to new document and deletes old one
+  Future<bool> updateMarketPriceWithMarketChange({
+    required String category,
+    required String productName,
+    required String oldMarketName,
+    required String newMarketName,
+    required String unit,
+    required double priceMin,
+    required String sourceType,
+    bool isImported = false,
+  }) async {
+    try {
+      final oldDocId = _createDocumentId(category, productName, oldMarketName);
+      final newDocId = _createDocumentId(category, productName, newMarketName);
+      final now = Timestamp.now();
+      
+      print('📦 Migrating document: $oldDocId → $newDocId');
+      
+      // Step 1: Get all price history from old document
+      final oldPriceHistory = await getPriceHistory(category, productName, oldMarketName, limit: 1000);
+      print('📜 Found ${oldPriceHistory.length} price history entries to migrate');
+      
+      // Step 2: Create new document with updated data
+      final newData = {
+        'category': category,
+        'product_name': productName,
+        'unit': unit,
+        'price_min': priceMin,
+        'market_name': newMarketName, // Use new market name
+        'collected_at': now,
+        'source_type': sourceType,
+        'is_imported': isImported,
+        'last_updated': now,
+      };
+      
+      await _marketPricesRef.doc(newDocId).set(newData, SetOptions(merge: true));
+      print('✅ Created new document with updated market name');
+      
+      // Step 3: Copy price history to new document (update market_name in each entry)
+      final batch = _firestore.batch();
+      for (final entry in oldPriceHistory) {
+        final dateId = entry['id'] as String;
+        final entryData = {
+          'date': entry['date'],
+          'price': entry['price'],
+          'market_name': newMarketName, // Update market name in history
+          'is_forecasted': entry['is_forecasted'] ?? false,
+          if (entry['model_version'] != null) 'model_version': entry['model_version'],
+          if (entry['forecast_confidence'] != null) 'forecast_confidence': entry['forecast_confidence'],
+        };
+        
+        final newHistoryRef = _marketPricesRef
+            .doc(newDocId)
+            .collection('price_history')
+            .doc(dateId);
+        
+        batch.set(newHistoryRef, entryData);
+      }
+      
+      await batch.commit();
+      print('✅ Migrated ${oldPriceHistory.length} price history entries');
+      
+      // Step 4: Add today's price to history (new entry)
+      await _addPriceHistory(newDocId, priceMin, newMarketName, false);
+      print('✅ Added today\'s price to history');
+      
+      // Step 5: Delete old document and its subcollections
+      await _deleteDocumentWithSubcollections(oldDocId);
+      print('🗑️ Deleted old document: $oldDocId');
+      
+      return true;
+    } catch (e) {
+      print('❌ Error updating market price with market change: $e');
+      return false;
+    }
+  }
+
+  /// Helper method to delete a document and all its subcollections
+  Future<void> _deleteDocumentWithSubcollections(String docId) async {
+    try {
+      // Delete all price_history entries
+      final historySnapshot = await _marketPricesRef
+          .doc(docId)
+          .collection('price_history')
+          .get();
+      
+      final batch = _firestore.batch();
+      for (final doc in historySnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+      
+      // Delete the parent document
+      batch.delete(_marketPricesRef.doc(docId));
+      
+      await batch.commit();
+    } catch (e) {
+      print('Error deleting document with subcollections: $e');
+      rethrow;
+    }
+  }
+
   /// Get price history for a specific product
   Future<List<Map<String, dynamic>>> getPriceHistory(
     String category,

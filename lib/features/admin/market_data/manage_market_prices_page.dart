@@ -569,6 +569,7 @@ class _ManageMarketPricesPageState extends State<ManageMarketPricesPage> {
 
   void _showEditDialog(String category, int index, Map<String, dynamic> product) {
     final priceController = TextEditingController(text: product['price'].toString());
+    final marketController = TextEditingController(text: product['market']);
     
     showDialog(
       context: context,
@@ -595,86 +596,107 @@ class _ManageMarketPricesPageState extends State<ManageMarketPricesPage> {
             ),
           ],
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              product['product'],
-              style: const TextStyle(
-                fontFamily: AppConstants.primaryFont,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              product['market'],
-              style: const TextStyle(
-                fontFamily: AppConstants.primaryFont,
-                fontSize: 13,
-                color: AppColors.grayText,
-              ),
-            ),
-            const SizedBox(height: 20),
-            TextField(
-              controller: priceController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
-              ],
-              decoration: InputDecoration(
-                labelText: 'New Price (₱)',
-                prefixText: '₱ ',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.successGreen, width: 2),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                product['product'],
+                style: const TextStyle(
+                  fontFamily: AppConstants.primaryFont,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.successGreen.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.successGreen.withOpacity(0.3)),
+              const SizedBox(height: 4),
+              Text(
+                'Current market: ${product['market']}',
+                style: const TextStyle(
+                  fontFamily: AppConstants.primaryFont,
+                  fontSize: 13,
+                  color: AppColors.grayText,
+                ),
               ),
-              child: Row(
-                children: [
-                  const Icon(Icons.info_outline, color: AppColors.successGreen, size: 20),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Price will be saved for today',
-                          style: TextStyle(
-                            fontFamily: AppConstants.primaryFont,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.successGreen,
-                          ),
-                        ),
-                        Text(
-                          DateFormat('MMMM d, yyyy').format(DateTime.now()),
-                          style: const TextStyle(
-                            fontFamily: AppConstants.primaryFont,
-                            fontSize: 11,
-                            color: AppColors.grayText,
-                          ),
-                        ),
-                      ],
-                    ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: marketController,
+                decoration: InputDecoration(
+                  labelText: 'Market Name',
+                  hintText: 'e.g., Galas City-Owned Market',
+                  prefixIcon: const Icon(Icons.store, color: AppColors.successGreen),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                ],
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.successGreen, width: 2),
+                  ),
+                  helperText: 'Update the source market for this price',
+                  helperStyle: const TextStyle(fontSize: 11),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 16),
+              TextField(
+                controller: priceController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'^\d+\.?\d{0,2}')),
+                ],
+                decoration: InputDecoration(
+                  labelText: 'New Price (₱)',
+                  prefixText: '₱ ',
+                  prefixIcon: const Icon(Icons.attach_money, color: AppColors.successGreen),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.successGreen, width: 2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.successGreen.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.successGreen.withOpacity(0.3)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: AppColors.successGreen, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Price will be saved for today',
+                            style: TextStyle(
+                              fontFamily: AppConstants.primaryFont,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.successGreen,
+                            ),
+                          ),
+                          Text(
+                            DateFormat('MMMM d, yyyy').format(DateTime.now()),
+                            style: const TextStyle(
+                              fontFamily: AppConstants.primaryFont,
+                              fontSize: 11,
+                              color: AppColors.grayText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
         actions: [
           TextButton(
@@ -684,14 +706,18 @@ class _ManageMarketPricesPageState extends State<ManageMarketPricesPage> {
           ElevatedButton(
             onPressed: () async {
               final newPrice = double.tryParse(priceController.text);
-              if (newPrice != null && newPrice > 0) {
+              final newMarket = marketController.text.trim();
+              final oldMarket = product['market'] as String; // Store old market name
+              
+              if (newPrice != null && newPrice > 0 && newMarket.isNotEmpty) {
                 // Update in local state
                 setState(() {
                   _marketPrices[category]![index]['price'] = newPrice;
+                  _marketPrices[category]![index]['market'] = newMarket;
                 });
                 
-                // Save to Firebase with today's date
-                await _savePriceToFirebase(category, product, newPrice);
+                // Save to Firebase with old and new market names
+                await _savePriceToFirebase(category, product, newPrice, newMarket, oldMarket);
                 
                 Navigator.pop(context);
                 
@@ -705,7 +731,7 @@ class _ManageMarketPricesPageState extends State<ManageMarketPricesPage> {
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(
-                    content: Text('Please enter a valid price'),
+                    content: Text('Please enter valid price and market name'),
                     backgroundColor: Colors.red,
                   ),
                 );
@@ -722,30 +748,48 @@ class _ManageMarketPricesPageState extends State<ManageMarketPricesPage> {
     );
   }
 
-  Future<void> _savePriceToFirebase(String category, Map<String, dynamic> product, double newPrice) async {
+  Future<void> _savePriceToFirebase(String category, Map<String, dynamic> product, double newPrice, String newMarket, String oldMarket) async {
     try {
       // Determine source type based on market name
       String sourceType = 'Public Market';
-      if (product['market'].toString().contains('City-Owned')) {
+      if (newMarket.contains('City-Owned')) {
         sourceType = 'City-Owned Market';
-      } else if (product['market'].toString().contains('Private')) {
+      } else if (newMarket.contains('Private')) {
         sourceType = 'Private Market';
       }
       
       // Check if it's imported (for rice)
       bool isImported = category == 'ImportedCommercialRice';
       
-      await _priceService.updateMarketPrice(
-        category: _getCategoryDisplayName(category),
-        productName: product['product'],
-        marketName: product['market'],
-        unit: product['unit'],
-        priceMin: newPrice,
-        sourceType: sourceType,
-        isImported: isImported,
-      );
+      // If market name changed, we need to handle document migration
+      if (oldMarket != newMarket) {
+        print('🔄 Market name changed: $oldMarket → $newMarket');
+        
+        // Update with new market name (creates new document if needed)
+        await _priceService.updateMarketPriceWithMarketChange(
+          category: _getCategoryDisplayName(category),
+          productName: product['product'],
+          oldMarketName: oldMarket,
+          newMarketName: newMarket,
+          unit: product['unit'],
+          priceMin: newPrice,
+          sourceType: sourceType,
+          isImported: isImported,
+        );
+      } else {
+        // Market name unchanged, just update price
+        await _priceService.updateMarketPrice(
+          category: _getCategoryDisplayName(category),
+          productName: product['product'],
+          marketName: newMarket,
+          unit: product['unit'],
+          priceMin: newPrice,
+          sourceType: sourceType,
+          isImported: isImported,
+        );
+      }
       
-      print('Price saved to Firebase for ${DateTime.now()}');
+      print('✅ Price saved to Firebase for ${DateTime.now()} at $newMarket');
     } catch (e) {
       print('Error saving price to Firebase: $e');
       ScaffoldMessenger.of(context).showSnackBar(
