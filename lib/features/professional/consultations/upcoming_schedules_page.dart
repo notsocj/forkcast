@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../services/professional_service.dart';
+import '../../../services/consultation_service.dart';
 
 // Add blackText color extension
 extension AppColorsExtension on AppColors {
@@ -18,10 +19,15 @@ class UpcomingSchedulesPage extends StatefulWidget {
 
 class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
   final ProfessionalService _professionalService = ProfessionalService();
+  final ConsultationService _consultationService = ConsultationService();
   List<Map<String, dynamic>> _upcomingAppointments = [];
   List<Map<String, dynamic>> _filteredAppointments = [];
   bool _isLoading = true;
   int _selectedFilterIndex = 0; // 0: All, 1: Today, 2: Week
+  
+  // Track active consultation session
+  String? _activeConsultationId;
+  DateTime? _sessionStartTime;
 
   @override
   void initState() {
@@ -33,7 +39,12 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
     setState(() => _isLoading = true);
     
     try {
-      _upcomingAppointments = await _professionalService.getUpcomingConsultations();
+      final allAppointments = await _professionalService.getUpcomingConsultations();
+      // Filter out completed consultations from upcoming list
+      _upcomingAppointments = allAppointments.where((appointment) {
+        final status = appointment['status'] as String?;
+        return status != 'Completed';
+      }).toList();
       _applyFilter();
     } catch (e) {
       print('Error loading upcoming schedules: $e');
@@ -565,19 +576,38 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
                           decoration: BoxDecoration(
                             color: appointment['status'] == 'Confirmed' 
                                 ? AppColors.successGreen.withOpacity(0.1)
-                                : Colors.amber.withOpacity(0.1),
+                                : appointment['status'] == 'In Progress'
+                                    ? Colors.blue.withOpacity(0.1)
+                                    : Colors.amber.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: Text(
-                            appointment['status'],
-                            style: TextStyle(
-                              fontFamily: 'OpenSans',
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: appointment['status'] == 'Confirmed' 
-                                  ? AppColors.successGreen
-                                  : Colors.amber.shade700,
-                            ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (appointment['status'] == 'In Progress')
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  margin: const EdgeInsets.only(right: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              Text(
+                                appointment['status'],
+                                style: TextStyle(
+                                  fontFamily: 'OpenSans',
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w600,
+                                  color: appointment['status'] == 'Confirmed' 
+                                      ? AppColors.successGreen
+                                      : appointment['status'] == 'In Progress'
+                                          ? Colors.blue.shade700
+                                          : Colors.amber.shade700,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -765,19 +795,36 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
                     _startConsultation(appointment);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.successGreen,
+                    backgroundColor: appointment['status'] == 'In Progress' 
+                        ? Colors.orange 
+                        : AppColors.successGreen,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: Text(
-                    'Start Session',
-                    style: TextStyle(
-                      fontFamily: 'Lato',
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.white,
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        appointment['status'] == 'In Progress' 
+                            ? Icons.stop_circle 
+                            : Icons.play_arrow,
+                        color: AppColors.white,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        appointment['status'] == 'In Progress' 
+                            ? 'End Session' 
+                            : 'Start Session',
+                        style: TextStyle(
+                          fontFamily: 'Lato',
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.white,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -926,26 +973,149 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
   }
 
   void _startConsultation(Map<String, dynamic> appointment) {
+    final consultationId = appointment['id'];
+    final currentStatus = appointment['status'];
+    
+    // Check if this is already in progress
+    if (currentStatus == 'In Progress') {
+      // Show end session dialog
+      _showEndSessionDialog(appointment);
+      return;
+    }
+    
+    // Show start session confirmation
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
-        title: Text(
-          'Start Consultation',
-          style: TextStyle(
-            fontFamily: 'Lato',
-            fontWeight: FontWeight.bold,
-            color: AppColors.blackText,
-          ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.successGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.video_call,
+                color: AppColors.successGreen,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Start Consultation',
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.blackText,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
         ),
-        content: Text(
-          'Starting consultation with ${appointment['patient_name'] ?? 'patient'}. You will be connected shortly.',
-          style: TextStyle(
-            fontFamily: 'OpenSans',
-            color: AppColors.grayText,
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'You are about to start a consultation session with:',
+              style: TextStyle(
+                fontFamily: 'OpenSans',
+                color: AppColors.grayText,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primaryBackground,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.person,
+                        size: 16,
+                        color: AppColors.successGreen,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        appointment['patient_name'] ?? 'Unknown Patient',
+                        style: TextStyle(
+                          fontFamily: 'Lato',
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.blackText,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.topic,
+                        size: 16,
+                        color: AppColors.grayText,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          appointment['topic'] ?? 'General consultation',
+                          style: TextStyle(
+                            fontFamily: 'OpenSans',
+                            color: AppColors.grayText,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: Colors.blue.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'The session will be marked as "In Progress" and you can end it when consultation is complete.',
+                      style: TextStyle(
+                        fontFamily: 'OpenSans',
+                        fontSize: 12,
+                        color: Colors.blue.shade700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
@@ -955,28 +1125,28 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
               style: TextStyle(
                 fontFamily: 'OpenSans',
                 color: AppColors.grayText,
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
-          ElevatedButton(
-            onPressed: () {
+          ElevatedButton.icon(
+            onPressed: () async {
               Navigator.pop(context);
-              // TODO: Integrate with video call functionality
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Starting consultation with ${appointment['patientName']}...',
-                    style: TextStyle(color: AppColors.white),
-                  ),
-                  backgroundColor: AppColors.successGreen,
-                ),
-              );
+              await _handleStartSession(consultationId);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.successGreen,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
             ),
-            child: Text(
-              'Connect',
+            icon: Icon(
+              Icons.play_arrow,
+              color: AppColors.white,
+              size: 18,
+            ),
+            label: Text(
+              'Start Session',
               style: TextStyle(
                 fontFamily: 'Lato',
                 fontWeight: FontWeight.w600,
@@ -987,6 +1157,430 @@ class _UpcomingSchedulesPageState extends State<UpcomingSchedulesPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _handleStartSession(String consultationId) async {
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(
+                  color: AppColors.successGreen,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Starting session...',
+                  style: TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 14,
+                    color: AppColors.blackText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Update consultation status to "In Progress"
+      await _consultationService.updateConsultationStatus(
+        consultationId,
+        'In Progress',
+      );
+
+      // Track active session
+      setState(() {
+        _activeConsultationId = consultationId;
+        _sessionStartTime = DateTime.now();
+      });
+
+      // Reload data
+      await _loadUpcomingSchedules();
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: AppColors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Consultation session started successfully',
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      color: AppColors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.successGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error starting session: $e');
+      
+      // Close loading dialog if open
+      if (mounted) Navigator.pop(context);
+      
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error_outline, color: AppColors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Failed to start session. Please try again.',
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      color: AppColors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showEndSessionDialog(Map<String, dynamic> appointment) {
+    final consultationId = appointment['id'];
+    final sessionDuration = _calculateSessionDuration();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.stop_circle,
+                color: Colors.orange,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'End Consultation',
+                style: TextStyle(
+                  fontFamily: 'Lato',
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.blackText,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Are you sure you want to end this consultation session?',
+              style: TextStyle(
+                fontFamily: 'OpenSans',
+                color: AppColors.grayText,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.primaryBackground,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.person,
+                        size: 16,
+                        color: AppColors.successGreen,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        appointment['patient_name'] ?? 'Unknown Patient',
+                        style: TextStyle(
+                          fontFamily: 'Lato',
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.blackText,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (sessionDuration != null) ...[
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.timer,
+                          size: 16,
+                          color: AppColors.grayText,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Session Duration: $sessionDuration',
+                          style: TextStyle(
+                            fontFamily: 'OpenSans',
+                            color: AppColors.grayText,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.successGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: AppColors.successGreen.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_outline,
+                    color: AppColors.successGreen,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'This consultation will be marked as "Completed".',
+                      style: TextStyle(
+                        fontFamily: 'OpenSans',
+                        fontSize: 12,
+                        color: AppColors.successGreen,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Continue Session',
+              style: TextStyle(
+                fontFamily: 'OpenSans',
+                color: AppColors.grayText,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _handleEndSession(consultationId);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            icon: Icon(
+              Icons.stop,
+              color: AppColors.white,
+              size: 18,
+            ),
+            label: Text(
+              'End Session',
+              style: TextStyle(
+                fontFamily: 'Lato',
+                fontWeight: FontWeight.w600,
+                color: AppColors.white,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String? _calculateSessionDuration() {
+    if (_sessionStartTime == null) return null;
+    
+    final duration = DateTime.now().difference(_sessionStartTime!);
+    final hours = duration.inHours;
+    final minutes = duration.inMinutes.remainder(60);
+    
+    if (hours > 0) {
+      return '$hours hr ${minutes} min';
+    } else {
+      return '$minutes min';
+    }
+  }
+
+  Future<void> _handleEndSession(String consultationId) async {
+    try {
+      // Show loading
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(
+                  color: AppColors.successGreen,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Ending session...',
+                  style: TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 14,
+                    color: AppColors.blackText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Update consultation status to "Completed"
+      await _consultationService.updateConsultationStatus(
+        consultationId,
+        'Completed',
+      );
+
+      // Clear active session tracking
+      setState(() {
+        _activeConsultationId = null;
+        _sessionStartTime = null;
+      });
+
+      // Reload data
+      await _loadUpcomingSchedules();
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: AppColors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Consultation completed successfully',
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      color: AppColors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.successGreen,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      print('Error ending session: $e');
+      
+      // Close loading dialog if open
+      if (mounted) Navigator.pop(context);
+      
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error_outline, color: AppColors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Failed to end session. Please try again.',
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      color: AppColors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   // Launch phone call
