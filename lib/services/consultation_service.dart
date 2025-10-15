@@ -84,11 +84,13 @@ class ConsultationService {
             data['professional_name'] = professionalData['full_name'] ?? 'Unknown Professional';
             data['professional_specialization'] = professionalData['specialization'] ?? 'Specialist';
             data['professional_fee'] = professionalData['consultation_fee'] ?? 0;
+            data['professional_phone'] = professionalData['phone_number'] ?? '';
           }
         } catch (e) {
           print('ConsultationService: Error fetching professional data: $e');
           data['professional_name'] = 'Unknown Professional';
           data['professional_specialization'] = 'Specialist';
+          data['professional_phone'] = '';
         }
         
         // Format consultation date

@@ -29,6 +29,9 @@ class UserManagementService {
       // Apply status filter (based on account_status field)
       if (statusFilter != null && statusFilter != 'All') {
         query = query.where('account_status', isEqualTo: statusFilter.toLowerCase());
+      } else {
+        // By default, exclude deleted users
+        query = query.where('account_status', whereIn: ['active', 'suspended', 'pending']);
       }
 
       // Apply search query (name or email)
@@ -246,17 +249,57 @@ class UserManagementService {
   /// Delete user account (soft delete by setting status)
   static Future<bool> deleteUser(String userId) async {
     try {
-      await _firestore.collection('users').doc(userId).update({
-        'account_status': 'deleted',
-        'deleted_at': FieldValue.serverTimestamp(),
-        'updated_at': FieldValue.serverTimestamp(),
-      });
-
-      // Record admin activity
+      // Option 1: Soft delete (mark as deleted but keep in database)
+      // Option 2: Hard delete (completely remove from database)
+      
+      // Using hard delete for complete removal
+      // First delete all subcollections
+      final userRef = _firestore.collection('users').doc(userId);
+      
+      // Delete health_conditions subcollection
+      final healthConditions = await userRef.collection('health_conditions').get();
+      for (var doc in healthConditions.docs) {
+        await doc.reference.delete();
+      }
+      
+      // Delete meal_plans subcollection
+      final mealPlans = await userRef.collection('meal_plans').get();
+      for (var doc in mealPlans.docs) {
+        await doc.reference.delete();
+      }
+      
+      // Delete teleconsultations subcollection
+      final teleconsultations = await userRef.collection('teleconsultations').get();
+      for (var doc in teleconsultations.docs) {
+        await doc.reference.delete();
+      }
+      
+      // Delete qna_questions subcollection
+      final qnaQuestions = await userRef.collection('qna_questions').get();
+      for (var doc in qnaQuestions.docs) {
+        await doc.reference.delete();
+      }
+      
+      // Delete saved_questions subcollection
+      final savedQuestions = await userRef.collection('saved_questions').get();
+      for (var doc in savedQuestions.docs) {
+        await doc.reference.delete();
+      }
+      
+      // Delete availability subcollection (for professionals)
+      final availability = await userRef.collection('availability').get();
+      for (var doc in availability.docs) {
+        await doc.reference.delete();
+      }
+      
+      // Record admin activity before deleting user document
       await _recordAdminActivity(
         action: 'User account deleted',
         targetUserId: userId,
       );
+      
+      // Finally, delete the user document itself
+      await userRef.delete();
 
       return true;
     } catch (e) {

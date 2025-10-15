@@ -959,6 +959,7 @@ class _BookConsultationPageState extends State<BookConsultationPage>
     // Extract professional data properly from the Firebase response
     final professionalName = appointment['professional_name'] ?? 'Professional';
     final specialization = appointment['professional_specialization'] ?? 'Specialist';
+    final professionalPhone = appointment['professional_phone'] ?? appointment['professional_contact'] ?? '';
     final consultationDate = appointment['formatted_date'] ?? appointment['consultation_date']?.toString() ?? 'Not scheduled';
     final consultationTime = appointment['consultation_time'] ?? 'Not set';
     final status = appointment['status'] ?? 'Scheduled';
@@ -1045,8 +1046,12 @@ class _BookConsultationPageState extends State<BookConsultationPage>
                     color: AppColors.successGreen,
                     size: 20,
                   ),
-                  onPressed: () => _makePhoneCall(professionalName),
-                  tooltip: 'Call $professionalName',
+                  onPressed: professionalPhone.isNotEmpty 
+                      ? () => _makePhoneCall(professionalPhone)
+                      : null,
+                  tooltip: professionalPhone.isNotEmpty 
+                      ? 'Call $professionalName' 
+                      : 'No phone number available',
                 ),
               ),
             ],
@@ -1215,6 +1220,8 @@ class _BookConsultationPageState extends State<BookConsultationPage>
   }
 
   void _showCancelDialog(Map<String, dynamic> appointment) {
+    final professionalName = appointment['professional_name'] ?? 'this professional';
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1232,7 +1239,7 @@ class _BookConsultationPageState extends State<BookConsultationPage>
             ),
           ),
           content: Text(
-            'Are you sure you want to cancel your appointment with ${appointment['professionalName']}?',
+            'Are you sure you want to cancel your appointment with $professionalName?',
             style: TextStyle(
               fontFamily: 'OpenSans',
               fontSize: 14,
