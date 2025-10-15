@@ -78,29 +78,27 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     return totalCalories;
   }
 
-  /// Calculate Energy Intake percentage based on family needs
-  /// Formula: (Plan kcal ÷ Family Need) × 100
-  /// Family Need = 2000 kcal × household_size
+  /// Calculate Energy Intake percentage for individual user
+  /// Formula: (Plan kcal ÷ Daily Need) × 100
+  /// Daily Need = 2000 kcal per person (FNRI/DOST PDRI standard)
   Map<String, dynamic> _getEnergyIntakeData() {
-    final householdSize = _currentUser?.householdSize ?? 1;
-    final familyNeed = 2000 * householdSize; // FNRI/DOST PDRI standard
+    final dailyNeed = 2000; // FNRI/DOST PDRI standard for 1 person
     final planKcal = _getTotalCaloriesToday();
-    final percentage = familyNeed > 0 ? ((planKcal / familyNeed) * 100).round() : 0;
+    final percentage = dailyNeed > 0 ? ((planKcal / dailyNeed) * 100).round() : 0;
     
     return {
       'planKcal': planKcal,
-      'familyNeed': familyNeed,
+      'familyNeed': dailyNeed,
       'percentage': percentage,
-      'display': '$planKcal / ${familyNeed.toStringAsFixed(0)} kcal ($percentage%)'
+      'display': '$planKcal / ${dailyNeed.toStringAsFixed(0)} kcal ($percentage%)'
     };
   }
 
-  /// Calculate Nutrition Score based on FNRI nutrient requirements
+  /// Calculate Nutrition Score based on FNRI nutrient requirements for individual user
   /// Formula: Average of all nutrient coverage percentages (capped at 100%)
   Map<String, dynamic> _getNutritionScoreData() {
     if (_currentUser == null) return {'score': 0, 'rating': 'Unknown'};
     
-    final householdSize = _currentUser!.householdSize;
     final todayNutrients = _getTodayNutrients();
     
     // FNRI/PDRI daily requirements per person
@@ -112,7 +110,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       'fiber': 25.0, // g - recommended
     };
     
-    // Calculate family needs and coverage percentages
+    // Calculate individual coverage percentages
     List<double> coveragePercentages = [];
     
     // Energy coverage (separate calculation)
@@ -142,16 +140,16 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       }
     }
     
-    // Calculate coverage for each nutrient
-    final familyProteinNeed = dailyRequirements['protein']! * householdSize;
-    final proteinCoverage = ((totalProtein / familyProteinNeed) * 100).clamp(0.0, 100.0);
+    // Calculate coverage for each nutrient (for 1 person)
+    final proteinNeed = dailyRequirements['protein']!;
+    final proteinCoverage = ((totalProtein / proteinNeed) * 100).clamp(0.0, 100.0);
     coveragePercentages.add(proteinCoverage);
     
     // Other nutrients (iron, calcium, vitamin C, fiber)
     for (String nutrient in ['iron', 'calcium', 'vitamin_c', 'fiber']) {
-      final familyNeed = dailyRequirements[nutrient]! * householdSize;
+      final dailyNeed = dailyRequirements[nutrient]!;
       final consumed = todayNutrients[nutrient] ?? 0.0;
-      final coverage = ((consumed / familyNeed) * 100).clamp(0.0, 100.0);
+      final coverage = ((consumed / dailyNeed) * 100).clamp(0.0, 100.0);
       coveragePercentages.add(coverage);
     }
     
@@ -398,7 +396,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
     };
   }
 
-  /// Get daily nutrient targets for key micronutrients and macronutrients
+  /// Get daily nutrient targets for key micronutrients and macronutrients for individual user
   Map<String, double> _getNutrientTargets() {
     if (_currentUser == null) {
       return {
@@ -413,12 +411,11 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
       };
     }
     
-    // Base on household size for family needs (2000 kcal per adult - FNRI/PDRI)
-    final householdSize = _currentUser!.householdSize;
-    double energyTarget = 2000.0 * householdSize;
+    // Base targets for 1 person (FNRI/PDRI standards)
+    double energyTarget = 2000.0; // kcal per person
     
     // Adjust targets based on user profile
-    double proteinTarget = 60.0 * householdSize; // ~1g per kg body weight
+    double proteinTarget = 60.0; // g - RDA for adults
     double vitaminCTarget = 65.0; // Base RDA
     double ironTarget = 8.0; // Base for males
     double calciumTarget = 1000.0; // Base for adults
@@ -922,7 +919,7 @@ class _UserDashboardPageState extends State<UserDashboardPage> {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const MainNavigationWrapper(initialTab: 2),
+                    builder: (context) => const MainNavigationWrapper(initialTab: 3),
                   ),
                 );
               },
