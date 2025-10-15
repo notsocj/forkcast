@@ -646,7 +646,13 @@ class MarketPriceService {
             continue;
           }
           
-          final currentPrice = currentPriceData['price_min'] as double;
+          // Convert to double safely (handles both int and double from Firebase)
+          final currentPrice = (currentPriceData['price_min'] as num?)?.toDouble();
+          if (currentPrice == null) {
+            print('⚠️ WARNING: Invalid price_min for "${product['product_name']}"');
+            continue;
+          }
+          
           final priceChange = forecastedPrice - currentPrice;
           final percentChange = (priceChange / currentPrice) * 100;
           
@@ -703,12 +709,13 @@ class MarketPriceService {
         
         // Get current price for comparison
         final currentPriceData = await _findCurrentPrice(category, productName);
+        final currentPrice = (currentPriceData?['price_min'] as num?)?.toDouble() ?? 0.0;
         
         forecasts.add({
           'id': doc.id,
           'product_name': productName,
           'forecasted_price': forecastedPrice,
-          'current_price': currentPriceData?['price_min'] ?? 0.0,
+          'current_price': currentPrice,
           'trend': data['trend'] ?? 'stable',
           'confidence': data['confidence'] ?? 'medium',
           'forecast_date': data['forecast_date'] ?? dateStr,

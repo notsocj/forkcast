@@ -45,6 +45,7 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
   // Cache for loaded categories to minimize Firebase reads
   final Map<String, Map<String, List<Map<String, dynamic>>>> _categoryCache = {};
   bool _isForecastLoading = false;
+  bool _isTopMoversLoading = false;
 
   @override
   void initState() {
@@ -52,6 +53,7 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
     _tabController = TabController(length: 3, vsync: this);
     _initializeMarketPrices();
     _loadForecastingData();
+    _loadTopMovers(); // Load top movers independently
   }
 
   @override
@@ -76,9 +78,6 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
           _forecastData = forecasts;
           _isForecastLoading = false;
         });
-        
-        // Load top movers for alerts tab
-        await _loadTopMovers();
       } else if (_selectedCategory == 'All') {
         // Use cached data for 'All'
         setState(() {
@@ -106,13 +105,23 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
   }
   
   Future<void> _loadTopMovers() async {
+    setState(() {
+      _isTopMoversLoading = true;
+    });
+    
     try {
+      print('🔍 Loading top movers...');
       final topMovers = await _marketPriceService.getTopPriceMovers(limit: 15);
+      print('✅ Top movers loaded: ${topMovers.length} items');
       setState(() {
         _priceAlerts = topMovers;
+        _isTopMoversLoading = false;
       });
     } catch (e) {
       print('❌ Error loading top movers: $e');
+      setState(() {
+        _isTopMoversLoading = false;
+      });
     }
   }
   
@@ -637,9 +646,28 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
 
   Widget _buildTrendsTab() {
     if (_isForecastLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.successGreen),
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(40),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.successGreen),
+                strokeWidth: 3,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Loading price forecasts...',
+                style: TextStyle(
+                  fontFamily: AppConstants.primaryFont,
+                  fontSize: 14,
+                  color: AppColors.grayText,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -945,12 +973,28 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
           
           const SizedBox(height: 24),
           
-          if (_isForecastLoading)
-            const Center(
+          // Loading state for top movers
+          if (_isTopMoversLoading)
+            Center(
               child: Padding(
-                padding: EdgeInsets.all(40),
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.successGreen),
+                padding: const EdgeInsets.all(40),
+                child: Column(
+                  children: [
+                    const CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(AppColors.successGreen),
+                      strokeWidth: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Loading price movers...',
+                      style: TextStyle(
+                        fontFamily: AppConstants.primaryFont,
+                        fontSize: 14,
+                        color: AppColors.grayText,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             )
