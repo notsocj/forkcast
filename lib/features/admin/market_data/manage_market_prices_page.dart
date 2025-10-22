@@ -27,103 +27,54 @@ class _ManageMarketPricesPageState extends State<ManageMarketPricesPage> {
   @override
   void initState() {
     super.initState();
-    _initializeMarketPrices();
+    _loadMarketPricesFromFirebase();
   }
 
-  void _initializeMarketPrices() {
-    // Initialize with the provided data
-    _marketPrices = {
-      "LocalCommercialRice": [
-        {"product": "Premium", "unit": "Kilogram", "price": 39.33, "market": "Galas City-Owned Market"},
-        {"product": "Regular Milled", "unit": "Kilogram", "price": 38.67, "market": "Roxas City-Owned Market"},
-        {"product": "Special", "unit": "Kilogram", "price": 47.33, "market": "Galas City-Owned Market"},
-        {"product": "Well-milled", "unit": "Kilogram", "price": 39.50, "market": "R.A Calalay City-Owned Market"}
-      ],
-      "LivestockAndPoultry": [
-        {"product": "Beef Brisket", "unit": "Kilogram", "price": 42.00, "market": "Kamuning City-Owned Market"},
-        {"product": "Beef Rump", "unit": "Kilogram", "price": 284.67, "market": "Galas City-Owned Market"},
-        {"product": "Chicken Egg, Brown Extra Large", "unit": "PC", "price": 9.38, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Chicken Egg, Brown Large", "unit": "PC", "price": 10.00, "market": "R.A Calalay City-Owned Market / Project 4 City-Owned Market (New)"},
-        {"product": "Chicken Egg, Brown Medium", "unit": "PC", "price": 10.67, "market": "R.A Calalay City-Owned Market"},
-        {"product": "Chicken Egg, White Extra Large", "unit": "PC", "price": 9.50, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Chicken Egg, White Extra Small", "unit": "PC", "price": 6.75, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Chicken Egg, White Jumbo", "unit": "PC", "price": 10.00, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Chicken Egg, White Large", "unit": "PC", "price": 8.25, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Chicken Egg, White Medium", "unit": "PC", "price": 7.83, "market": "Kamuning City-Owned Market"},
-        {"product": "Chicken Egg, White Pewee", "unit": "PC", "price": 8.00, "market": "Galas City-Owned Market"},
-        {"product": "Chicken Egg, White Small", "unit": "PC", "price": 7.00, "market": "R.A Calalay City-Owned Market"},
-        {"product": "Pork Belly, Liempo", "unit": "Kilogram", "price": 396.67, "market": "Murphy City-Owned Market"},
-        {"product": "Pork Ham, Kasim", "unit": "Kilogram", "price": 356.67, "market": "Murphy City-Owned Market"},
-        {"product": "Whole Chicken", "unit": "Kilogram", "price": 186.67, "market": "R.A Calalay City-Owned Market"}
-      ],
-      "HighlandVegetables": [
-        {"product": "Bell Pepper, Green", "unit": "Kilogram", "price": 120.00, "market": "Project 2 City-Owned Market"},
-        {"product": "Bell Pepper, Red", "unit": "Kilogram", "price": 120.00, "market": "Project 2 City-Owned Market"},
-        {"product": "Broccoli", "unit": "Kilogram", "price": 175.00, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Cabbage, Rare Ball", "unit": "Kilogram", "price": 135.00, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Cabbage, Scorpio", "unit": "Kilogram", "price": 90.00, "market": "Murphy City-Owned Market"},
-        {"product": "Cabbage, Wonder Ball", "unit": "Kilogram", "price": 90.00, "market": "Roxas City-Owned Market"},
-        {"product": "Carrot", "unit": "Kilogram", "price": 90.00, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Chayote", "unit": "Kilogram", "price": 86.67, "market": "R.A Calalay City-Owned Market / Kamuning City-Owned Market"},
-        {"product": "Habichuelas, Baguio Beans", "unit": "Kilogram", "price": 110.00, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Pechay, Baguio", "unit": "Kilogram", "price": 70.00, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "White, Potato", "unit": "Kilogram", "price": 96.67, "market": "R.A Calalay City-Owned Market"}
-      ],
-      "ImportedCommercialRice": [
-        {"product": "Premium", "unit": "Kilogram", "price": 46.00, "market": "Murphy City-Owned Market"},
-        {"product": "Regular Milled", "unit": "Kilogram", "price": 38.67, "market": "R.A Calalay City-Owned Market"},
-        {"product": "Special", "unit": "Kilogram", "price": 49.67, "market": "Kamuning City-Owned Market"},
-        {"product": "Well-Milled", "unit": "Kilogram", "price": 39.33, "market": "Kamuning City-Owned Market"}
-      ],
-      "Fish": [
-        {"product": "Alumahan", "unit": "Kilogram", "price": 300.00, "market": "Roxas City-Owned Market / Project 4 City-Owned Market (New)"},
-        {"product": "Bangus, Large", "unit": "Kilogram", "price": 210.00, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Bangus, Medium", "unit": "Kilogram", "price": 180.00, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Galunggong, Imported", "unit": "Kilogram", "price": 270.00, "market": "Galas City-Owned Market"},
-        {"product": "Galunggong, Local", "unit": "Kilogram", "price": 250.00, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Salmon Head", "unit": "Kilogram", "price": 206.67, "market": "R.A Calalay City-Owned Market"},
-        {"product": "Squid", "unit": "Kilogram", "price": 390.00, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Tamban", "unit": "Kilogram", "price": 145.00, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Tilapia", "unit": "Kilogram", "price": 140.00, "market": "R.A Calalay City-Owned Market"},
-        {"product": "Yellow-Fin Tuna, Tambakol", "unit": "Kilogram", "price": 250.00, "market": "Project 2 City-Owned Market"}
-      ],
-      "Corn": [
-        {"product": "Grits, Feed Grade", "unit": "Kilogram", "price": 47.00, "market": "Galas City-Owned Market"},
-        {"product": "White Glutinous", "unit": "Kilogram", "price": 75.00, "market": "Galas City-Owned Market"},
-        {"product": "White Grits, Food Grade", "unit": "Kilogram", "price": 52.00, "market": "Galas City-Owned Market"},
-        {"product": "Yellow Cracked, Feed Grade", "unit": "Kilogram", "price": 45.00, "market": "Galas City-Owned Market"},
-        {"product": "Yellow Grits, Food Grade", "unit": "Kilogram", "price": 50.00, "market": "Galas City-Owned Market"},
-        {"product": "Yellow Sweet", "unit": "Kilogram", "price": 56.67, "market": "R.A Calalay City-Owned Market"}
-      ],
-      "LowlandVegetables": [
-        {"product": "Ampalaya", "unit": "Kilogram", "price": 100.00, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Eggplant", "unit": "Kilogram", "price": 65.00, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Pechay Tagalog", "unit": "Kilogram", "price": 86.67, "market": "R.A Calalay City-Owned Market / Murphy City-Owned Market"},
-        {"product": "Squash", "unit": "Kilogram", "price": 42.50, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "String Beans", "unit": "Kilogram", "price": 36.67, "market": "R.A Calalay City-Owned Market"},
-        {"product": "Tomato", "unit": "Kilogram", "price": 45.00, "market": "Project 4 City-Owned Market (New)"}
-      ],
-      "Fruits": [
-        {"product": "Banana, Lakatan", "unit": "Kilogram", "price": 90.00, "market": "Project 2 City-Owned Market"},
-        {"product": "Banana, Latundan", "unit": "Kilogram", "price": 56.67, "market": "R.A Calalay City-Owned Market"},
-        {"product": "Calamansi", "unit": "Kilogram", "price": 56.67, "market": "R.A Calalay City-Owned Market"},
-        {"product": "Mango, Carabao", "unit": "Kilogram", "price": 190.00, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Papaya", "unit": "Kilogram", "price": 65.00, "market": "Project 2 City-Owned Market"}
-      ],
-      "OtherCommodities": [
-        {"product": "Coconut Oil - 350mL", "unit": "ML", "price": 46.50, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Coconut Oil 1L", "unit": "L", "price": 115.00, "market": "Project 4 City-Owned Market (New)"},
-        {"product": "Palm Oil - 1L", "unit": "L", "price": 72.00, "market": "Murphy City-Owned Market"},
-        {"product": "Palm Oil - 350mL", "unit": "ML", "price": 30.00, "market": "Murphy City-Owned Market"},
-        {"product": "Sugar Brown", "unit": "Kilogram", "price": 70.00, "market": "Kamuning City-Owned Market / Galas City-Owned Market"},
-        {"product": "Sugar Refined", "unit": "Kilogram", "price": 79.33, "market": "R.A Calalay City-Owned Market"},
-        {"product": "Sugar Washed", "unit": "Kilogram", "price": 73.33, "market": "Galas City-Owned Market"}
-      ]
-    };
-
-    setState(() {
-      _isLoading = false;
-    });
+  Future<void> _loadMarketPricesFromFirebase() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      // Get all categories from Firebase
+      final categories = await _priceService.getAllCategories();
+      
+      // Load prices for each category
+      Map<String, List<Map<String, dynamic>>> allPrices = {};
+      
+      for (String category in categories) {
+        final pricesStream = _priceService.getPricesByCategory(category);
+        final prices = await pricesStream.first;
+        
+        // Convert Firebase data to expected format
+        final formattedPrices = prices.map((priceData) {
+          return {
+            'product': priceData['product_name'] ?? '',
+            'unit': priceData['unit'] ?? '',
+            'price': (priceData['price_min'] as num?)?.toDouble() ?? 0.0,
+            'market': priceData['market_name'] ?? '',
+            'id': priceData['id'] ?? '',
+          };
+        }).toList();
+        
+        allPrices[category] = formattedPrices;
+      }
+      
+      setState(() {
+        _marketPrices = allPrices;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading market prices: $e');
+      setState(() => _isLoading = false);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load market prices: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   String _getCategoryDisplayName(String key) {
@@ -710,14 +661,11 @@ class _ManageMarketPricesPageState extends State<ManageMarketPricesPage> {
               final oldMarket = product['market'] as String; // Store old market name
               
               if (newPrice != null && newPrice > 0 && newMarket.isNotEmpty) {
-                // Update in local state
-                setState(() {
-                  _marketPrices[category]![index]['price'] = newPrice;
-                  _marketPrices[category]![index]['market'] = newMarket;
-                });
-                
                 // Save to Firebase with old and new market names
                 await _savePriceToFirebase(category, product, newPrice, newMarket, oldMarket);
+                
+                // Reload data from Firebase to get latest prices
+                await _loadMarketPricesFromFirebase();
                 
                 Navigator.pop(context);
                 

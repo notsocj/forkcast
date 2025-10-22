@@ -51,7 +51,7 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _initializeMarketPrices();
+    _loadMarketPricesFromFirebase();
     _loadForecastingData();
     _loadTopMovers(); // Load top movers independently
   }
@@ -137,50 +137,58 @@ class _UserMarketPricesPageState extends State<UserMarketPricesPage> with Single
     _loadForecastingData();
   }
 
-  void _initializeMarketPrices() {
-    // Initialize with sample data (matching admin page structure)
-    _marketPrices = {
-      "LocalCommercialRice": [
-        {"product": "Premium", "unit": "Kilogram", "price": 39.33, "market": "Galas City-Owned Market", "trend": "stable"},
-        {"product": "Regular Milled", "unit": "Kilogram", "price": 38.67, "market": "Roxas City-Owned Market", "trend": "down"},
-        {"product": "Special", "unit": "Kilogram", "price": 47.33, "market": "Galas City-Owned Market", "trend": "up"},
-        {"product": "Well-milled", "unit": "Kilogram", "price": 39.50, "market": "R.A Calalay City-Owned Market", "trend": "stable"},
-      ],
-      "LivestockAndPoultry": [
-        {"product": "Pork Belly, Liempo", "unit": "Kilogram", "price": 396.67, "market": "Murphy City-Owned Market", "trend": "up"},
-        {"product": "Pork Ham, Kasim", "unit": "Kilogram", "price": 356.67, "market": "Murphy City-Owned Market", "trend": "stable"},
-        {"product": "Whole Chicken", "unit": "Kilogram", "price": 186.67, "market": "R.A Calalay City-Owned Market", "trend": "down"},
-        {"product": "Chicken Egg, White Medium", "unit": "PC", "price": 7.83, "market": "Kamuning City-Owned Market", "trend": "up"},
-        {"product": "Beef Rump", "unit": "Kilogram", "price": 284.67, "market": "Galas City-Owned Market", "trend": "stable"},
-      ],
-      "Fish": [
-        {"product": "Tilapia", "unit": "Kilogram", "price": 140.00, "market": "R.A Calalay City-Owned Market", "trend": "stable"},
-        {"product": "Bangus, Large", "unit": "Kilogram", "price": 210.00, "market": "Project 4 City-Owned Market (New)", "trend": "up"},
-        {"product": "Galunggong, Local", "unit": "Kilogram", "price": 250.00, "market": "Project 4 City-Owned Market (New)", "trend": "up"},
-        {"product": "Alumahan", "unit": "Kilogram", "price": 300.00, "market": "Roxas City-Owned Market", "trend": "stable"},
-      ],
-      "Fruits": [
-        {"product": "Banana, Lakatan", "unit": "Kilogram", "price": 90.00, "market": "Project 2 City-Owned Market", "trend": "stable"},
-        {"product": "Banana, Latundan", "unit": "Kilogram", "price": 56.67, "market": "R.A Calalay City-Owned Market", "trend": "down"},
-        {"product": "Mango, Carabao", "unit": "Kilogram", "price": 190.00, "market": "Project 4 City-Owned Market (New)", "trend": "up"},
-        {"product": "Papaya", "unit": "Kilogram", "price": 65.00, "market": "Project 2 City-Owned Market", "trend": "stable"},
-      ],
-      "LowlandVegetables": [
-        {"product": "Ampalaya", "unit": "Kilogram", "price": 100.00, "market": "Project 4 City-Owned Market (New)", "trend": "stable"},
-        {"product": "Eggplant", "unit": "Kilogram", "price": 65.00, "market": "Project 4 City-Owned Market (New)", "trend": "down"},
-        {"product": "Tomato", "unit": "Kilogram", "price": 45.00, "market": "Project 4 City-Owned Market (New)", "trend": "down"},
-        {"product": "Squash", "unit": "Kilogram", "price": 42.50, "market": "Project 4 City-Owned Market (New)", "trend": "stable"},
-      ],
-      "OtherCommodities": [
-        {"product": "Coconut Oil 1L", "unit": "L", "price": 115.00, "market": "Project 4 City-Owned Market (New)", "trend": "up"},
-        {"product": "Palm Oil - 1L", "unit": "L", "price": 72.00, "market": "Murphy City-Owned Market", "trend": "stable"},
-        {"product": "Sugar Refined", "unit": "Kilogram", "price": 79.33, "market": "R.A Calalay City-Owned Market", "trend": "up"},
-      ],
-    };
-
-    setState(() {
-      _isLoading = false;
-    });
+  Future<void> _loadMarketPricesFromFirebase() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      // Get all categories from Firebase
+      final categories = await _marketPriceService.getAllCategories();
+      
+      // Load prices for each category
+      Map<String, List<Map<String, dynamic>>> allPrices = {};
+      
+      for (String category in categories) {
+        final pricesStream = _marketPriceService.getPricesByCategory(category);
+        final prices = await pricesStream.first;
+        
+        // Convert Firebase data to expected format with trend calculation
+        final formattedPrices = prices.map((priceData) {
+          // Calculate trend based on price history if available
+          String trend = 'stable'; // Default trend
+          
+          // TODO: Implement actual trend calculation from price_history
+          // For now, use default 'stable' trend
+          
+          return {
+            'product': priceData['product_name'] ?? '',
+            'unit': priceData['unit'] ?? '',
+            'price': (priceData['price_min'] as num?)?.toDouble() ?? 0.0,
+            'market': priceData['market_name'] ?? '',
+            'trend': trend,
+            'id': priceData['id'] ?? '',
+          };
+        }).toList();
+        
+        allPrices[category] = formattedPrices;
+      }
+      
+      setState(() {
+        _marketPrices = allPrices;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading market prices: $e');
+      setState(() => _isLoading = false);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to load market prices: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   String _getCategoryDisplayName(String key) {
