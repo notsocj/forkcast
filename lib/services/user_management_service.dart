@@ -27,11 +27,10 @@ class UserManagementService {
       }
 
       // Apply status filter (based on account_status field)
-      if (statusFilter != null && statusFilter != 'All') {
+      // Note: Don't apply both role and status filters to avoid needing composite index
+      // Filter by status on client side if role filter is already applied
+      if (statusFilter != null && statusFilter != 'All' && (roleFilter == null || roleFilter == 'All')) {
         query = query.where('account_status', isEqualTo: statusFilter.toLowerCase());
-      } else {
-        // By default, exclude deleted users
-        query = query.where('account_status', whereIn: ['active', 'suspended', 'pending']);
       }
 
       // Apply search query (name or email)
@@ -52,15 +51,35 @@ class UserManagementService {
 
       final snapshot = await query.get();
 
-      // Filter by search query on client side
+      // Filter on client side
       List<QueryDocumentSnapshot> filteredDocs = snapshot.docs;
+      
+      // Apply search query filter
       if (searchQuery != null && searchQuery.isNotEmpty) {
-        filteredDocs = snapshot.docs.where((doc) {
+        filteredDocs = filteredDocs.where((doc) {
           final data = doc.data() as Map<String, dynamic>;
           final name = (data['full_name'] ?? '').toString().toLowerCase();
           final email = (data['email'] ?? '').toString().toLowerCase();
           final search = searchQuery.toLowerCase();
           return name.contains(search) || email.contains(search);
+        }).toList();
+      }
+      
+      // Apply status filter on client side if role filter was applied
+      if (statusFilter != null && statusFilter != 'All' && roleFilter != null && roleFilter != 'All') {
+        filteredDocs = filteredDocs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final status = (data['account_status'] ?? 'active').toString().toLowerCase();
+          return status == statusFilter.toLowerCase();
+        }).toList();
+      }
+      
+      // Exclude deleted users by default (client-side filter)
+      if (statusFilter == null || statusFilter == 'All') {
+        filteredDocs = filteredDocs.where((doc) {
+          final data = doc.data() as Map<String, dynamic>;
+          final status = (data['account_status'] ?? 'active').toString().toLowerCase();
+          return status != 'deleted';
         }).toList();
       }
 

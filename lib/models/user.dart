@@ -25,6 +25,8 @@ class User {
   final bool? isVerified;
   final List<String>? healthConditions;
   final List<String>? foodAllergies;
+  final String? accountStatus;
+  final String? suspensionReason;
 
   User({
     this.id,
@@ -51,6 +53,8 @@ class User {
     this.isVerified,
     this.healthConditions,
     this.foodAllergies,
+    this.accountStatus,
+    this.suspensionReason,
   });
 
   // Factory constructor to create User from Firebase document
@@ -89,6 +93,8 @@ class User {
       foodAllergies: data['food_allergies'] != null
           ? List<String>.from(data['food_allergies'])
           : null,
+      accountStatus: data['account_status'],
+      suspensionReason: data['suspension_reason'],
     );
   }
 
@@ -127,6 +133,8 @@ class User {
       foodAllergies: data['food_allergies'] != null
           ? List<String>.from(data['food_allergies'])
           : null,
+      accountStatus: data['account_status'],
+      suspensionReason: data['suspension_reason'],
     );
   }
 
@@ -158,6 +166,8 @@ class User {
       if (isVerified != null) 'is_verified': isVerified,
       if (healthConditions != null) 'health_conditions': healthConditions,
       if (foodAllergies != null) 'food_allergies': foodAllergies,
+      if (accountStatus != null) 'account_status': accountStatus,
+      if (suspensionReason != null) 'suspension_reason': suspensionReason,
     };
   }
 
@@ -187,6 +197,8 @@ class User {
     bool? isVerified,
     List<String>? healthConditions,
     List<String>? foodAllergies,
+    String? accountStatus,
+    String? suspensionReason,
   }) {
     return User(
       id: id ?? this.id,
@@ -213,6 +225,8 @@ class User {
       isVerified: isVerified ?? this.isVerified,
       healthConditions: healthConditions ?? this.healthConditions,
       foodAllergies: foodAllergies ?? this.foodAllergies,
+      accountStatus: accountStatus ?? this.accountStatus,
+      suspensionReason: suspensionReason ?? this.suspensionReason,
     );
   }
 

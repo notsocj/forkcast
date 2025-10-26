@@ -516,6 +516,25 @@ class _SignInPageState extends State<SignInPage> {
           final userData = await userService.getUser(userCredential.user!.uid);
 
           if (userData != null) {
+            // Check if account is suspended
+            final accountStatus = userData.accountStatus ?? 'active';
+            if (accountStatus == 'suspended') {
+              final suspensionReason = userData.suspensionReason ?? 'Account suspended by admin';
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Account Suspended\n$suspensionReason'),
+                  backgroundColor: Colors.red,
+                  duration: const Duration(seconds: 5),
+                ),
+              );
+              setState(() {
+                _isLoading = false;
+              });
+              // Sign out the user
+              await authService.signOut();
+              return;
+            }
+
             // Save remember me state and credentials
             await PersistentAuthService.saveRememberMeState(
               rememberMe: _rememberMe,
@@ -548,6 +567,26 @@ class _SignInPageState extends State<SignInPage> {
                 _isLoading = false;
               });
               return;
+            }
+            
+            // Check if professional is verified
+            if (_isProfessionalLogin && isUserProfessional) {
+              final isVerified = userData.isVerified ?? false;
+              if (!isVerified) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('You are not yet verified. Please contact support.'),
+                    backgroundColor: Colors.orange,
+                    duration: Duration(seconds: 5),
+                  ),
+                );
+                setState(() {
+                  _isLoading = false;
+                });
+                // Sign out the unverified professional
+                await authService.signOut();
+                return;
+              }
             }
             
             // For user login, accept both 'user' and 'admin' roles
@@ -739,10 +778,22 @@ class _SignInPageState extends State<SignInPage> {
         }
       }
     } catch (e) {
+      String errorMessage = 'Google Sign-In failed';
+      
+      // Check for specific Google Sign-In client ID error
+      if (e.toString().contains('ClientID not set') || 
+          e.toString().contains('clientId') ||
+          e.toString().contains('google-signin-client_id')) {
+        errorMessage = 'Google Sign-In not configured for web.\nPlease use email/password login or check GOOGLE_SIGNIN_SETUP.md';
+      } else {
+        errorMessage = 'Google Sign-In failed: ${e.toString()}';
+      }
+      
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Google Sign-In failed: $e'),
-          backgroundColor: Colors.red,
+          content: Text(errorMessage),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 5),
         ),
       );
     } finally {
