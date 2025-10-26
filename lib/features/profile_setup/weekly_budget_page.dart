@@ -17,6 +17,9 @@ class _WeeklyBudgetPageState extends State<WeeklyBudgetPage> {
   final _formKey = GlobalKey<FormState>();
   final _budgetController = TextEditingController();
   
+  // Minimum allowed weekly budget (PHP)
+  static const int _minBudget = 500;
+  
   // Budget selection state
   bool _canContinue = false;
 
@@ -35,7 +38,13 @@ class _WeeklyBudgetPageState extends State<WeeklyBudgetPage> {
 
   void _updateContinueButton() {
     setState(() {
-      _canContinue = _budgetController.text.trim().isNotEmpty;
+      final text = _budgetController.text.trim();
+      if (text.isEmpty) {
+        _canContinue = false;
+      } else {
+        final val = int.tryParse(text) ?? 0;
+        _canContinue = val >= _minBudget;
+      }
     });
   }
 
@@ -122,7 +131,7 @@ class _WeeklyBudgetPageState extends State<WeeklyBudgetPage> {
                               IconButton(
                                 onPressed: () {
                                   final cur = double.tryParse(_budgetController.text) ?? 0;
-                                  final next = (cur - 50).clamp(0, 1000000);
+                                  final next = (cur - 50).clamp(_minBudget.toDouble(), 1000000);
                                   _budgetController.text = (next.round()).toString();
                                   _updateContinueButton();
                                 },
@@ -253,7 +262,7 @@ class _WeeklyBudgetPageState extends State<WeeklyBudgetPage> {
                               IconButton(
                                 onPressed: () {
                                   final cur = double.tryParse(_budgetController.text) ?? 0;
-                                  final next = (cur + 50).clamp(0, 1000000);
+                                  final next = (cur + 50).clamp(_minBudget.toDouble(), 1000000);
                                   _budgetController.text = (next.round()).toString();
                                   _updateContinueButton();
                                 },
@@ -307,6 +316,13 @@ class _WeeklyBudgetPageState extends State<WeeklyBudgetPage> {
       // Save weekly budget to profile setup provider
       final profileProvider = Provider.of<ProfileSetupProvider>(context, listen: false);
       final budget = int.tryParse(budgetValue) ?? 0;
+      // Enforce minimum budget
+      if (budget < _minBudget) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Weekly budget must be at least ₱$_minBudget')),
+        );
+        return;
+      }
       // For now, using the same value for min and max, but this could be enhanced
       // to allow separate min/max inputs in the future
       profileProvider.setWeeklyBudget(budget, budget);

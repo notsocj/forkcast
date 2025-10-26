@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../core/theme/app_colors.dart';
 import '../../services/professional_service.dart';
 import '../../services/consultation_service.dart';
@@ -1222,6 +1223,76 @@ class _BookConsultationPageState extends State<BookConsultationPage>
   void _showCancelDialog(Map<String, dynamic> appointment) {
     final professionalName = appointment['professional_name'] ?? 'this professional';
     
+    // Check if cancellation is allowed (no same-day cancellation)
+    final consultationDate = appointment['consultation_date'];
+    if (consultationDate is Timestamp) {
+      final appointmentDateTime = consultationDate.toDate();
+      final appointmentDateOnly = DateTime(appointmentDateTime.year, appointmentDateTime.month, appointmentDateTime.day);
+      final today = DateTime.now();
+      final todayOnly = DateTime(today.year, today.month, today.day);
+      
+      // If appointment is today, prevent cancellation
+      if (appointmentDateOnly.isAtSameMomentAs(todayOnly)) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                children: [
+                  Icon(Icons.info_outline, color: AppColors.primaryAccent, size: 28),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Cannot Cancel',
+                    style: TextStyle(
+                      fontFamily: 'Lato',
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.blackText,
+                    ),
+                  ),
+                ],
+              ),
+              content: Text(
+                'You cannot cancel an appointment on the same day. Please contact the professional directly if you need to reschedule.',
+                style: TextStyle(
+                  fontFamily: 'OpenSans',
+                  fontSize: 14,
+                  color: AppColors.grayText,
+                ),
+              ),
+              actions: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.successGreen,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    'OK',
+                    style: TextStyle(
+                      fontFamily: 'Lato',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.white,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+        return;
+      }
+    }
+    
+    // Show normal cancellation dialog if not same-day
     showDialog(
       context: context,
       builder: (BuildContext context) {

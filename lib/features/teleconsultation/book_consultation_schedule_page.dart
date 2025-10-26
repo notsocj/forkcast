@@ -17,7 +17,8 @@ class BookConsultationSchedulePage extends StatefulWidget {
 }
 
 class _BookConsultationSchedulePageState extends State<BookConsultationSchedulePage> {
-  DateTime selectedDate = DateTime.now();
+  // Initialize to tomorrow (minimum 1 day ahead booking)
+  DateTime selectedDate = DateTime.now().add(const Duration(days: 1));
   String? selectedTime;
   final TextEditingController _topicController = TextEditingController();
   final ConsultationService _consultationService = ConsultationService();
@@ -85,9 +86,10 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
     final today = DateTime.now();
     final dateOnly = DateTime(date.year, date.month, date.day);
     final todayOnly = DateTime(today.year, today.month, today.day);
+    final tomorrow = todayOnly.add(const Duration(days: 1));
     
-    // Date must be today or in the future
-    if (dateOnly.isBefore(todayOnly)) return false;
+    // Date must be tomorrow or later (no same-day booking)
+    if (dateOnly.isBefore(tomorrow)) return false;
     
     // Check if date is in available dates
     return _availableDates.any((availableDate) {
@@ -104,8 +106,9 @@ class _BookConsultationSchedulePageState extends State<BookConsultationScheduleP
 
   List<DateTime> _generateFutureDates(int days) {
     final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    return List.generate(days, (index) => today.add(Duration(days: index)));
+    final tomorrow = DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
+    // Generate dates starting from tomorrow (index 0 = tomorrow, not today)
+    return List.generate(days, (index) => tomorrow.add(Duration(days: index)));
   }
 
   Future<void> _loadAvailableTimeSlots() async {
