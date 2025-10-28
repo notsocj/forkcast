@@ -666,13 +666,18 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
                   ),
                   const SizedBox(height: 16),
                   // Recipe meta info
-                  Row(
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
                     children: [
                       _buildMetaChip(Icons.local_fire_department, '${recipe.kcal} kcal', AppColors.primaryAccent),
-                      const SizedBox(width: 12),
                       _buildMetaChip(Icons.access_time, '${recipe.prepTimeMinutes}min', AppColors.successGreen),
-                      const SizedBox(width: 12),
                       _buildMetaChip(Icons.star_outline, recipe.difficulty, AppColors.purpleAccent),
+                      _buildMetaChip(
+                        Icons.attach_money,
+                        recipe.averagePrice != null ? '₱${recipe.averagePrice!.toStringAsFixed(0)}' : '₱000',
+                        Colors.orange,
+                      ),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -816,6 +821,7 @@ class _MealSearchResultsPageState extends State<MealSearchResultsPage> {
       difficulty: recipe.difficulty,
       prepTimeMinutes: recipe.prepTimeMinutes,
       imageUrl: recipe.imageUrl,
+      averagePrice: recipe.averagePrice, // Pass through average price
     );
   }
 

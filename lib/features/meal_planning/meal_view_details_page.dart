@@ -104,6 +104,8 @@ class _MealViewDetailsPageState extends State<MealViewDetailsPage> {
                       _buildMealDescription(),
                       const SizedBox(height: 24),
                       _buildPaxSelector(),
+                      const SizedBox(height: 20),
+                      _buildPriceInfo(),
                       const SizedBox(height: 24),
                       _buildNutritionFacts(),
                       const SizedBox(height: 24),
@@ -406,6 +408,73 @@ class _MealViewDetailsPageState extends State<MealViewDetailsPage> {
               fontSize: 12,
               color: AppColors.grayText,
               fontStyle: FontStyle.italic,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPriceInfo() {
+    final averagePrice = widget.meal.averagePrice;
+    final totalPrice = averagePrice != null ? averagePrice * _userPax : null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Colors.orange.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.attach_money,
+            color: Colors.orange,
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Estimated Cost',
+                  style: TextStyle(
+                    fontFamily: 'Lato',
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.orange[700],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  totalPrice != null
+                      ? '₱${totalPrice.toStringAsFixed(2)} for $_userPax ${_userPax == 1 ? 'person' : 'people'}'
+                      : '₱000 (Price not set)',
+                  style: TextStyle(
+                    fontFamily: 'OpenSans',
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.blackText,
+                  ),
+                ),
+                if (averagePrice != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '₱${averagePrice.toStringAsFixed(2)} per person',
+                    style: TextStyle(
+                      fontFamily: 'OpenSans',
+                      fontSize: 12,
+                      color: AppColors.grayText,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ],

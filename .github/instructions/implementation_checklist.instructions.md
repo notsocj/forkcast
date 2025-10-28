@@ -231,6 +231,10 @@ applyTo: '**'
 - [x] **Meal Planner Features**
   - [x] **FNRI-Based Meals Data Structure** (`lib/data/predefined_meals.dart`) implemented
     - [x] `PredefinedMeal` class with comprehensive nutrition and recipe data integrated from FNRI research
+    - [x] **Average Price Field** - Added nullable `averagePrice` field to PredefinedMeal
+      - [x] Type: `double?` (nullable for backward compatibility with old recipes)
+      - [x] Represents average recipe cost in PHP currency
+      - [x] Used for budget-aware meal planning and cost estimation
     - [x] `HealthConditions` class with binary flags for 8 health conditions (diabetes, hypertension, obesity, underweight, heart_disease, anemia, osteoporosis, none)
     - [x] `MealTiming` class for meal-specific suitability (breakfast, lunch, dinner, snack)
     - [x] `MealIngredient` class for detailed ingredient information
@@ -380,6 +384,39 @@ applyTo: '**'
   - [x] Complete FNRI-powered navigation flow implemented (Meal Plan → AI Suggestions → Search Results → Recipe Detail → Nutrition Facts with PAX → Meal Logging)
   - [x] All meal planning pages updated to use FNRI research-based meals with health condition filtering
   - [x] AI-powered meal suggestions replace manual refresh functionality
+  - [x] **Recipe Average Price Feature** (Complete Implementation - Session 8)
+    - [x] **Recipe Model** (`lib/models/recipe.dart`)
+      - [x] Added `averagePrice` field (type: `double?`) to Recipe class
+      - [x] Updated `fromFirestore()` method with null-safe price deserialization
+      - [x] Updated `toFirestore()` method to save average_price field to Firebase
+      - [x] Backward compatibility maintained for old recipes without price data
+    - [x] **PredefinedMeal Model** (`lib/data/predefined_meals.dart`)
+      - [x] Added `averagePrice` field (type: `double?`) to PredefinedMeal class
+      - [x] Updated Recipe-to-PredefinedMeal conversion in meal_search_results_page.dart
+    - [x] **Admin Edit Recipe Form** (`lib/features/admin/content_management/edit_recipe_page.dart`)
+      - [x] Added `_averagePriceController` TextEditingController
+      - [x] Initialized controller with existing price data in edit mode
+      - [x] Added price input field in Basic Information section with PHP currency label
+      - [x] Validation: optional field, positive numbers only, decimal support
+      - [x] Updated `_saveRecipe()` method to include averagePrice in Recipe object
+      - [x] Proper controller disposal in `dispose()` method
+    - [x] **User Meal Search Results** (`lib/features/meal_planning/meal_search_results_page.dart`)
+      - [x] Added price display chip in recipe cards using `_buildMetaChip()`
+      - [x] Format: "₱{price}" for recipes with price, "₱000" placeholder for null prices
+      - [x] Color-coded with orange color for visual distinction
+      - [x] Positioned alongside calories, prep time, and difficulty chips
+    - [x] **User Meal View Details** (`lib/features/meal_planning/meal_view_details_page.dart`)
+      - [x] Created `_buildPriceInfo()` widget method for comprehensive price display
+      - [x] Shows total cost calculated as: `averagePrice × PAX`
+      - [x] Displays per-person cost when price is available
+      - [x] Shows "₱000 (Price not set)" placeholder when price is null
+      - [x] Orange-themed container with icon for visual consistency
+      - [x] Integrated into page layout between PAX selector and nutrition facts
+    - [x] **Firebase Schema Compliance**
+      - [x] Field name: `average_price` (snake_case for Firestore)
+      - [x] Type: number (double in Dart, stored as Firestore number)
+      - [x] Nullable: yes (backward compatibility for existing recipes)
+      - [x] Conditional save: only saved to Firestore when not null
   - [x] **Smart Suggestion Tracking System** - Date-aware meal suggestion memory
     - [x] PersonalizedMealService tracks suggested meals per day (not per session)
     - [x] Date tracking prevents showing same suggestions multiple times on same day

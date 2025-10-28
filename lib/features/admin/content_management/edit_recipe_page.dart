@@ -33,6 +33,7 @@ class _EditRecipePageState extends State<EditRecipePage> {
   late TextEditingController _prepTimeController;
   late TextEditingController _servingsController;
   late TextEditingController _kcalController;
+  late TextEditingController _averagePriceController; // Average price in PHP
 
   // Image
   String? _imageUrl;
@@ -88,6 +89,9 @@ class _EditRecipePageState extends State<EditRecipePage> {
     _prepTimeController = TextEditingController(text: recipe?.prepTimeMinutes.toString() ?? '');
     _servingsController = TextEditingController(text: recipe?.baseServings.toString() ?? '');
     _kcalController = TextEditingController(text: recipe?.kcal.toString() ?? '');
+    _averagePriceController = TextEditingController(
+      text: recipe?.averagePrice != null ? recipe!.averagePrice!.toStringAsFixed(2) : '',
+    );
 
     _imageUrl = recipe?.imageUrl;
     _selectedDifficulty = recipe?.difficulty ?? 'Easy';
@@ -142,6 +146,7 @@ class _EditRecipePageState extends State<EditRecipePage> {
     _prepTimeController.dispose();
     _servingsController.dispose();
     _kcalController.dispose();
+    _averagePriceController.dispose();
     _tagController.dispose();
     for (var ing in _ingredients) {
       ing['name']?.dispose();
@@ -275,6 +280,13 @@ class _EditRecipePageState extends State<EditRecipePage> {
         snack: _mealTiming['Snack'] ?? false,
       );
 
+      // Parse average price (optional)
+      double? averagePrice;
+      final priceText = _averagePriceController.text.trim();
+      if (priceText.isNotEmpty) {
+        averagePrice = double.tryParse(priceText);
+      }
+
       // Create recipe object
       final recipe = Recipe(
         id: widget.recipe?.id ?? '',
@@ -291,6 +303,7 @@ class _EditRecipePageState extends State<EditRecipePage> {
         tags: _tags,
         healthConditions: healthConditions,
         mealTiming: mealTiming,
+        averagePrice: averagePrice, // Add average price
         createdAt: widget.recipe?.createdAt ?? DateTime.now(),
       );
 
@@ -585,6 +598,23 @@ class _EditRecipePageState extends State<EditRecipePage> {
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 16),
+                        _buildTextField(
+                          controller: _averagePriceController,
+                          label: 'Average Price (₱)',
+                          hint: 'Enter average cost in PHP (e.g., 150.00)',
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          validator: (value) {
+                            // Optional field, but if provided must be valid
+                            if (value != null && value.trim().isNotEmpty) {
+                              final price = double.tryParse(value.trim());
+                              if (price == null || price < 0) {
+                                return 'Please enter a valid price';
+                              }
+                            }
+                            return null;
+                          },
                         ),
                         const SizedBox(height: 16),
                         _buildDropdownField(

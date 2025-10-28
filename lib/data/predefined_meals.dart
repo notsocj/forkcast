@@ -67,6 +67,7 @@ class PredefinedMeal {
   final String difficulty;
   final int prepTimeMinutes;
   final String imageUrl;
+  final double? averagePrice; // Average price in PHP, nullable for backward compatibility
 
   const PredefinedMeal({
     required this.id,
@@ -83,6 +84,7 @@ class PredefinedMeal {
     required this.difficulty,
     required this.prepTimeMinutes,
     required this.imageUrl,
+    this.averagePrice, // Optional parameter
   });
 }
 

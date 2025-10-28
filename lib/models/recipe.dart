@@ -167,6 +167,7 @@ class Recipe {
   final int prepTimeMinutes;
   final String imageUrl; // Asset path, not URL
   final DateTime createdAt;
+  final double? averagePrice; // Average price in PHP, nullable for old recipes
 
   const Recipe({
     required this.id,
@@ -184,6 +185,7 @@ class Recipe {
     required this.prepTimeMinutes,
     required this.imageUrl,
     required this.createdAt,
+    this.averagePrice,
   });
 
   /// Create from Firestore document (ingredients loaded separately)
@@ -211,6 +213,7 @@ class Recipe {
       prepTimeMinutes: data['prep_time_minutes'] ?? 30,
       imageUrl: data['image_url'] ?? '',
       createdAt: (data['created_at'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      averagePrice: data['average_price']?.toDouble(), // Nullable, defaults to null for old recipes
     );
   }
 
@@ -228,6 +231,7 @@ class Recipe {
       'prep_time_minutes': prepTimeMinutes,
       'image_url': imageUrl,
       'created_at': Timestamp.fromDate(createdAt),
+      if (averagePrice != null) 'average_price': averagePrice, // Only save if not null
       // Health conditions (spread operator)
       ...healthConditions.toFirestore(),
       // Meal timing (spread operator)

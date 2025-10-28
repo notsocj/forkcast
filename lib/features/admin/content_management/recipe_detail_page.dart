@@ -240,13 +240,20 @@ class _RecipeDetailPageState extends State<RecipeDetailPage> {
                                 const SizedBox(height: 12),
 
                                 // Quick Stats
-                                Row(
+                                Wrap(
+                                  spacing: 12,
+                                  runSpacing: 8,
                                   children: [
                                     _buildQuickStat(Icons.local_fire_department, '${_currentRecipe.kcal} kcal', AppColors.primaryAccent),
-                                    const SizedBox(width: 16),
                                     _buildQuickStat(Icons.access_time, '${_currentRecipe.prepTimeMinutes} min', AppColors.successGreen),
-                                    const SizedBox(width: 16),
                                     _buildQuickStat(Icons.restaurant, '${_currentRecipe.baseServings} servings', Colors.blue),
+                                    _buildQuickStat(
+                                      Icons.attach_money,
+                                      _currentRecipe.averagePrice != null 
+                                          ? '₱${_currentRecipe.averagePrice!.toStringAsFixed(2)}' 
+                                          : '₱000 (not set)',
+                                      Colors.orange,
+                                    ),
                                   ],
                                 ),
                                 const SizedBox(height: 16),
