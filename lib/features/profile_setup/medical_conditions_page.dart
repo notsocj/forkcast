@@ -26,40 +26,68 @@ class _MedicalConditionsPageState extends State<MedicalConditionsPage> {
 
   // Medical condition categories and specific conditions
   final Map<String, List<String>> _medicalConditions = {
-    'Cardiovascular Diseases': [
-      'Hypertension',
-      'Heart Attack',
+    'Non-Communicable Diseases - Cardiovascular Diseases (CVDs)': [
+      'Hypertension (High Blood Pressure)',
+      'Coronary Artery Disease (CAD)',
       'Stroke',
-      'Atherosclerosis',
       'Heart Failure',
+      'Peripheral Artery Disease (PAD)',
+      'Hypercholesterolemia (High Cholesterol)',
     ],
-    'Respiratory Diseases': [
+    'Non-Communicable Diseases - Chronic Respiratory Diseases (CRDs)': [
       'Asthma',
+      'Chronic Obstructive Pulmonary Disease (COPD)',
       'Chronic Bronchitis',
       'Emphysema',
-      'Pneumonia',
-      'Allergic Rhinitis',
+      'Bronchiectasis',
+      'Occupational Lung Diseases (Silicosis, Asbestosis)',
     ],
-    'Mental Health Disorders': [
-      'Depression',
-      'Anxiety Disorder',
-      'Bipolar Disorder',
-      'Stress-related Disorders',
-      'Sleep Disorders',
+    'Non-Communicable Diseases - Diabetes Mellitus': [
+      'Type 1 Diabetes',
+      'Type 2 Diabetes',
     ],
-    'Communicable Diseases': [
-      'Tuberculosis',
-      'Dengue Fever',
-      'Malaria',
-      'Pneumonia',
-      'Gastroenteritis',
+    'Non-Communicable Diseases - Chronic Kidney Diseases (CKD)': [
+      'Diabetic Kidney Disease',
+      'Hypertensive Nephropathy',
+      'Polycystic Kidney Disease',
     ],
-    'Non-Communicable Diseases': [
-      'Diabetes',
-      'Obesity',
+    'Non-Communicable Diseases - Musculoskeletal Disorders': [
+      'Osteoarthritis',
+      'Rheumatoid Arthritis',
       'Osteoporosis',
-      'Anemia',
-      'High Cholesterol',
+      'Gout',
+    ],
+    'Communicable Diseases - Respiratory Infections': [
+      'COVID-19',
+      'Pneumonia',
+      'Influenza (Flu)',
+      'Tuberculosis (TB)',
+    ],
+    'Communicable Diseases - Water- and Food-Borne Diseases': [
+      'Diarrheal Infections',
+      'Typhoid Fever',
+      'Amoebiasis',
+      'Cholera',
+      'Hepatitis A',
+      'Hepatitis E',
+    ],
+    'Dietary Conditions': [
+      'Malnutrition',
+      'Overweight',
+      'Underweight',
+      'Obesity',
+      'Obesity Class I',
+      'Obesity Class II',
+    ],
+    'Metabolic or Endocrine Disorders': [
+      'Hypothyroidism',
+      'Hyperthyroidism',
+    ],
+    'Digestive Disorders': [
+      'Acid Reflux / GERD',
+      'Irritable Bowel Syndrome (IBS)',
+      'Peptic Ulcer Disease',
+      'Lactose Intolerance',
     ],
   };
 
@@ -207,10 +235,13 @@ class _MedicalConditionsPageState extends State<MedicalConditionsPage> {
                                     category,
                                     style: TextStyle(
                                       fontFamily: AppConstants.primaryFont,
-                                      fontSize: 15,
+                                      fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       color: AppColors.blackText,
+                                      height: 1.3,
                                     ),
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               ],
@@ -334,6 +365,15 @@ class _MedicalConditionsPageState extends State<MedicalConditionsPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Get household size from provider
+    final provider = Provider.of<ProfileSetupProvider>(context, listen: false);
+    final householdSize = provider.householdSize;
+    
+    // Dynamic question based on household size
+    final questionText = householdSize > 1
+        ? "Does your family have any\nmedical conditions?"
+        : "Do you have any medical\nconditions?";
+    
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       appBar: AppBar(
@@ -377,10 +417,10 @@ class _MedicalConditionsPageState extends State<MedicalConditionsPage> {
                 children: <Widget>[
                   // Top spacing and title
                   const SizedBox(height: 40),
-                  const Text(
-                    "Do you have any medical\nconditions?",
+                  Text(
+                    questionText,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontFamily: AppConstants.headingFont,
                       fontWeight: FontWeight.bold,
                       fontSize: 28,
@@ -394,7 +434,8 @@ class _MedicalConditionsPageState extends State<MedicalConditionsPage> {
                   GestureDetector(
                     onTap: _openCategorySheet,
                     child: Container(
-                      width: 280,
+                      width: double.infinity,
+                      constraints: const BoxConstraints(maxWidth: 400),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
                       decoration: BoxDecoration(
                         color: AppColors.lightGray.withOpacity(0.3),
@@ -404,17 +445,22 @@ class _MedicalConditionsPageState extends State<MedicalConditionsPage> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            _selectedCategory ?? 'Select Category',
-                            style: TextStyle(
-                              fontFamily: AppConstants.primaryFont,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: _selectedCategory != null
-                                  ? AppColors.blackText
-                                  : AppColors.grayText,
+                          Expanded(
+                            child: Text(
+                              _selectedCategory ?? 'Select Category',
+                              style: TextStyle(
+                                fontFamily: AppConstants.primaryFont,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                                color: _selectedCategory != null
+                                    ? AppColors.blackText
+                                    : AppColors.grayText,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          const SizedBox(width: 8),
                           const Icon(
                             Icons.keyboard_arrow_down,
                             color: AppColors.grayText,
